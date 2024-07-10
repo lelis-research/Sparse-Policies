@@ -1,0 +1,16 @@
+seq_state_model_dict = {seq: [(state, model), (state2, model2), ...], seq2: [()], ...}
+
+
+
+Pseudo Code:
+
+models = Train_models()
+for model in models:
+    print trajectory, actions
+    # π1 = 102 001 120
+    # π2 = 001 001 120
+    add them to seq_state_model_dict
+
+print seq_state_model_dict
+
+# re-training phase
