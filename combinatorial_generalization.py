@@ -561,10 +561,12 @@ def combinatorial_generalization(approach):
         # print("states: ", trajectory.get_state_sequence(), " \n")
         # print("Trajectory: \n", trajectory.get_trajectory(), " \n")
 
-        problems_seq_dict[problem] = update_problem_seq_dict(problems_seq_dict[problem], rnn, trajectory)
-        # print(problems_seq_dict.keys(), " \n")
-        # print("######################################################### \n")
-        # we see that each sequence has been repeated 8 times
+        window_sizes = list(range(2, len(trajectory.get_trajectory())))
+        stride = 1
+
+        for ws in window_sizes:
+            problems_seq_dict[problem] = update_problem_seq_dict(problems_seq_dict[problem], rnn, trajectory, seq_len=ws, stride=stride)
+
 
 
     # Phase 2-1 (for test1): re-training the models with the sequences of actions
@@ -591,7 +593,7 @@ def combinatorial_generalization(approach):
 
 
     # test the options on each cell of the grid and see the output of each option for it
-    test2_each_cell_grid(options, problem_test2, game_width, label=approach)
+    # test2_each_cell_grid(options, problem_test2, game_width, label=approach)
 
 
 def main():
