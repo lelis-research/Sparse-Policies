@@ -569,7 +569,7 @@ def combinatorial_generalization(approach):
 
 
 
-    # Phase 2-1 (for test1): re-training the models with the sequences of actions
+    # Phase 2-1: re-training the models with the sequences of actions
     # options = [NN1, NN2, NN3, NN4]
     options = retrain_for_options(approach, copy.deepcopy(models), problems_seq_dict)
     # for idx in range(len(options)):
@@ -580,19 +580,18 @@ def combinatorial_generalization(approach):
     # super_option = retrain_super_option(approach, copy.deepcopy(models), problems_seq_dict)
 
 
-    print("!!!!!!!!!! Testing Phase !!!!!!!!!! \n")
-    # Phase 3: test the extracted options
+    # Phase 3 - Test 1-1: Test the extracted options
     test1_options_trajectories(models, problem_test1, game_width, label=approach + ": trajectory for model ")
     test1_options_trajectories(options, problem_test1, game_width, label=approach + ": trajectory for option ")
 
-    # test the super option
+    # Test 1-2: Test the super option with base model 0 on all problems
     # test1_options_trajectories([super_option], problems[0], game_width, label=approach + ": trajectory for problem 'TL-BR' for super option ", len_cap = 23)
     # test1_options_trajectories([super_option], problems[1], game_width, label=approach + ": trajectory for problem 'TR-BL' for super option ", len_cap = 23)
     # test1_options_trajectories([super_option], problems[2], game_width, label=approach + ": trajectory for problem 'BR-TL' for super option ", len_cap = 23)
     # test1_options_trajectories([super_option], problems[3], game_width, label=approach + ": trajectory for problem 'BL-TR' for super option ", len_cap = 23)
 
 
-    # test the options on each cell of the grid and see the output of each option for it
+    # Test 2: Test the options on each cell of the grid and see the output of each option for it
     # test2_each_cell_grid(options, problem_test2, game_width, label=approach)
 
 
