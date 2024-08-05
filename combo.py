@@ -2,17 +2,21 @@ import random
 import numpy as np
 
 class Game:
-    def __init__(self, rows, columns, problem):
+    def __init__(self, rows, columns, problem, init_x=None, init_y=None):
         self._rows = rows
         self._columns = columns
         self._matrix_unit = np.zeros((rows, columns))
         self._matrix_structure = np.zeros((rows, columns))
         self._matrix_goal = np.zeros((rows, columns))
+        self._x = init_x
+        self._y = init_y
 
         self._problem_1 = "TL-BR" # initial location at top-left and goal at bottom-right
         self._problem_2 = "TR-BL" # initial location at top-right and goal at bottom-left
         self._problem_3 = "BR-TL" # initial location at bottom-right and goal at top-left
         self._problem_4 = "BL-TR" # initial location at bottom-left and goal at top-right
+        self._problem_test1 = "Test1"
+        self._problem_test2 = "Test2"
 
         self._set_initial_goal(problem)
 
@@ -58,13 +62,58 @@ class Game:
 
             self._x = self._rows - 1
             self._y = 0
+        if problem == self._problem_test1:
+            self._matrix_unit[0][0] = 1
+            self._matrix_goal[self._rows - 1][self._columns - 1] = 1
+            self._x = 0
+            self._y = 0
 
-    def __repr__(self) -> str:
+            # self._matrix_unit[0][self._columns - 1] = 1
+            # self._x = 0
+            # self._y = self._columns - 1
+
+            # self._matrix_unit[self._rows - 1][self._columns - 1] = 1
+            # self._x = self._rows - 1
+            # self._y = self._columns - 1
+
+            # self._matrix_unit[self._rows - 1][0] = 1
+            # self._x = self._rows - 1
+            # self._y = 0
+
+        if problem == self._problem_test2:
+            self._matrix_unit[self._x][self._y] = 1
+
+
+    # def __repr__(self) -> str:
+    #     str_map = ""
+    #     for i in range(self._rows):
+    #         for j in range(self._columns):
+    #             if self._matrix_unit[i][j] == 1:
+    #                 str_map += " A "
+    #             elif self._matrix_structure[i][j] == 1:
+    #                  str_map += " B "
+    #             elif self._matrix_goal[i][j] == 1:
+    #                  str_map += " G "
+    #             else: 
+    #                  str_map += " 0 "
+    #         str_map += "\n"
+    #     return str_map
+    
+    def __repr__(self, option_idx) -> str:
         str_map = ""
         for i in range(self._rows):
             for j in range(self._columns):
                 if self._matrix_unit[i][j] == 1:
-                    str_map += " A "
+                    if option_idx == [0, 0, 1]:
+                        str_map += " U "
+                    elif option_idx == [0, 1, 2]:
+                        str_map += " D "
+                    elif option_idx == [2, 1, 0]:
+                        str_map += " L "
+                    elif option_idx == [1, 0, 2]:
+                        str_map += " R "
+                    else:
+                        str_map += " A "
                 elif self._matrix_structure[i][j] == 1:
                      str_map += " B "
                 elif self._matrix_goal[i][j] == 1:

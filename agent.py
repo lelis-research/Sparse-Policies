@@ -15,6 +15,12 @@ class Trajectory:
     
     def get_trajectory(self):
         return self._sequence
+    
+    def get_action_sequence(self):
+        return [a for _, a in self._sequence]
+    
+    def get_state_sequence(self):
+        return [s for s, _ in self._sequence]
 
 class RandomAgent:
     def run(self, env):
@@ -47,6 +53,7 @@ class PolicyGuidedAgent:
                 prob_actions, self._h = model(x_tensor, self._h)
             else:
                 prob_actions = model(x_tensor)
+                # print("prob actions: ", prob_actions)
             if greedy:
                 a = torch.argmax(prob_actions).item()
             else:

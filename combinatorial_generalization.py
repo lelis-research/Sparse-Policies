@@ -6,6 +6,8 @@ import torch
 from agent import PolicyGuidedAgent
 from combo import Game
 from model import CustomRelu
+from agent import Trajectory
+
 
 import numpy as np
 
@@ -402,23 +404,203 @@ def hill_climbing_mask_space_training_data_levin_loss():
         print(selected_options[i])
 
 
-def combinatorial_generalization():
-    hidden_size = 6
-    number_iterations = 3
-    game_width = 5
-    number_actions = 3
-    problems = ["TL-BR", "TR-BL", "BR-TL", "BL-TR"]
+def update_problem_seq_dict(seq_state_model_dict, model, trajectory, seq_len=3, stride=3):
+    """
+    This function updates the dictionary seq_state_model_dict with the information of a given trajectory.
 
+    The format is like:
+    problems_seq_dict = {
+        problem1: {seq: [state1, state2, ...], seq2: seq: [state1, state2, ...]},
+        problem2: {...},
+        ...
+    }
+    """
+    for i in range(0, len(trajectory.get_trajectory()) - seq_len + 1, stride):
+        seq = tuple(trajectory.get_action_sequence()[i:i+seq_len])
+        # print("seq: ", seq)
+
+        # TODO: should I keep track of different stages of model when the state is not changing as well?
+        state = trajectory.get_state_sequence()[i]
+        seq_state_model_dict[seq] = seq_state_model_dict.get(seq, []) + [state]
+        # print("seq_state_model_dict: ", seq_state_model_dict)
+
+    return seq_state_model_dict
+
+
+def create_trajectory(sequence_of_actions, states):
+    trajectory = Trajectory()
+    for action, state in zip(sequence_of_actions, states):
+        trajectory.add_pair(state, action)
+    return trajectory
+
+
+def retrain_for_options(approach, models, problems_seq_dict):
+    """
+    This function creates an option for each problem by retrainin the model of that problem 
+    on the similar sequences observed on that problem on other problems.
+
+    Returns the list of options (retrained models)
+    """
+    modified_models = copy.deepcopy(models)
+    problems_seq_cache = {problem: [] for problem in problems_seq_dict.keys()}
+    for model, problem, idx in zip(modified_models, problems_seq_dict.keys(), range(len(modified_models))):
+        for seq, states in problems_seq_dict[problem].items():
+            # compare each sequence with the sequences in other problems and retrain the current model on those.
+            if seq not in problems_seq_cache[problem]:
+                for other_problem in problems_seq_dict.keys():
+                    if other_problem != problem:
+                        # re-train this model with similar sequences of actions from other problems
+                        for seq_other, states_other in problems_seq_dict[other_problem].items():
+                            if seq == seq_other:
+                                problems_seq_cache[problem].append(seq)
+                                if approach == "freeze":
+                                    for _ in range(10):
+                                        loss = model.train_freeze(create_trajectory(seq_other, states_other))
+                                        # print("loss freeze", loss)
+                                elif approach == "whole":
+                                    for _ in range(10):
+                                        loss = model.train(create_trajectory(seq_other, states_other))
+                                        # print("loss", loss)
+
+                        modified_models[idx] = model
+    # print("PSC: ", problems_seq_cache)
+    return modified_models
+
+
+def retrain_super_option(approach, models, problems_seq_dict):
+    """
+    This function retrains an option (the first model) on all other models
+    """
+    super_option = models[0]
+    base_problem = "TL-BR" # because we are using the first model as the base of our super option
+    for problem in problems_seq_dict.keys():
+        if problem != base_problem: # it is already trained on the base_problem
+            for seq, states in problems_seq_dict[problem].items():
+                if approach == "freeze":
+                    for _ in range(10):
+                        loss = super_option.train_freeze(create_trajectory(seq, states))
+                elif approach == "whole":
+                    for _ in range(10):
+                        loss = super_option.train(create_trajectory(seq, states))
+
+    return super_option
+        
+
+def test1_options_trajectories(test_models, problem_test, game_width, label, len_cap = 23):
+    """
+    This test is to see if the options are able to mix the actions from the models that are trained on in the test environment
+    """
+    for model, idx in zip(test_models, range(len(test_models))):
+        print("\n",label, idx)
+        env = Game(game_width, game_width, problem_test)
+        agent = PolicyGuidedAgent()
+        trajectory = agent.run(env, model, greedy=True, length_cap=len_cap)
+
+        actions = trajectory.get_action_sequence()
+        for i in range(len(actions)):
+            if i % 3 == 0 and i != 0:
+                print(" - ", end="")
+            print(actions[i], end="")
+        
+    print("\n")
+
+
+def test2_each_cell_grid(test_models, problem_test, game_width, label):
+    """
+    This test is to see for each cell, options will give which sequence of actions
+    """
+    for model, idx in zip(test_models, range(len(test_models))):
+        print("\n",label, idx)
+        for i in range(game_width):
+            for j in range(game_width):    
+                env = Game(game_width, game_width, problem_test, init_x=i, init_y=j)
+                agent = PolicyGuidedAgent()
+                trajectory = agent.run(env, model, greedy=True, length_cap=2)
+
+                actions = trajectory.get_action_sequence()
+                print("Cell: (", i, j, ") , ", actions)
+                state = trajectory.get_state_sequence()[0]
+                print(state.__repr__(actions))
+
+            print("\n")
+        
+    print("#### ### ###\n")
+
+
+def combinatorial_generalization(approach):
+    """
+    In this function, in phase 1, we keep track of the sequences of actions and the models that generate them.
+    In the second phase, we re-train the models with the sequences of actions that occured in other problems.
+
+    Re-training is done with two different approaches:
+        Approach 1 (freeze): freeze the second layer and re-train the rest of the network
+        Approach 2 (whole): re-train the entire network
+    """
+
+    hidden_size = 6
+    game_width = 5
+    problems = ["TL-BR", "TR-BL", "BR-TL", "BL-TR"]
+    problem_test1 = "Test1"
+    problem_test2 = "Test2"
+    problems_seq_dict = {key: {} for key in problems}
+    models = []
+
+    rnn = CustomRelu(game_width**2 * 2 + 9, hidden_size, 3)
+
+
+    # Phase 1: keeping track of sequences of actions and the models that generate them
     trajectories = load_trajectories(problems, hidden_size, game_width)
     for problem, trajectory in trajectories.items():
+        rnn = CustomRelu(game_width**2 * 2 + 9, hidden_size, 3)
+        rnn.load_state_dict(torch.load('binary/game-width' + str(game_width) + '-' + problem + '-relu-' + str(hidden_size) + '-model.pth'))
+        models.append(rnn)
+
         print("Problem:", problem)
-        print("Trajectory: \n", trajectory.get_trajectory(), " \n")
+        print("actions: ", trajectory.get_action_sequence(), " \n")
+        # print(rnn.print_weights(), " \n")
+        # print("states: ", trajectory.get_state_sequence(), " \n")
+        # print("Trajectory: \n", trajectory.get_trajectory(), " \n")
+
+        problems_seq_dict[problem] = update_problem_seq_dict(problems_seq_dict[problem], rnn, trajectory)
+        # print(problems_seq_dict.keys(), " \n")
+        # print("######################################################### \n")
+        # we see that each sequence has been repeated 8 times
+
+
+    # Phase 2-1 (for test1): re-training the models with the sequences of actions
+    # options = [NN1, NN2, NN3, NN4]
+    options = retrain_for_options(approach, copy.deepcopy(models), problems_seq_dict)
+    # for idx in range(len(options)):
+    #     print("new freeze weights: \n", options[idx].print_weights())
+    #     print("old weights: \n", models[idx].print_weights())
+
+    # Phase 2-2: retrtaining an option that is trained on all other models
+    # super_option = retrain_super_option(approach, copy.deepcopy(models), problems_seq_dict)
+
+
+    print("!!!!!!!!!! Testing Phase !!!!!!!!!! \n")
+    # Phase 3: test the extracted options
+    # test1_options_trajectories(models, problem_test1, game_width, label=approach + ": trajectory for model ")
+    # test1_options_trajectories(options, problem_test1, game_width, label=approach + ": trajectory for option ")
+
+    # test the super option
+    # test1_options_trajectories([super_option], problems[0], game_width, label=approach + ": trajectory for problem 'TL-BR' for super option ", len_cap = 23)
+    # test1_options_trajectories([super_option], problems[1], game_width, label=approach + ": trajectory for problem 'TR-BL' for super option ", len_cap = 23)
+    # test1_options_trajectories([super_option], problems[2], game_width, label=approach + ": trajectory for problem 'BR-TL' for super option ", len_cap = 23)
+    # test1_options_trajectories([super_option], problems[3], game_width, label=approach + ": trajectory for problem 'BL-TR' for super option ", len_cap = 23)
+
+
+    # test the options on each cell of the grid and see the output of each option for it
+    test2_each_cell_grid(options, problem_test2, game_width, label=approach)
 
 
 def main():
     # evaluate_all_masks_levin_loss()
     # hill_climbing_mask_space_training_data_levin_loss()
-    combinatorial_generalization()
+
+    # combinatorial_generalization("freeze")
+    combinatorial_generalization("whole")
+
 
 
 if __name__ == "__main__":

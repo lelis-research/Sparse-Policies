@@ -159,3 +159,28 @@ class CustomRelu(nn.Module):
         self._optimizer.step()
 
         return step_loss
+    
+
+    def train_freeze(self, trajectory):
+        step_loss = 0
+        self._optimizer.zero_grad()
+        for x, y in trajectory.get_trajectory():
+            x_tensor = torch.tensor(x.get_observation(), dtype=torch.float32).view(1, -1)
+            y_tensor = torch.tensor([y], dtype=torch.long) 
+            
+            output = self(x_tensor)
+            step_loss += self._criterion(output, y_tensor)
+            # step_loss += self._l1_norm(0.01)
+            
+        # Freeze the weights of the second layer
+        for param in self.in3output.parameters():
+            param.requires_grad = False
+        
+        step_loss.backward()    
+        self._optimizer.step()
+
+        # Unfreeze the weights of the second layer
+        for param in self.in3output.parameters():
+            param.requires_grad = True
+
+        return step_loss
