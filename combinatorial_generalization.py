@@ -582,8 +582,8 @@ def combinatorial_generalization(approach):
 
     print("!!!!!!!!!! Testing Phase !!!!!!!!!! \n")
     # Phase 3: test the extracted options
-    # test1_options_trajectories(models, problem_test1, game_width, label=approach + ": trajectory for model ")
-    # test1_options_trajectories(options, problem_test1, game_width, label=approach + ": trajectory for option ")
+    test1_options_trajectories(models, problem_test1, game_width, label=approach + ": trajectory for model ")
+    test1_options_trajectories(options, problem_test1, game_width, label=approach + ": trajectory for option ")
 
     # test the super option
     # test1_options_trajectories([super_option], problems[0], game_width, label=approach + ": trajectory for problem 'TL-BR' for super option ", len_cap = 23)
