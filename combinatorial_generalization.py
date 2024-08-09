@@ -567,7 +567,7 @@ def evaluate_all_options_for_model(selected_options, selected_models_of_options,
     for current_option in options_for_this_model:
         # current_mask = torch.tensor(value, dtype=torch.int8).view(1, -1)
         
-        value = loss.compute_loss(selected_options + [current_option], selected_models_of_options + [model], problem, trajectories, number_actions, number_iterations)
+        value = loss.compute_loss_opt(selected_options + [current_option], selected_models_of_options + [model], problem, trajectories, number_actions, number_iterations)
         # print('Initial Mask: ', current_mask, best_value)
 
         if best_option is None or value < best_value:
@@ -627,7 +627,7 @@ def evaluate_all_options_levin_loss(options, models, problems, trajectories):
         selected_options.append(best_mask)
         selected_models_of_options.append(model_best_option)
         selected_options_problem.append(problem_mask)
-        best_loss = loss.compute_loss(selected_options, selected_models_of_options, "", trajectories, number_actions, number_iterations)
+        best_loss = loss.compute_loss_opt(selected_options, selected_models_of_options, "", trajectories, number_actions, number_iterations)
 
         print("Levin loss of the current set: ", best_loss)
 
@@ -635,7 +635,7 @@ def evaluate_all_options_levin_loss(options, models, problems, trajectories):
     selected_options = selected_options[0:len(selected_options) - 1]
 
     loss = LevinLossMLP()
-    loss.print_output_subpolicy_trajectory(selected_models_of_options, selected_options, selected_options_problem, trajectories, number_iterations)
+    loss.print_output_subpolicy_trajectory_opt(selected_models_of_options, selected_options, selected_options_problem, trajectories, number_iterations)
 
     # printing selected options
     for i in range(len(selected_options)):
