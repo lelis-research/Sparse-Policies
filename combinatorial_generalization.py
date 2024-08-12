@@ -51,7 +51,7 @@ class LevinLossMLP:
         It runs the model for the specified number of steps and it returns the actions taken for those steps. 
         """
         agent = PolicyGuidedAgent()
-        trajectory = agent.run(env, model_opt, number_steps)
+        trajectory = agent.run(env, model_opt, length_cap=number_steps-1)
 
         actions = []
         for _, action in trajectory.get_trajectory():
@@ -569,11 +569,12 @@ def evaluate_all_options_for_model(selected_options, selected_models_of_options,
         
         value = loss.compute_loss_opt(selected_options + [current_option], selected_models_of_options + [model], problem, trajectories, number_actions, number_iterations)
         # print('Initial Mask: ', current_mask, best_value)
+        print("Value: ", value)
 
         if best_option is None or value < best_value:
             best_value = value
             best_option = copy.deepcopy(current_option)
-            print(best_option, best_value)
+            print("Best Value: ", best_value)
                             
     return best_option, best_value
 
@@ -621,6 +622,7 @@ def evaluate_all_options_levin_loss(options, models, problems, trajectories):
                 problem_mask = problem
 
                 print('Best Loss so far: ', best_loss, problem)
+            print("################################################ END PROBLEM")
 
         # we recompute the Levin loss after the automaton is selected so that we can use 
         # the loss on all trajectories as the stopping condition for selecting automata
@@ -630,13 +632,16 @@ def evaluate_all_options_levin_loss(options, models, problems, trajectories):
         best_loss = loss.compute_loss_opt(selected_options, selected_models_of_options, "", trajectories, number_actions, number_iterations)
 
         print("Levin loss of the current set: ", best_loss)
+        print("################################################ END OPTION\n\n")
+
 
     # remove the last automaton added
-    selected_options = selected_options[0:len(selected_options) - 1]
+    # selected_options = selected_options[0:len(selected_options) - 1]
 
     loss = LevinLossMLP()
-    loss.print_output_subpolicy_trajectory_opt(selected_models_of_options, selected_options, selected_options_problem, trajectories, number_iterations)
+    loss.print_output_subpolicy_trajectory_opt(selected_options, selected_options_problem, trajectories, number_iterations)
 
+    # TODO: this is not a good wayccto print my options because they are neural networks.
     # printing selected options
     for i in range(len(selected_options)):
         print(selected_options[i])
@@ -819,8 +824,8 @@ def combinatorial_generalization(approach):
 
 
     ## Phase 3 - Test 1-1: Test the extracted options
-    test1_options_trajectories(models, problem_test1, game_width, label=approach + ": trajectory for model ")
-    test1_options_trajectories(options, problem_test1, game_width, label=approach + ": trajectory for option ")
+    # test1_options_trajectories(models, problem_test1, game_width, label=approach + ": trajectory for model ")
+    # test1_options_trajectories(options, problem_test1, game_width, label=approach + ": trajectory for option ")
 
     ## Test 1-2: Test the super option with base model 0 on all problems
     # test1_options_trajectories([super_option], problems[0], game_width, label=approach + ": trajectory for problem 'TL-BR' for super option ", len_cap = 23)
@@ -833,7 +838,7 @@ def combinatorial_generalization(approach):
     # test2_each_cell_grid(options, problem_test2, game_width, label=approach)
 
     ## Test 3: test the options using Mahdi's approach with Levin Loss
-    evaluate_all_options_levin_loss()
+    evaluate_all_options_levin_loss(options, models, problems, trajectories)
 
 
 def main():
