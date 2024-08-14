@@ -770,6 +770,28 @@ def test2_each_cell_grid(test_models, problem_test, game_width, label):
     print("#### ### ###\n")
 
 
+def update_uniq_seq_dict(trajectory, model, window_size, stride=1, seq_dict=None):
+    """
+    The unique sequence dictionary is a dictionary that maps a sequence of actions to a tuple containing a model and a list of corresponding states.
+    Parameters:
+    - It takes a single trajectory and model as input.
+    - It extracts the action sequence and state sequence from the trajectory.
+    - It creates sliding windows of the action sequence with the specified window size and stride.
+    - For each window, it checks if the sequence is already present in the dictionary.
+    - If the sequence is not present, it adds the sequence as a key in the dictionary and associates it with the model and the corresponding state.
+    - If the sequence is already present, it appends the corresponding state to the existing list of states.
+    """
+    actions = trajectory.get_action_sequence()
+    states = trajectory.get_state_sequence()
+    for i in range(0, len(actions) - window_size + 1, stride):
+        seq = tuple(actions[i:i+window_size])
+        if seq not in seq_dict:
+            seq_dict[seq] = (model, [states[i]])
+        else:
+            seq_dict[seq][1].append(states[i])
+    return seq_dict
+
+
 def combinatorial_generalization(approach):
     """
     In this function, in phase 1, we keep track of the sequences of actions and the models that generate them.
@@ -787,6 +809,7 @@ def combinatorial_generalization(approach):
     problem_test2 = "Test2"
     problems_seq_dict = {key: {} for key in problems}
     models = []
+    uniq_seq_dict = {}
 
     rnn = CustomRelu(game_width**2 * 2 + 9, hidden_size, 3)
 
@@ -808,7 +831,8 @@ def combinatorial_generalization(approach):
         stride = 1
 
         for ws in window_sizes:
-            problems_seq_dict[problem] = update_problem_seq_dict(problems_seq_dict[problem], rnn, trajectory, seq_len=ws, stride=stride)
+            # problems_seq_dict[problem] = update_problem_seq_dict(problems_seq_dict[problem], rnn, trajectory, seq_len=ws, stride=stride)
+            uniq_seq_dict = update_uniq_seq_dict(trajectory, rnn, ws, stride=stride, seq_dict=uniq_seq_dict)
 
 
 
