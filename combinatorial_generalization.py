@@ -837,6 +837,7 @@ def combinatorial_generalization(approach):
     ## Test 2: Test the options on each cell of the grid and see the output of each option for it
     # test2_each_cell_grid(options, problem_test2, game_width, label=approach)
 
+
     ## Test 3: test the options using Mahdi's approach with Levin Loss
     evaluate_all_options_levin_loss(options, models, problems, trajectories)
 
