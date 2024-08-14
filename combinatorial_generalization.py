@@ -660,12 +660,10 @@ def update_problem_seq_dict(seq_state_model_dict, model, trajectory, seq_len=3, 
     """
     for i in range(0, len(trajectory.get_trajectory()) - seq_len + 1, stride):
         seq = tuple(trajectory.get_action_sequence()[i:i+seq_len])
-        # print("seq: ", seq)
 
         # TODO: should I keep track of different stages of model when the state is not changing as well?
         state = trajectory.get_state_sequence()[i]
         seq_state_model_dict[seq] = seq_state_model_dict.get(seq, []) + [state]
-        # print("seq_state_model_dict: ", seq_state_model_dict)
 
     return seq_state_model_dict
 
@@ -845,6 +843,9 @@ def combinatorial_generalization(approach):
 
     ## Phase 2-2: retrtaining an option that is trained on all other models
     # super_option = retrain_super_option(approach, copy.deepcopy(models), problems_seq_dict)
+
+    ## Phase 2-3: each unique seuqence of actions represent an option 
+    # TODO: I should write a new way of using Levin Loss with this new structure of options
 
 
     ## Phase 3 - Test 1-1: Test the extracted options
