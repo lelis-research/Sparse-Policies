@@ -795,6 +795,26 @@ def update_uniq_seq_dict(trajectory, model, problem, window_size, stride=1, seq_
     return seq_dict
 
 
+def create_options_from_seqs(seq_dict, problems):
+    """
+    This function creates an option for each unique sequence of actions by using the sequences base models.
+    It returns a dictionary like this:
+    problems_options = {
+        problem1: [option1, option2, ...],
+        problem2: [option1, option2, ...],
+        ...
+    }
+    """
+    problems_options = {problem: [] for problem in problems}
+    for seq, (problem, model, states) in seq_dict.items():
+        option = model
+        for state in states:
+            for _ in range(10):
+                loss = option.train(create_trajectory(seq, state))
+        problems_options[problem].append(option)
+    return problems_options
+
+
 def combinatorial_generalization(approach):
     """
     In this function, in phase 1, we keep track of the sequences of actions and the models that generate them.
