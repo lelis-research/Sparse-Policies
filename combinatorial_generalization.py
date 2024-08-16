@@ -778,6 +778,11 @@ def update_uniq_seq_dict(trajectory, model, problem, window_size, stride=1, seq_
     - For each window, it checks if the sequence is already present in the dictionary.
     - If the sequence is not present, it adds the sequence as a key in the dictionary and associates it with the model and the corresponding state.
     - If the sequence is already present, it appends the corresponding state to the existing list of states.
+    - seq_dict = {
+            seq1: (problem1, model1, [state1, state2, ...]),
+            seq2: (problem2, model2, [...]),
+            ...
+        }
     """
     actions = trajectory.get_action_sequence()
     states = trajectory.get_state_sequence()
