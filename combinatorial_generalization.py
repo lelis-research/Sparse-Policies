@@ -618,7 +618,7 @@ def evaluate_all_options_levin_loss(options, models, problems, trajectories):
             if best_loss is None or levin_loss < best_loss:
                 best_loss = levin_loss
                 best_mask = option
-                model_best_option = model
+                # model_best_option = model
                 problem_mask = problem
 
                 print('Best Loss so far: ', best_loss, problem)
