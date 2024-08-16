@@ -551,24 +551,18 @@ def hill_climbing_mask_space_training_data_levin_loss():
         print(selected_options[i])
 
 
-def evaluate_all_options_for_model(selected_options, problem, trajectories, number_actions, number_iterations, options_for_this_model):
+def evaluate_all_options_for_problem(selected_options, problem, trajectories, number_actions, number_iterations, options_for_this_model):
     """
     Function that evaluates all options for a given model. It returns the best option (the one that minimizes the Levin loss)
     for the current set of selected options. It also returns the Levin loss of the best option. 
     """
-    # values = [-1, 0, 1]
-
     best_option = None
     best_value = None
     loss = LevinLossMLP()
 
-    # combinations = itertools.product(values, repeat=hidden_size)
-
     for current_option in options_for_this_model:
-        # current_mask = torch.tensor(value, dtype=torch.int8).view(1, -1)
         
         value = loss.compute_loss_opt(selected_options + [current_option], problem, trajectories, number_actions, number_iterations)
-        # print('Initial Mask: ', current_mask, best_value)
         print("Value: ", value)
 
         if best_option is None or value < best_value:
@@ -579,7 +573,7 @@ def evaluate_all_options_for_model(selected_options, problem, trajectories, numb
     return best_option, best_value
 
 
-def evaluate_all_options_levin_loss(options, models, problems, trajectories):
+def evaluate_all_options_levin_loss(problems_options, models, trajectories):
     """
     This function implements the greedy approach for selecting options.
     This method evaluates all different options of a given model and adds to the pool of options the one that minimizes
@@ -594,55 +588,43 @@ def evaluate_all_options_levin_loss(options, models, problems, trajectories):
     loss = LevinLossMLP()
 
     selected_options = []
-    # selected_models_of_options = []
     selected_options_problem = []
 
     while previous_loss is None or best_loss < previous_loss:
         previous_loss = best_loss
 
         best_loss = None
-        best_mask = None
-        # model_best_option = None
-        problem_mask = None
+        best_option = None
+        problem_option = None
 
-        # TODO: change "options of model". It works now because I only have 4 options (1 for each model/problem) but if there are more options for each problem it won't work anymore
-        for problem, model, options_of_model in zip(problems, models, options):
-            # TODO: is model correct here?
-            print('Problem: ', problem)
-            # rnn = CustomRelu(game_width**2 * 2 + 9, hidden_size, 3)
-            # rnn.load_state_dict(torch.load('binary/game-width' + str(game_width) + '-' + problem + '-relu-' + str(hidden_size) + '-model.pth'))
+        for problem, options_of_problem in problems_options.items():
 
-            # mask, levin_loss = evaluate_all_masks_for_model(selected_masks, selected_models_of_masks, rnn, problem, trajectories, number_actions, number_iterations, hidden_size)
-            option, levin_loss = evaluate_all_options_for_model(selected_options, problem, trajectories, number_actions, number_iterations, [options_of_model])
+            option, levin_loss = evaluate_all_options_for_problem(selected_options, problem, trajectories, number_actions, number_iterations, [options_of_problem])
 
             if best_loss is None or levin_loss < best_loss:
                 best_loss = levin_loss
-                best_mask = option
-                # model_best_option = model
-                problem_mask = problem
+                best_option = option
+                problem_option = problem
 
                 print('Best Loss so far: ', best_loss, problem)
             print("################################################ END PROBLEM")
 
-        # we recompute the Levin loss after the automaton is selected so that we can use 
-        # the loss on all trajectories as the stopping condition for selecting automata
-        selected_options.append(best_mask)
-        # selected_models_of_options.append(model_best_option)
-        selected_options_problem.append(problem_mask)
+        """
+        we recompute the Levin loss after the automaton is selected so that we can use 
+        the loss on all trajectories as the stopping condition for selecting automata 
+        """
+        selected_options.append(best_option)
+        selected_options_problem.append(problem_option)
         best_loss = loss.compute_loss_opt(selected_options, "", trajectories, number_actions, number_iterations)
 
         print("Levin loss of the current set: ", best_loss)
         print("################################################ END OPTION\n\n")
 
 
-    # remove the last automaton added
-    # selected_options = selected_options[0:len(selected_options) - 1]
-
     loss = LevinLossMLP()
     loss.print_output_subpolicy_trajectory_opt(selected_options, selected_options_problem, trajectories, number_iterations)
 
-    # TODO: this is not a good wayccto print my options because they are neural networks.
-    # printing selected options
+    # TODO: this is not a good way to print my options because they are neural networks.
     for i in range(len(selected_options)):
         print(selected_options[i])
 
@@ -837,7 +819,7 @@ def combinatorial_generalization(approach):
     rnn = CustomRelu(game_width**2 * 2 + 9, hidden_size, 3)
 
 
-    # Phase 1: keeping track of sequences of actions and the models that generate them
+    """ Phase 1: keeping track of sequences of actions and the models that generate them """
     trajectories = load_trajectories(problems, hidden_size, game_width)
     for problem, trajectory in trajectories.items():
         rnn = CustomRelu(game_width**2 * 2 + 9, hidden_size, 3)
@@ -859,37 +841,37 @@ def combinatorial_generalization(approach):
 
 
 
-    ## Phase 2-1: re-training the models with the sequences of actions
-    # options = [NN1, NN2, NN3, NN4]
-    options = retrain_for_options(approach, copy.deepcopy(models), problems_seq_dict)
+    """ Phase 2-1: re-training the models with the sequences of actions """ 
+    """ options = [NN1, NN2, NN3, NN4] """
+    # options = retrain_for_options(approach, copy.deepcopy(models), problems_seq_dict)
     # for idx in range(len(options)):
     #     print("new freeze weights: \n", options[idx].print_weights())
     #     print("old weights: \n", models[idx].print_weights())
 
-    ## Phase 2-2: retrtaining an option that is trained on all other models
+    """ Phase 2-2: retrtaining an option that is trained on all other models """
     # super_option = retrain_super_option(approach, copy.deepcopy(models), problems_seq_dict)
 
-    ## Phase 2-3: each unique seuqence of actions represent an option 
-    # TODO: I should write a new way of using Levin Loss with this new structure of options
+    """ Phase 2-3: each unique seuqence of actions represent an option """
+    problems_options = create_options_from_seqs(uniq_seq_dict, problems)
 
-
-    ## Phase 3 - Test 1-1: Test the extracted options
+    """ Phase 3 - Test 1-1: Test the extracted options """
     # test1_options_trajectories(models, problem_test1, game_width, label=approach + ": trajectory for model ")
     # test1_options_trajectories(options, problem_test1, game_width, label=approach + ": trajectory for option ")
 
-    ## Test 1-2: Test the super option with base model 0 on all problems
+    """ Test 1-2: Test the super option with base model 0 on all problems """
     # test1_options_trajectories([super_option], problems[0], game_width, label=approach + ": trajectory for problem 'TL-BR' for super option ", len_cap = 23)
     # test1_options_trajectories([super_option], problems[1], game_width, label=approach + ": trajectory for problem 'TR-BL' for super option ", len_cap = 23)
     # test1_options_trajectories([super_option], problems[2], game_width, label=approach + ": trajectory for problem 'BR-TL' for super option ", len_cap = 23)
     # test1_options_trajectories([super_option], problems[3], game_width, label=approach + ": trajectory for problem 'BL-TR' for super option ", len_cap = 23)
 
 
-    ## Test 2: Test the options on each cell of the grid and see the output of each option for it
+    """ Test 2: Test the options on each cell of the grid and see the output of each option for it """
     # test2_each_cell_grid(options, problem_test2, game_width, label=approach)
 
 
-    ## Test 3: test the options using Mahdi's approach with Levin Loss
-    evaluate_all_options_levin_loss(options, models, problems, trajectories)
+    """ Test 3: test the options using Mahdi's approach with Levin Loss """
+    # evaluate_all_options_levin_loss(options, models, problems, trajectories)
+    evaluate_all_options_levin_loss(problems_options, models, trajectories)
 
 
 def main():
