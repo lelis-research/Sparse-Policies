@@ -573,7 +573,7 @@ def evaluate_all_options_for_problem(selected_options, problem, trajectories, nu
     return best_option, best_value
 
 
-def evaluate_all_options_levin_loss(problems_options, models, trajectories):
+def evaluate_all_options_levin_loss(problems_options, trajectories):
     """
     This function implements the greedy approach for selecting options.
     This method evaluates all different options of a given model and adds to the pool of options the one that minimizes
@@ -599,7 +599,7 @@ def evaluate_all_options_levin_loss(problems_options, models, trajectories):
 
         for problem, options_of_problem in problems_options.items():
 
-            option, levin_loss = evaluate_all_options_for_problem(selected_options, problem, trajectories, number_actions, number_iterations, [options_of_problem])
+            option, levin_loss = evaluate_all_options_for_problem(selected_options, problem, trajectories, number_actions, number_iterations, options_of_problem)
 
             if best_loss is None or levin_loss < best_loss:
                 best_loss = levin_loss
@@ -790,9 +790,9 @@ def create_options_from_seqs(seq_dict, problems):
     problems_options = {problem: [] for problem in problems}
     for seq, (problem, model, states) in seq_dict.items():
         option = model
-        for state in states:
-            for _ in range(10):
-                loss = option.train(create_trajectory(seq, state))
+        # for state in states:
+        for _ in range(10):
+            loss = option.train(create_trajectory(seq, states))
         problems_options[problem].append(option)
     return problems_options
 
@@ -871,7 +871,7 @@ def combinatorial_generalization(approach):
 
     """ Test 3: test the options using Mahdi's approach with Levin Loss """
     # evaluate_all_options_levin_loss(options, models, problems, trajectories)
-    evaluate_all_options_levin_loss(problems_options, models, trajectories)
+    evaluate_all_options_levin_loss(problems_options, trajectories)
 
 
 def main():
