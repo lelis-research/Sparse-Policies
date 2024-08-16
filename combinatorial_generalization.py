@@ -93,7 +93,7 @@ class LevinLossMLP:
         log_uniform_probability = math.log(uniform_probability)
         return log_depth - number_decisions * log_uniform_probability
     
-    def loss_opt(self, model_opts, models, trajectory, number_actions, joint_problem_name_list, problem_mlp, number_steps):
+    def loss_opt(self, model_opts, trajectory, number_actions, joint_problem_name_list, problem_mlp, number_steps):
         """
         This function implements the dynamic programming method from Alikhasi & Lelis (2024). 
 
@@ -154,7 +154,7 @@ class LevinLossMLP:
             joint_problem_name_list = joint_problem_name_list + name_list
         return self.loss(masks, models, chained_trajectory, number_actions, joint_problem_name_list, problem_mlp, number_steps)
     
-    def compute_loss_opt(self, model_opts, models, problem_mlp, trajectories, number_actions, number_steps):
+    def compute_loss_opt(self, model_opts, problem_mlp, trajectories, number_actions, number_steps):
         """
         This function computes the Levin loss of a set of model_opts (options). Each model_opt in the set is 
         what we select as a set of options, according to Alikhasi & Lelis (2024). 
@@ -179,7 +179,7 @@ class LevinLossMLP:
                 chained_trajectory._sequence = chained_trajectory._sequence + copy.deepcopy(trajectory._sequence)
             name_list = [problem for _ in range(len(trajectory._sequence))]
             joint_problem_name_list = joint_problem_name_list + name_list
-        return self.loss_opt(model_opts, models, chained_trajectory, number_actions, joint_problem_name_list, problem_mlp, number_steps)
+        return self.loss_opt(model_opts, chained_trajectory, number_actions, joint_problem_name_list, problem_mlp, number_steps)
 
     def print_output_subpolicy_trajectory(self, models, masks, masks_problems, trajectories, number_steps):
         """
@@ -551,7 +551,7 @@ def hill_climbing_mask_space_training_data_levin_loss():
         print(selected_options[i])
 
 
-def evaluate_all_options_for_model(selected_options, selected_models_of_options, model, problem, trajectories, number_actions, number_iterations, options_for_this_model):
+def evaluate_all_options_for_model(selected_options, problem, trajectories, number_actions, number_iterations, options_for_this_model):
     """
     Function that evaluates all options for a given model. It returns the best option (the one that minimizes the Levin loss)
     for the current set of selected options. It also returns the Levin loss of the best option. 
@@ -567,7 +567,7 @@ def evaluate_all_options_for_model(selected_options, selected_models_of_options,
     for current_option in options_for_this_model:
         # current_mask = torch.tensor(value, dtype=torch.int8).view(1, -1)
         
-        value = loss.compute_loss_opt(selected_options + [current_option], selected_models_of_options + [model], problem, trajectories, number_actions, number_iterations)
+        value = loss.compute_loss_opt(selected_options + [current_option], problem, trajectories, number_actions, number_iterations)
         # print('Initial Mask: ', current_mask, best_value)
         print("Value: ", value)
 
@@ -594,7 +594,7 @@ def evaluate_all_options_levin_loss(options, models, problems, trajectories):
     loss = LevinLossMLP()
 
     selected_options = []
-    selected_models_of_options = []
+    # selected_models_of_options = []
     selected_options_problem = []
 
     while previous_loss is None or best_loss < previous_loss:
@@ -602,7 +602,7 @@ def evaluate_all_options_levin_loss(options, models, problems, trajectories):
 
         best_loss = None
         best_mask = None
-        model_best_option = None
+        # model_best_option = None
         problem_mask = None
 
         # TODO: change "options of model". It works now because I only have 4 options (1 for each model/problem) but if there are more options for each problem it won't work anymore
@@ -613,7 +613,7 @@ def evaluate_all_options_levin_loss(options, models, problems, trajectories):
             # rnn.load_state_dict(torch.load('binary/game-width' + str(game_width) + '-' + problem + '-relu-' + str(hidden_size) + '-model.pth'))
 
             # mask, levin_loss = evaluate_all_masks_for_model(selected_masks, selected_models_of_masks, rnn, problem, trajectories, number_actions, number_iterations, hidden_size)
-            option, levin_loss = evaluate_all_options_for_model(selected_options, selected_models_of_options, model, problem, trajectories, number_actions, number_iterations, [options_of_model])
+            option, levin_loss = evaluate_all_options_for_model(selected_options, problem, trajectories, number_actions, number_iterations, [options_of_model])
 
             if best_loss is None or levin_loss < best_loss:
                 best_loss = levin_loss
@@ -627,9 +627,9 @@ def evaluate_all_options_levin_loss(options, models, problems, trajectories):
         # we recompute the Levin loss after the automaton is selected so that we can use 
         # the loss on all trajectories as the stopping condition for selecting automata
         selected_options.append(best_mask)
-        selected_models_of_options.append(model_best_option)
+        # selected_models_of_options.append(model_best_option)
         selected_options_problem.append(problem_mask)
-        best_loss = loss.compute_loss_opt(selected_options, selected_models_of_options, "", trajectories, number_actions, number_iterations)
+        best_loss = loss.compute_loss_opt(selected_options, "", trajectories, number_actions, number_iterations)
 
         print("Levin loss of the current set: ", best_loss)
         print("################################################ END OPTION\n\n")
