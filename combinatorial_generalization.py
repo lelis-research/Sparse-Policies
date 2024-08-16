@@ -768,7 +768,7 @@ def test2_each_cell_grid(test_models, problem_test, game_width, label):
     print("#### ### ###\n")
 
 
-def update_uniq_seq_dict(trajectory, model, window_size, stride=1, seq_dict=None):
+def update_uniq_seq_dict(trajectory, model, problem, window_size, stride=1, seq_dict=None):
     """
     The unique sequence dictionary is a dictionary that maps a sequence of actions to a tuple containing a model and a list of corresponding states.
     Parameters:
@@ -784,9 +784,9 @@ def update_uniq_seq_dict(trajectory, model, window_size, stride=1, seq_dict=None
     for i in range(0, len(actions) - window_size + 1, stride):
         seq = tuple(actions[i:i+window_size])
         if seq not in seq_dict:
-            seq_dict[seq] = (model, [states[i]])
+            seq_dict[seq] = (problem, model, [states[i]])
         else:
-            seq_dict[seq][1].append(states[i])
+            seq_dict[seq][2].append(states[i])
     return seq_dict
 
 
@@ -830,7 +830,7 @@ def combinatorial_generalization(approach):
 
         for ws in window_sizes:
             # problems_seq_dict[problem] = update_problem_seq_dict(problems_seq_dict[problem], rnn, trajectory, seq_len=ws, stride=stride)
-            uniq_seq_dict = update_uniq_seq_dict(trajectory, rnn, ws, stride=stride, seq_dict=uniq_seq_dict)
+            uniq_seq_dict = update_uniq_seq_dict(trajectory, rnn, problem, ws, stride=stride, seq_dict=uniq_seq_dict)
 
 
 
