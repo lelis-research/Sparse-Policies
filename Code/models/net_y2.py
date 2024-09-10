@@ -13,6 +13,10 @@ class NetY2(nn.Module):
         x = self.fc2(x)
         return self.sigmoid(x)
     
+    # def l1_norm(self, lambda_l1):
+    #     l1_norm = sum(p.abs().sum() for p in self.parameters())
+    #     return lambda_l1 * l1_norm
+    
     def l1_norm(self, lambda_l1):
-        l1_norm = sum(p.abs().sum() for p in self.parameters())
+        l1_norm = sum(p.abs().sum() for name, p in self.named_parameters() if "bias" not in name)
         return lambda_l1 * l1_norm
