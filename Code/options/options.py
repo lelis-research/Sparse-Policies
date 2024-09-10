@@ -7,7 +7,7 @@ from torch.optim import lr_scheduler
 import torch.nn as nn
 
 class Option:
-    def __init__(self, input_size, output_size_y1, hidden_size, learning_rate, l1_lambda, batch_size, num_epochs):
+    def __init__(self, input_size, output_size_y1, hidden_size, learning_rate, l1_lambda, batch_size, num_epochs, window_size):
         self.model_y1 = NetY1(input_size=input_size, output_size=output_size_y1, hidden_size=hidden_size)
         self.model_y2 = NetY2(input_size=input_size, hidden_size=hidden_size)
 
@@ -23,6 +23,7 @@ class Option:
         self.l1_lambda = l1_lambda
         self.batch_size = batch_size
         self.num_epochs = num_epochs
+        self.window_size = window_size
 
     def train_y1(self, dataset_y1):
         dataloader_y1 = DataLoader(dataset_y1, batch_size=self.batch_size, shuffle=False)

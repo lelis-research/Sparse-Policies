@@ -28,22 +28,34 @@ num_epochs = 5000
 l1_lambda = 0.005
 batch_size = 1
 
-# Initialize the Options class with the new hyperparameters
-option = Option(input_size, output_size_y1, hidden_size, learning_rate, l1_lambda, batch_size, num_epochs)
+# Dimension of the environment
+dim = 3
+trajectory_length = 2 * (dim-1) * 3     # 2 = 2-D grid, (dim-1) = number of steps in one direction, 3 = size of the behavior
 
-# Train models
-option.train_y1(dataset_y1)
-option.train_y2(dataset_y2)
+# Create an array of Options objects with different window sizes
+options_list = []
 
-# Truncate weights with the given threshold (optional, set to 0)
-option.truncate_all_weights(threshold=0)
+# Loop through different window sizes (from 2 to the length of the trajectory)
+for window_size in range(2, trajectory_length):
+    # Initialize the Options class with the window size
+    option = Option(input_size, output_size_y1, hidden_size, learning_rate, l1_lambda, batch_size, num_epochs, window_size)
+    
+    # Train the models
+    option.train_y1(dataset_y1)
+    option.train_y2(dataset_y2)
+    
+    # Truncate weights with the given threshold (optional, set to 0)
+    option.truncate_all_weights(threshold=0)
+    
+    # Store the options for later evaluation
+    options_list.append(option)
 
-# Print model weights
-option.print_model_weights()
+# Print model weights for the last trained option as an example (for evaluation purposes)
+options_list[-1].print_model_weights()
 
 # Set up the environment
 problem = "TL-BR"  # You can change this to other problem types like "TR-BL", "BR-TL", etc.
-env = setup_environment(problem)
+env = setup_environment(problem, dim)
 
-# Run the environment using the trained models
-run_environment(env, option.model_y1, option.model_y2)
+# Run the environment using the trained models from the last options object
+run_environment(env, options_list[-1].model_y1, options_list[-1].model_y2)

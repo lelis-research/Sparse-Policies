@@ -2,11 +2,11 @@ import numpy as np
 import torch
 from combo import Game
 
-def setup_environment(problem):
+def setup_environment(problem, dim):
     """
     Set up the Game environment based on the provided problem.
     """
-    return Game(3, 3, problem)
+    return Game(dim, dim, problem)
 
 def run_environment(env, model_y1, model_y2):
     """
