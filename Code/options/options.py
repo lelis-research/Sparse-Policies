@@ -6,7 +6,7 @@ from models.net_y2 import NetY2
 from torch.optim import lr_scheduler
 import torch.nn as nn
 
-class Options:
+class Option:
     def __init__(self, input_size, output_size_y1, hidden_size, learning_rate, l1_lambda, batch_size, num_epochs):
         self.model_y1 = NetY1(input_size=input_size, output_size=output_size_y1, hidden_size=hidden_size)
         self.model_y2 = NetY2(input_size=input_size, hidden_size=hidden_size)

@@ -1,7 +1,7 @@
 import pickle
 import torch
 from data.custom_dataset import CustomDataset
-from options.options import Options
+from options.options import Option
 from utils import setup_environment, run_environment
 
 # Load the dataset
@@ -29,21 +29,21 @@ l1_lambda = 0.005
 batch_size = 1
 
 # Initialize the Options class with the new hyperparameters
-options = Options(input_size, output_size_y1, hidden_size, learning_rate, l1_lambda, batch_size, num_epochs)
+option = Option(input_size, output_size_y1, hidden_size, learning_rate, l1_lambda, batch_size, num_epochs)
 
 # Train models
-options.train_y1(dataset_y1)
-options.train_y2(dataset_y2)
+option.train_y1(dataset_y1)
+option.train_y2(dataset_y2)
 
 # Truncate weights with the given threshold (optional, set to 0)
-options.truncate_all_weights(threshold=0)
+option.truncate_all_weights(threshold=0)
 
 # Print model weights
-options.print_model_weights()
+option.print_model_weights()
 
 # Set up the environment
 problem = "TL-BR"  # You can change this to other problem types like "TR-BL", "BR-TL", etc.
 env = setup_environment(problem)
 
 # Run the environment using the trained models
-run_environment(env, options.model_y1, options.model_y2)
+run_environment(env, option.model_y1, option.model_y2)
