@@ -152,9 +152,9 @@ for name, param in model_y2.state_dict().items():
     print(f"Layer: {name} | Size: {param.size()} | Values : {param}")
 
 
-# problem = "TL-BR"
+problem = "TL-BR"
 # problem = "TR-BL"
-problem = "BR-TL"
+# problem = "BR-TL"
 # problem = "BL-TR"
 env = Game(3, 3, problem)
 
