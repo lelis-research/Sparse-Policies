@@ -20,20 +20,26 @@ dataset_y1 = CustomDataset(observations, y1_labels)
 dataset_y2 = CustomDataset(observations, y2_labels)
 
 # Model parameters
-input_size = len(observations[0])
-output_size_y1 = 3  # Number of possible actions
-hidden_size = 64
-learning_rate = 0.01
-l1_lambda = 0.0001
+input_size = len(observations[0])  # Size of the observation vector
+output_size_y1 = 3  # 3 possible actions for y1
+hidden_size = 6  # Hidden layer size
+learning_rate = 0.1
+num_epochs = 5000
+l1_lambda = 0.005
 batch_size = 1
-num_epochs = 100
 
-# Initialize the Options class
+# Initialize the Options class with the new hyperparameters
 options = Options(input_size, output_size_y1, hidden_size, learning_rate, l1_lambda, batch_size, num_epochs)
 
 # Train models
 options.train_y1(dataset_y1)
 options.train_y2(dataset_y2)
+
+# Truncate weights with the given threshold (optional, set to 0)
+options.truncate_all_weights(threshold=0)
+
+# Print model weights
+options.print_model_weights()
 
 # Set up the environment
 problem = "TL-BR"  # You can change this to other problem types like "TR-BL", "BR-TL", etc.
