@@ -55,7 +55,7 @@ for problem, trajectory in trajectories.items():
 
     # Loop through different window sizes (from 2 to the length of the trajectory)
     for ws in window_sizes:
-        uniq_seq_dict = update_uniq_seq_dict(trajectory, rnn, problem, ws, seq_dict=uniq_seq_dict)
+        uniq_seq_dict = update_uniq_seq_dict(trajectory, problem, ws, seq_dict=uniq_seq_dict)
     
 
 # loop through sequeces and create options
@@ -65,8 +65,18 @@ for seq, (problem, states) in uniq_seq_dict.items():
     option = Option(problem, trajectory, seq, input_size, output_size_y1, hidden_size, learning_rate, l1_lambda, batch_size, num_epochs)
 
     # Each option has different dataset
-    observations = [state.get_observation() for state in states] 
-    y1_labels, y2_labels = generate_labels(create_trajectory(seq, states), sequence_length=len(seq))
+    # observations = [state.get_observation() for state in states] 
+    observations = []
+
+    # Loop over each tuple of states in the list of state tuples
+    for state_tuple in states:
+        # Loop over each individual state in the tuple
+        for state in state_tuple:
+            # Get the observations for the current state
+            observations.append(state.get_observation())
+            
+    
+    y1_labels, y2_labels = generate_labels(sequence_length=len(seq))
     
     # Calculate how many times we need to repeat y1_labels and y2_labels to match the length of observations
     repeat_count = len(observations) // len(y1_labels)

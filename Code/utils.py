@@ -89,7 +89,7 @@ def update_uniq_seq_dict(trajectory, problem, window_size, stride=1, seq_dict=No
             seq_dict[seq] = (problem, [state_tuple])
         else:
             # If the sequence already exists, append the new state tuple to the list
-            seq_dict[seq][2].append(state_tuple)
+            seq_dict[seq][1].append(state_tuple)
 
     return seq_dict
 
