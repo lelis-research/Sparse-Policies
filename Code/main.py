@@ -76,14 +76,7 @@ for seq, (problem, states) in uniq_seq_dict.items():
             observations.append(state.get_observation())
             
     
-    y1_labels, y2_labels = generate_labels(sequence_length=len(seq))
-    
-    # Calculate how many times we need to repeat y1_labels and y2_labels to match the length of observations
-    repeat_count = len(observations) // len(y1_labels)
-
-    # Repeat y1_labels and y2_labels to match the length of observations
-    y1_labels = y1_labels * repeat_count
-    y2_labels = y2_labels * repeat_count
+    y1_labels, y2_labels = generate_labels(uniq_seq_dict, seq)
 
     print("Seq: ", seq)
 

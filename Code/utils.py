@@ -94,27 +94,47 @@ def update_uniq_seq_dict(trajectory, problem, window_size, stride=1, seq_dict=No
     return seq_dict
 
 
-def generate_labels(trajectory, sequence_length=3):
-    states = trajectory.get_state_sequence()
-    actions = trajectory.get_action_sequence()
-
+def generate_labels(uniq_seq_dict, seq):
+    """
+    Generate y1 and y2 labels based on the action sequence.
+    
+    Parameters:
+    - uniq_seq_dict: The unique sequence dictionary with action sequences and corresponding states.
+    - seq: The specific action sequence (tuple of actions) for which to generate labels.
+    
+    Returns:
+    - y1_labels: A list of one-hot encoded labels for the actions.
+    - y2_labels: A list of labels indicating whether the sequence is ongoing (1) or done (0).
+    """
     y1_labels = []
     y2_labels = []
+    sequence_length = len(seq)
+    
+    if seq not in uniq_seq_dict:
+        raise ValueError(f"Sequence {seq} not found in uniq_seq_dict")
 
-    for i, obs in enumerate(states):
-        # Create y1 label based on the action taken
-        action = actions[i]
-        y1 = [0, 0, 0]
-        y1[action] = 1
-        y1_labels.append(y1)
+    # Extract the actions and states corresponding to the given sequence
+    actions = list(seq)  # Convert the tuple of actions into a list
+    _, state_tuples = uniq_seq_dict[seq]  # Extract the list of state tuples for this sequence
+    
+    # The number of state tuples determines how many times the sequence should be repeated
+    repeat_count = len(state_tuples)
 
-        # Create y2 label based on the sequence of actions
-        # Check if we are at the end of a sequence
-        if (i + 1) % sequence_length == 0:
-            y2 = 0  # End of the sequence
-        else:
-            y2 = 1  # Sequence is not done
-        y2_labels.append(y2)
+    # Generate y1 labels for the action sequence and repeat it across all state tuples
+    for _ in range(repeat_count):
+        for action in actions:
+            y1 = [0, 0, 0]  # Initialize the one-hot encoding
+            y1[action] = 1  # Set the action index to 1
+            y1_labels.append(y1)
+
+    # Generate y2 labels to indicate whether the sequence is ongoing or done
+    for _ in range(repeat_count):
+        for i in range(len(actions)):
+            if (i + 1) % sequence_length == 0:
+                y2 = 0  # End of the sequence
+            else:
+                y2 = 1  # Sequence is not done
+            y2_labels.append(y2)
 
     return y1_labels, y2_labels
 
