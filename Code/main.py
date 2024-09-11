@@ -66,14 +66,29 @@ for seq, (problem, model, states) in uniq_seq_dict.items():
 
     # Each option has different dataset
     observations = [state.get_observation() for state in states] 
-    y1_labels, y2_labels = generate_labels(create_trajectory(seq, states))
+    y1_labels, y2_labels = generate_labels(create_trajectory(seq, states), sequence_length=len(seq))
     
+    # Calculate how many times we need to repeat y1_labels and y2_labels to match the length of observations
+    repeat_count = len(observations) // len(y1_labels)
+
+    # Repeat y1_labels and y2_labels to match the length of observations
+    y1_labels = y1_labels * repeat_count
+    y2_labels = y2_labels * repeat_count
+
+    print("Seq: ", seq)
+
     dataset_y1 = CustomDataset(observations, y1_labels)
     dataset_y2 = CustomDataset(observations, y2_labels)
+
+    print("2-Seq: ", seq)
+
     
     # Train the models
     option.train_y1(dataset_y1)
     option.train_y2(dataset_y2)
+
+    print("3-Seq: ", seq)
+
 
     # Truncate weights with the given threshold (optional, set to 0)
     option.truncate_all_weights(threshold=0)

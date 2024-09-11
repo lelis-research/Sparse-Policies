@@ -77,12 +77,20 @@ def update_uniq_seq_dict(trajectory, model, problem, window_size, stride=1, seq_
     """
     actions = trajectory.get_action_sequence()
     states = trajectory.get_state_sequence()
+
     for i in range(0, len(actions) - window_size + 1, stride):
         seq = tuple(actions[i:i+window_size])
+        
+        # Collect the corresponding sequence of states for each action in the window
+        state_tuple = tuple(states[i:i+window_size])
+        
+        # If the sequence is not in the dictionary, add it with the corresponding state tuple
         if seq not in seq_dict:
-            seq_dict[seq] = (problem, model, [states[i]])
+            seq_dict[seq] = (problem, model, [state_tuple])
         else:
-            seq_dict[seq][2].append(states[i])
+            # If the sequence already exists, append the new state tuple to the list
+            seq_dict[seq][2].append(state_tuple)
+
     return seq_dict
 
 
