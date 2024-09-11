@@ -59,7 +59,7 @@ for problem, trajectory in trajectories.items():
     
 
 # loop through sequeces and create options
-for seq, (problem, model, states) in uniq_seq_dict.items():
+for seq, (problem, states) in uniq_seq_dict.items():
 
     # Initialize the Option object with the window size
     option = Option(problem, trajectory, seq, input_size, output_size_y1, hidden_size, learning_rate, l1_lambda, batch_size, num_epochs)

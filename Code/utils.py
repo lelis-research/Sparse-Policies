@@ -59,7 +59,7 @@ def load_trajectories(problems, hidden_size, game_width):
     return trajectories
 
 
-def update_uniq_seq_dict(trajectory, model, problem, window_size, stride=1, seq_dict=None):
+def update_uniq_seq_dict(trajectory, problem, window_size, stride=1, seq_dict=None):
     """
     The unique sequence dictionary is a dictionary that maps a sequence of actions to a tuple containing a model and a list of corresponding states.
     Parameters:
@@ -70,8 +70,8 @@ def update_uniq_seq_dict(trajectory, model, problem, window_size, stride=1, seq_
     - If the sequence is not present, it adds the sequence as a key in the dictionary and associates it with the model and the corresponding state.
     - If the sequence is already present, it appends the corresponding state to the existing list of states.
     - seq_dict = {
-            seq1: (problem1, model1, [state1, state2, ...]),
-            seq2: (problem2, model2, [...]),
+            seq1: (problem1, [state1, state2, ...]),
+            seq2: (problem2, [...]),
             ...
         }
     """
@@ -86,7 +86,7 @@ def update_uniq_seq_dict(trajectory, model, problem, window_size, stride=1, seq_
         
         # If the sequence is not in the dictionary, add it with the corresponding state tuple
         if seq not in seq_dict:
-            seq_dict[seq] = (problem, model, [state_tuple])
+            seq_dict[seq] = (problem, [state_tuple])
         else:
             # If the sequence already exists, append the new state tuple to the list
             seq_dict[seq][2].append(state_tuple)
