@@ -33,11 +33,11 @@ class Option:
         dataloader_y1 = DataLoader(dataset_y1, batch_size=self.batch_size, shuffle=False)
         for epoch in range(self.num_epochs):
             loss = 0
-            counter = 0
+            # counter = 0
             for observations, y1 in dataloader_y1:
-                if counter == 3:
-                    break
-                counter += 1
+                # if counter == 3:
+                #     break
+                # counter += 1
 
                 # Zero gradients
                 self.optimizer_y1.zero_grad()
@@ -59,11 +59,11 @@ class Option:
         dataloader_y2 = DataLoader(dataset_y2, batch_size=self.batch_size, shuffle=False)
         for epoch in range(self.num_epochs):
             loss = 0
-            counter = 0
+            # counter = 0
             for observations, y2 in dataloader_y2:
-                if counter == 3:
-                    break
-                counter += 1
+                # if counter == 3:
+                #     break
+                # counter += 1
 
                 # Zero gradients
                 self.optimizer_y2.zero_grad()
