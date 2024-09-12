@@ -3,25 +3,23 @@ import torch
 from data.custom_dataset import CustomDataset
 from models.model import CustomRelu
 from options.options import Option
-from utils import setup_environment, run_environment, load_trajectories, update_uniq_seq_dict, generate_labels, create_trajectory
+from utils import setup_environment, run_environment, load_trajectories, update_uniq_seq_dict, generate_labels
 
-# Load the dataset
-with open('binary/dataset.pkl', 'rb') as f:
-    data = pickle.load(f)
+# # Load the dataset
+# with open('binary/dataset.pkl', 'rb') as f:
+#     data = pickle.load(f)
 
-# Prepare data
-observations, y1_labels, y2_labels = [], [], []
-for obs, y1, y2 in data:
-    observations.append(obs)
-    y1_labels.append(y1)
-    y2_labels.append(y2)
+# # Prepare data
+# observations, y1_labels, y2_labels = [], [], []
+# for obs, y1, y2 in data:
+#     observations.append(obs)
+#     y1_labels.append(y1)
+#     y2_labels.append(y2)
 
-# # Create datasets for y1 and y2
-# dataset_y1 = CustomDataset(observations, y1_labels)
-# dataset_y2 = CustomDataset(observations, y2_labels)
 
 # Model parameters
-input_size = len(observations[0])  # Size of the observation vector
+# input_size = len(observations[0])  # Size of the observation vector
+input_size = 27 # (3*3) for agent position + (3*3) for goal position + (3*3) for 3 actions of size 3
 output_size_y1 = 3  # 3 possible actions for y1
 hidden_size = 6  # Hidden layer size
 learning_rate = 0.1
@@ -78,19 +76,14 @@ for seq, (problem, states) in uniq_seq_dict.items():
     
     y1_labels, y2_labels = generate_labels(uniq_seq_dict, seq)
 
-    print("Seq: ", seq)
-
     dataset_y1 = CustomDataset(observations, y1_labels)
     dataset_y2 = CustomDataset(observations, y2_labels)
-
-    print("2-Seq: ", seq)
-
     
     # Train the models
     option.train_y1(dataset_y1)
     option.train_y2(dataset_y2)
 
-    print("3-Seq: ", seq)
+    print("Seq: ", seq)
 
 
     # Truncate weights with the given threshold (optional, set to 0)
@@ -98,6 +91,13 @@ for seq, (problem, states) in uniq_seq_dict.items():
 
     # Store the options for later evaluation
     options_list.append(option)
+
+# Save the options list to a file
+save_path = 'binary/options_list.pkl'
+with open(save_path, 'wb') as f:
+    pickle.dump(options_list, f)
+
+print(f'Options list saved to {save_path}')
 
 # Print model weights for the last trained option as an example (for evaluation purposes)
 options_list[-1].print_model_weights()
