@@ -144,3 +144,34 @@ def create_trajectory(sequence_of_actions, states):
     for action, state in zip(sequence_of_actions, states):
         trajectory.add_pair(state, action)
     return trajectory
+
+
+def group_options_by_problem(options_list):
+    """
+    Groups the options in the options_list by their associated problems.
+    
+    Parameters:
+    - options_list: List of Option objects.
+
+    Returns:
+    - problems_options: A dictionary where each key is a problem and the value is a list of options associated with that problem.
+      problems_options = {
+          problem1: [option1, option2, ...],
+          problem2: [option1, option2, ...],
+        ...
+      }
+    """
+    problems_options = {}
+
+    # Iterate over all the options in the list
+    for option in options_list:
+        problem = option.problem  # Extract the problem associated with the option
+
+        # If the problem doesn't exist in the dictionary, initialize an empty list
+        if problem not in problems_options:
+            problems_options[problem] = []
+
+        # Append the option to the list for this problem
+        problems_options[problem].append(option)
+
+    return problems_options
