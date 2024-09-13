@@ -127,6 +127,62 @@ class PolicyGuidedAgent:
 
         return trajectory
 
+    def check_stopping(self, env, model_y2, verbose=False):
+        """
+        This method checks the stopping condition using model_y2.
+        Returns True if the agent should stop, otherwise False.
+        """
+        x_tensor = torch.tensor(env.get_observation(), dtype=torch.float32).view(1, -1)
+        stopping_prob = model_y2(x_tensor).item()  # model_y2 outputs a probability
+        if verbose:
+            print(f"Stopping probability: {stopping_prob}")
+        return stopping_prob >= 0.5  # Stop if probability is 0.5 or higher
+    
+    def run_with_y1_y2(self, env, model_y1, model_y2, greedy=False, length_cap=None, verbose=False):
+        """
+        This method runs the environment using model_y1 to choose actions
+        and model_y2 to determine when to stop.
+        """
+        if greedy:
+            self._epsilon = 0.0
+
+        if isinstance(model_y1, CustomRNN):
+            self._is_recurrent = True
+
+        trajectory = Trajectory()
+        current_length = 0
+
+        if verbose:
+            print('Beginning Trajectory')
+
+        while not env.is_over():
+            # Choose action using model_y1
+            a = self.choose_action(env, model_y1, greedy, verbose)
+            trajectory.add_pair(copy.deepcopy(env), a)
+
+            if verbose:
+                print(env, a)
+                print()
+
+            # Apply the chosen action
+            env.apply_action(a)
+
+            # Check stopping condition using model_y2
+            if self.check_stopping(env, model_y2, verbose):
+                if verbose:
+                    print("Stopping the trajectory based on model_y2.")
+                break
+
+            current_length += 1
+            if length_cap is not None and current_length > length_cap:
+                break
+
+        self._h = None
+        if verbose:
+            print("End Trajectory \n\n")
+
+        return trajectory
+
 def main():
     hidden_size = 4
     game_width = 3
