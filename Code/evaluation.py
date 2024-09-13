@@ -78,7 +78,7 @@ def evaluate_all_options_levin_loss(problems_options, trajectories):
     loss.print_output_subpolicy_trajectory_y1y2(selected_options, selected_options_problem, trajectories, number_iterations)
 
     for i in range(len(selected_options)):
-        print(selected_options[i].sequence)
+        print("Option", i, ":", selected_options[i].sequence)
 
     # Save the options list to a file
     save_path = 'binary/final_options.pkl'
