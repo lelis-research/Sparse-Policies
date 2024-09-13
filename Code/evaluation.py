@@ -1,7 +1,8 @@
 from levin_loss import LevinLossMLP
-from utils import setup_environment, run_environment
+from utils import setup_environment, run_environment, group_options_by_problem, load_trajectories
 import copy
 import pickle
+
 
 def evaluate_all_options_for_problem(selected_options, problem, trajectories, number_actions, number_iterations, options_for_this_model):
     """
@@ -14,7 +15,7 @@ def evaluate_all_options_for_problem(selected_options, problem, trajectories, nu
 
     for current_option in options_for_this_model:
         
-        value = loss.compute_loss_opt(selected_options + [current_option], problem, trajectories, number_actions, number_iterations)
+        value = loss.compute_loss_y1_y2(selected_options + [current_option], problem, trajectories, number_actions, number_iterations)
         print("Value: ", value)
 
         if best_option is None or value < best_value:
@@ -67,24 +68,27 @@ def evaluate_all_options_levin_loss(problems_options, trajectories):
         """
         selected_options.append(best_option)
         selected_options_problem.append(problem_option)
-        best_loss = loss.compute_loss_opt(selected_options, "", trajectories, number_actions, number_iterations)
+        best_loss = loss.compute_loss_y1_y2(selected_options, "", trajectories, number_actions, number_iterations)
 
         print("Levin loss of the current set: ", best_loss)
         print("################################################ END OPTION\n\n")
 
 
     loss = LevinLossMLP()
-    loss.print_output_subpolicy_trajectory_opt(selected_options, selected_options_problem, trajectories, number_iterations)
+    loss.print_output_subpolicy_trajectory_y1y2(selected_options, selected_options_problem, trajectories, number_iterations)
 
-    # TODO: this is not a good way to print my options because they are neural networks.
     for i in range(len(selected_options)):
-        print(selected_options[i])
+        print(selected_options[i].sequence)
+
+    # Save the options list to a file
+    save_path = 'binary/final_options.pkl'
+    with open(save_path, 'wb') as f:
+        pickle.dump(selected_options, f)
+    print(f'Options list saved to {save_path}')
 
 
 
 def main():
-
-    game_width = 3
 
     # Load options_list from the file
     save_path = 'binary/options_list.pkl'
@@ -93,20 +97,16 @@ def main():
     print(f'Options list loaded from {save_path}')
 
 
-    # Print model weights for the last trained option as an example (for evaluation purposes)
-    options_list[-1].print_model_weights()
+    game_width = 3
+    problems = ["TL-BR", "TR-BL", "BR-TL", "BL-TR"]
+    hidden_size_custom_relu = 6
 
-    # Set up the environment
-    problem = "TL-BR"  # You can change this to other problem types like "TR-BL", "BR-TL", etc.
-    env = setup_environment(problem, game_width)
 
-    # Run the environment using the trained models from the last options object
-    run_environment(env, options_list[-1].model_y1, options_list[-1].model_y2)
+    trajectories = load_trajectories(problems, hidden_size_custom_relu, game_width)
+    problems_options = group_options_by_problem(options_list)
 
     
-    
-    # evaluate_all_options_levin_loss(problems_options, trajectories)
-
+    evaluate_all_options_levin_loss(problems_options, trajectories)
 
 
 

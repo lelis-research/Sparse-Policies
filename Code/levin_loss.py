@@ -380,7 +380,7 @@ class LevinLossMLP:
                 print()
             print('Number of Decisions: ',  M[len(t)])
 
-    def print_output_subpolicy_trajectory_opt(self, options_list, models_problems, trajectories, number_steps):
+    def print_output_subpolicy_trajectory_y1y2(self, options_list, models_problems, trajectories, number_steps):
         """
         This function prints the "behavior" of the options encoded in a set of options. 
         It shows when each option is applicable in different states of the different trajectories.
