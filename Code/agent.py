@@ -164,14 +164,15 @@ class PolicyGuidedAgent:
                 print(env, a)
                 print()
 
-            # Apply the chosen action
-            env.apply_action(a)
 
             # Check stopping condition using model_y2
             if self.check_stopping(env, model_y2, verbose):
                 if verbose:
                     print("Stopping the trajectory based on model_y2.")
                 break
+
+            # Apply the chosen action
+            env.apply_action(a)
 
             current_length += 1
             if length_cap is not None and current_length > length_cap:
