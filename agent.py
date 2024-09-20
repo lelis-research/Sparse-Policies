@@ -136,7 +136,7 @@ class PolicyGuidedAgent:
         stopping_prob = model_y2(x_tensor).item()  # model_y2 outputs a probability
         if verbose:
             print(f"Stopping probability: {stopping_prob}")
-        return stopping_prob >= 0.5  # Stop if probability is 0.5 or higher
+        return stopping_prob <= 0.5  # Stop if probability is 0.5 or higher
     
     def run_with_y1_y2(self, env, model_y1, model_y2, greedy=False, length_cap=None, verbose=False):
         """
@@ -157,40 +157,44 @@ class PolicyGuidedAgent:
         if verbose:
             print('Beginning Trajectory')
 
+        sequence_ended = False  # Flag to indicate the end of a sequence
+    
         while not env.is_over():
-            sequence_ended = False  # Flag to indicate the end of a sequence
             sequence_action_count = 0  # Counter for the number of actions in the current sequence
 
-            while not sequence_ended and not env.is_over():
-                # Choose action using model_y1
-                a = self.choose_action(env, model_y1, greedy, verbose)
-                trajectory.add_pair(copy.deepcopy(env), a)
+            
+            # Choose action using model_y1
+            a = self.choose_action(env, model_y1, greedy, verbose)
+            trajectory.add_pair(copy.deepcopy(env), a)
 
+            if verbose:
+                print(env, a, "\n")
+
+            # Check stopping condition using model_y2
+            if self.check_stopping(env, model_y2, verbose):
                 if verbose:
-                    print(env, a)
-                    print()
-
-                # Check stopping condition using model_y2
-                if self.check_stopping(env, model_y2, verbose):
-                    if verbose:
-                        print("Stopping the current sequence based on model_y2.")
-                    sequence_ended = True  # End the current sequence, but continue the outer loop
+                    print("Stopping the current sequence based on model_y2.")
+                sequence_ended = True  # End the current sequence, but continue the outer loop
                 
-                # Apply the chosen action
-                env.apply_action(a)
+            # Apply the chosen action
+            env.apply_action(a)
 
-                current_length += 1
-                sequence_action_count += 1
+            current_length += 1
+            sequence_action_count += 1
 
-                # If the maximum sequence length is reached, end the sequence
-                if sequence_action_count >= max_sequence_length:
-                    if verbose:
-                        print(f"Max sequence length of {max_sequence_length} reached without stopping. Ending sequence.")
-                    sequence_ended = True
+            # If the maximum sequence length is reached, end the sequence
+            if sequence_action_count >= max_sequence_length:
+                if verbose:
+                    print(f"Max sequence length of {max_sequence_length} reached without stopping. Ending sequence.")
+                sequence_ended = True
 
-                
-                if length_cap is not None and current_length > length_cap:
-                    return trajectory
+            print("action: ", a)
+            if sequence_ended:
+                print("Sequence ended")
+                return trajectory
+            
+            if length_cap is not None and current_length > length_cap:
+                return trajectory
 
         self._h = None
         if verbose:
