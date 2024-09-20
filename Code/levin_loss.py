@@ -59,7 +59,8 @@ class LevinLossMLP:
             agent = PolicyGuidedAgent()
 
             # Run the models for the specified number of steps using agent
-            trajectory = agent.run_with_y1_y2(env, model_y1, model_y2, length_cap=number_steps-1)
+            # trajectory = agent.run_with_y1_y2(env, model_y1, model_y2, length_cap=number_steps-1)
+            trajectory = agent.run_with_y1_y2(env, model_y1, model_y2)
 
             actions = []
             for _, action in trajectory.get_trajectory():
