@@ -34,8 +34,6 @@ hidden_size_custom_relu = 6
 
 # Create an array of Options objects with different window sizes
 options_list = []
-
-rnn = CustomRelu(game_width**2 * 2 + 9, hidden_size_custom_relu, 3)
 models = []
 uniq_seq_dict = {}
 

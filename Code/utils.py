@@ -61,16 +61,16 @@ def load_trajectories(problems, hidden_size, game_width):
 
 def update_uniq_seq_dict(trajectory, problem, window_size, stride=1, seq_dict=None):
     """
-    The unique sequence dictionary is a dictionary that maps a sequence of actions to a tuple containing a model and a list of corresponding states.
+    The unique sequence dictionary is a dictionary that maps a sequence of actions to a tuple containing the problem and a list of corresponding states.
     Parameters:
-    - It takes a single trajectory and model as input.
+    - It takes a single trajectory and problem as input.
     - It extracts the action sequence and state sequence from the trajectory.
     - It creates sliding windows of the action sequence with the specified window size and stride.
     - For each window, it checks if the sequence is already present in the dictionary.
-    - If the sequence is not present, it adds the sequence as a key in the dictionary and associates it with the model and the corresponding state.
-    - If the sequence is already present, it appends the corresponding state to the existing list of states.
+    - If the sequence is not present, it adds the sequence as a key in the dictionary and associates it with the model and the corresponding states.
+    - If the sequence is already present, it appends the corresponding states to the existing list of state tuples.
     - seq_dict = {
-            seq1: (problem1, [state1, state2, ...]),
+            seq1: (problem1, [state_tuple1, state_tuple2, ...]),
             seq2: (problem2, [...]),
             ...
         }
