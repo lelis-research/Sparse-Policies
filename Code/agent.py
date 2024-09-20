@@ -143,6 +143,8 @@ class PolicyGuidedAgent:
         This method runs the environment using model_y1 to choose actions
         and model_y2 to determine when to stop.
         """
+        max_sequence_length = 20
+
         if greedy:
             self._epsilon = 0.0
 
@@ -156,27 +158,39 @@ class PolicyGuidedAgent:
             print('Beginning Trajectory')
 
         while not env.is_over():
-            # Choose action using model_y1
-            a = self.choose_action(env, model_y1, greedy, verbose)
-            trajectory.add_pair(copy.deepcopy(env), a)
+            sequence_ended = False  # Flag to indicate the end of a sequence
+            sequence_action_count = 0  # Counter for the number of actions in the current sequence
 
-            if verbose:
-                print(env, a)
-                print()
+            while not sequence_ended and not env.is_over():
+                # Choose action using model_y1
+                a = self.choose_action(env, model_y1, greedy, verbose)
+                trajectory.add_pair(copy.deepcopy(env), a)
 
-
-            # Check stopping condition using model_y2
-            if self.check_stopping(env, model_y2, verbose):
                 if verbose:
-                    print("Stopping the trajectory based on model_y2.")
-                break
+                    print(env, a)
+                    print()
 
-            # Apply the chosen action
-            env.apply_action(a)
+                # Check stopping condition using model_y2
+                if self.check_stopping(env, model_y2, verbose):
+                    if verbose:
+                        print("Stopping the current sequence based on model_y2.")
+                    sequence_ended = True  # End the current sequence, but continue the outer loop
+                
+                # Apply the chosen action
+                env.apply_action(a)
 
-            current_length += 1
-            if length_cap is not None and current_length > length_cap:
-                break
+                current_length += 1
+                sequence_action_count += 1
+
+                # If the maximum sequence length is reached, end the sequence
+                if sequence_action_count >= max_sequence_length:
+                    if verbose:
+                        print(f"Max sequence length of {max_sequence_length} reached without stopping. Ending sequence.")
+                    sequence_ended = True
+
+                
+                if length_cap is not None and current_length > length_cap:
+                    return trajectory
 
         self._h = None
         if verbose:
