@@ -91,7 +91,7 @@ for seq, (problem, states) in uniq_seq_dict.items():
     options_list.append(option)
 
 # Save the options list to a file
-save_path = 'binary/options_list.pkl'
+save_path = 'binary/options_list_hidden_size_' + hidden_size_custom_relu + '_game_width_' + game_width + '_num_epochs_' + num_epochs + '_onlyws3.pkl'
 with open(save_path, 'wb') as f:
     pickle.dump(options_list, f)
 

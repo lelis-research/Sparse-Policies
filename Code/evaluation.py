@@ -95,16 +95,16 @@ def evaluate_all_options_levin_loss(problems_options, trajectories):
 
 def main():
 
-    # Load options_list from the file
-    save_path = 'binary/options_list.pkl'
-    with open(save_path, 'rb') as f:
-        options_list = pickle.load(f)
-    print(f'Options list loaded from {save_path}')
-
-
+    num_epochs = 5000
     game_width = 3
     problems = ["TL-BR", "TR-BL", "BR-TL", "BL-TR"]
     hidden_size_custom_relu = 6
+
+    # Load options_list from the file
+    save_path = 'binary/options_list_hidden_size_' + hidden_size_custom_relu + '_game_width_' + game_width + '_num_epochs_' + num_epochs + '_onlyws3.pkl'
+    with open(save_path, 'rb') as f:
+        options_list = pickle.load(f)
+    print(f'Options list loaded from {save_path}')
 
 
     trajectories = load_trajectories(problems, hidden_size_custom_relu, game_width)
