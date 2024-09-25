@@ -101,7 +101,7 @@ def main():
     hidden_size_custom_relu = 6
 
     # Load options_list from the file
-    save_path = 'binary/options_list_hidden_size_' + hidden_size_custom_relu + '_game_width_' + game_width + '_num_epochs_' + num_epochs + '_onlyws3.pkl'
+    save_path = 'binary/options_list_hidden_size_' + str(hidden_size_custom_relu) + '_game_width_' + str(game_width) + '_num_epochs_' + str(num_epochs) + '_onlyws3.pkl'
     with open(save_path, 'rb') as f:
         options_list = pickle.load(f)
     print(f'Options list loaded from {save_path}')

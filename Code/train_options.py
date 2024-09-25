@@ -1,7 +1,11 @@
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
 import pickle
 import torch
 from data.custom_dataset import CustomDataset
-from models.model import CustomRelu
+from model import CustomRelu
 from options.options import Option
 from utils import setup_environment, run_environment, load_trajectories, update_uniq_seq_dict, generate_labels
 
@@ -47,7 +51,8 @@ for problem, trajectory in trajectories.items():
     print("Problem:", problem)
     print("actions: ", trajectory.get_action_sequence(), " \n")
 
-    window_sizes = list(range(2, len(trajectory.get_trajectory())))
+    # window_sizes = list(range(2, len(trajectory.get_trajectory())))
+    window_sizes = [3]
 
     # Loop through different window sizes (from 2 to the length of the trajectory)
     for ws in window_sizes:
@@ -91,7 +96,7 @@ for seq, (problem, states) in uniq_seq_dict.items():
     options_list.append(option)
 
 # Save the options list to a file
-save_path = 'binary/options_list_hidden_size_' + hidden_size_custom_relu + '_game_width_' + game_width + '_num_epochs_' + num_epochs + '_onlyws3.pkl'
+save_path = 'binary/options_list_hidden_size_' + str(hidden_size_custom_relu) + '_game_width_' + str(game_width) + '_num_epochs_' + str(num_epochs) + '_onlyws3.pkl'
 with open(save_path, 'wb') as f:
     pickle.dump(options_list, f)
 
