@@ -3,6 +3,29 @@ import torch
 from combo import Game
 from agent import PolicyGuidedAgent, Trajectory
 from models.model import CustomRelu
+import matplotlib.pyplot as plt
+
+
+def plot_loss(loss_values, title='Training Loss Over Epochs', save_path=None):
+    """
+    Plots the loss values over epochs.
+    
+    Parameters:
+    - loss_values: List of loss values recorded at each epoch.
+    - title: Title of the plot.
+    """
+    plt.figure(figsize=(10, 6))
+    plt.plot(loss_values, label='Training Loss', color='blue')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.title(title)
+    plt.legend()
+    plt.grid(True)
+    
+    if save_path:
+        plt.savefig(save_path)
+        print(f"Plot saved to {save_path}")
+
 
 def setup_environment(problem, dim):
     """
