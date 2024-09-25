@@ -1,5 +1,5 @@
 import torch
-from agent import PolicyGuidedAgent
+from Code.agent import PolicyGuidedAgent
 from combo import Game
 from model import CustomRelu
 

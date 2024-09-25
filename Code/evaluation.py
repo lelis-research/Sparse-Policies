@@ -1,3 +1,8 @@
+import sys
+import os
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
 from levin_loss import LevinLossMLP
 from utils import setup_environment, run_environment, group_options_by_problem, load_trajectories
 import copy

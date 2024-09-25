@@ -3,10 +3,10 @@ import itertools
 import math
 import random
 import torch
-from agent import PolicyGuidedAgent
+from Code.agent import PolicyGuidedAgent
 from combo import Game
 from model import CustomRelu
-from agent import Trajectory
+from Code.agent import Trajectory
 
 
 import numpy as np

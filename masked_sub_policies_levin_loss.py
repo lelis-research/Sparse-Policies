@@ -3,7 +3,7 @@ import itertools
 import math
 import random
 import torch
-from agent import PolicyGuidedAgent
+from Code.agent import PolicyGuidedAgent
 from combo import Game
 from model import CustomRelu
 

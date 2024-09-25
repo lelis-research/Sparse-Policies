@@ -1,7 +1,7 @@
 import copy
 import math
 import torch
-from agent import PolicyGuidedAgent
+from Code.agent import PolicyGuidedAgent
 from combo import Game
 from extract_automaton import ExtractAutomaton
 from extract_sub_automata import SubAutomataExtractor
