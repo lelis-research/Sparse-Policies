@@ -4,7 +4,7 @@ import torch
 import numpy as np
 
 from combo import Game
-from models.model import CustomRNN, CustomRelu 
+from model import CustomRNN, CustomRelu 
 
 class Trajectory:
     def __init__(self):
@@ -136,7 +136,7 @@ class PolicyGuidedAgent:
         stopping_prob = model_y2(x_tensor).item()  # model_y2 outputs a probability
         if verbose:
             print(f"Stopping probability: {stopping_prob}")
-        return stopping_prob <= 0.5 
+        return stopping_prob <= 0.5
     
     def run_with_y1_y2(self, env, model_y1, model_y2, greedy=False, length_cap=None, verbose=False):
         """
@@ -155,14 +155,14 @@ class PolicyGuidedAgent:
         current_length = 0
         sequence_action_count = 0  # Counter for the number of actions in the current sequence
 
+
         if verbose:
             print('Beginning Trajectory')
 
-
         sequence_ended = False  # Flag to indicate the end of a sequence
-
+    
         while not env.is_over():
-            
+
             # Choose action using model_y1
             a = self.choose_action(env, model_y1, greedy, verbose)
             trajectory.add_pair(copy.deepcopy(env), a)
@@ -188,20 +188,20 @@ class PolicyGuidedAgent:
                     print(f"Max sequence length of {max_sequence_length} reached without stopping. Ending sequence.")
                 sequence_ended = True
 
-            print("action: ", a)
+            # print("action: ", a)
             if sequence_ended:
-                print("Sequence ended")
-                return trajectory
+                # print("Sequence ended")
+                break
             
             if length_cap is not None and current_length > length_cap:
-                return trajectory
+                break
 
         self._h = None
         if verbose:
             print("End Trajectory \n\n")
 
         return trajectory
-    
+
 def main():
     hidden_size = 4
     game_width = 3
