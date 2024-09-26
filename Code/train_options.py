@@ -20,21 +20,19 @@ from utils import setup_environment, run_environment, load_trajectories, update_
 #     y1_labels.append(y1)
 #     y2_labels.append(y2)
 
+# Environment
+game_width = 5
+problems = ["TL-BR", "TR-BL", "BR-TL", "BL-TR"]
+hidden_size_custom_relu = 32
 
 # Model parameters
 # input_size = len(observations[0])  # Size of the observation vector
-input_size = 27 # (3*3) for agent position + (3*3) for goal position + (3*3) for 3 actions of size 3
+input_size = game_width**2 * 2 + 9 # (3*3) for agent position + (3*3) for goal position + (3*3) for 3 actions of size 3
 output_size_y1 = 3  # 3 possible actions for y1
-hidden_size = 6  # Hidden layer size
 learning_rate = 0.1
 num_epochs = 5000
 l1_lambda = 0.005
 batch_size = 1
-
-# Environment
-game_width = 3
-problems = ["TL-BR", "TR-BL", "BR-TL", "BL-TR"]
-hidden_size_custom_relu = 6
 
 # Create an array of Options objects with different window sizes
 options_list = []
@@ -63,7 +61,7 @@ for problem, trajectory in trajectories.items():
 for seq, (problem, states) in uniq_seq_dict.items():
 
     # Initialize the Option object with the window size
-    option = Option(problem, trajectory, seq, input_size, output_size_y1, hidden_size, learning_rate, l1_lambda, batch_size, num_epochs)
+    option = Option(problem, trajectory, seq, input_size, output_size_y1, hidden_size_custom_relu, learning_rate, l1_lambda, batch_size, num_epochs)
 
     # Each option has different dataset
     # observations = [state.get_observation() for state in states] 
