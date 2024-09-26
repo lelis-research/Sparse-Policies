@@ -1,12 +1,14 @@
 import sys
 import os
-
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from levin_loss import LevinLossMLP
 from utils import setup_environment, run_environment, group_options_by_problem, load_trajectories
 import copy
 import pickle
+from combo import Game
+import numpy as np
+import torch
 
 
 def evaluate_all_options_for_problem(selected_options, problem, trajectories, number_actions, number_iterations, options_for_this_model):
@@ -92,6 +94,52 @@ def evaluate_all_options_levin_loss(problems_options, trajectories):
     print(f'Options list saved to {save_path}')
 
 
+def extract_base_behaviors(problems_options):
+    """
+    This functions returns the model_y1 and model_y2 for the base behaviors (up, down, ledt, right).
+    """
+    base_behaviors = {}
+    for problem, options in problems_options.items():
+        for option in options:
+            if option.sequence == (0, 0, 1):
+                base_behaviors["up"] = option
+            elif option.sequence == (0, 1, 2):
+                base_behaviors["down"] = option
+            elif option.sequence == (2, 1, 0):
+                base_behaviors["left"] = option
+            elif option.sequence == (1, 0, 2):
+                base_behaviors["right"] = option
+    return base_behaviors
+
+
+def evalute_behaviors_each_cell(problems_options, problem, game_width):
+    """
+    In this function, we evaluate our base behaviors (4 sequences of actions) in each cell of the grid to see if they can perform as expected.
+    """
+    base_behaviors = extract_base_behaviors(problems_options)
+    env = Game(game_width, game_width, problem)
+
+    for behavior, option in base_behaviors.items():
+        print("Behavior: ", behavior, " -- Sequence: ", option.sequence)
+        model_y1 = option.model_y1
+        model_y2 = option.model_y2
+
+        for i in range(game_width):
+            for j in range(game_width):
+                env._matrix_unit = np.zeros((game_width, game_width))
+                env._matrix_unit[i][j] = 1
+
+                print("Cell: ", i, j)
+
+                for _ in range(3):  # 3 is the length of the sequence of actions
+                    x_tensor = torch.tensor(env.get_observation(), dtype=torch.float32).view(1, -1)
+                    prob_actions = model_y1(x_tensor)
+                    stopping_probability = model_y2(x_tensor)
+                    a = torch.argmax(prob_actions).item()
+                    print(a, stopping_probability)
+                    env.apply_action(a)
+        print("################################################ END BEHAVIOR \n\n")
+
 
 def main():
 
@@ -111,7 +159,9 @@ def main():
     problems_options = group_options_by_problem(options_list)
 
     
-    evaluate_all_options_levin_loss(problems_options, trajectories)
+    # evaluate_all_options_levin_loss(problems_options, trajectories)
+
+    evalute_behaviors_each_cell(problems_options, problem="TL-BR", game_width=game_width)
 
 
 
