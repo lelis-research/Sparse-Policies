@@ -158,10 +158,24 @@ def main():
     trajectories = load_trajectories(problems, hidden_size_custom_relu, game_width)
     problems_options = group_options_by_problem(options_list)
 
-    
+    """
+    Levin Loss evaluation
+    """
     # evaluate_all_options_levin_loss(problems_options, trajectories)
 
-    evalute_behaviors_each_cell(problems_options, problem="TL-BR", game_width=game_width)
+    """
+    Evaluating base options in each cell
+    """
+    # evalute_behaviors_each_cell(problems_options, problem="BL-TR", game_width=game_width)
+
+    """
+    Analyzing the weights of the base options to see the effect of l1 regularization
+    """
+    base_behaviors = extract_base_behaviors(problems_options)
+    for behavior, option in base_behaviors.items():
+        print("Behavior: ", behavior, " -- Sequence: ", option.sequence)
+        option.print_model_weights()
+        print("################################################ END BEHAVIOR \n\n")
 
 
 

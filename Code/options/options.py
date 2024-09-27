@@ -119,7 +119,9 @@ class Option:
         Function to print the model weights
         """
         for name, param in self.model_y1.state_dict().items():
-            print(f"Layer: {name} | Size: {param.size()} | Values: {param}")
+            print(f"Y1 | Layer: {name} | Size: {param.size()} | Values: {param}")
+
+        print("\n\n")
 
         for name, param in self.model_y2.state_dict().items():
-            print(f"Layer: {name} | Size: {param.size()} | Values: {param}")
+            print(f"Y2 | Layer: {name} | Size: {param.size()} | Values: {param}")
