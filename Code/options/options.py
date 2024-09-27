@@ -31,7 +31,7 @@ class Option:
         self.batch_size = batch_size
         self.num_epochs = num_epochs
 
-    def train_y1(self, dataset_y1):
+    def train_y1(self, dataset_y1, print_loss=False):
         dataloader_y1 = DataLoader(dataset_y1, batch_size=self.batch_size, shuffle=False)
         loss_values = []  # List to store loss values for plotting
         for epoch in range(self.num_epochs):
@@ -63,10 +63,11 @@ class Option:
             current_lr = self.optimizer_y1.param_groups[0]['lr']
             print(f'Epoch [{epoch+1}/{self.num_epochs}], Loss Y1: {loss.item():.4f}, LR: {current_lr}')
 
-        title = f'Training Loss Over Epochs - Y1 - hidden size: {self.hidden_size} - sequence: {self.sequence}'
-        plot_loss(loss_values, title=title, save_path=f'plots/{title}.png')
+        if print_loss:
+            title = f'Training Loss Over Epochs - Y1 - hidden size: {self.hidden_size} - sequence: {self.sequence}'
+            plot_loss(loss_values, title=title, save_path=f'plots/{title}.png')
 
-    def train_y2(self, dataset_y2):
+    def train_y2(self, dataset_y2, print_loss=False):
         dataloader_y2 = DataLoader(dataset_y2, batch_size=self.batch_size, shuffle=False)
         loss_values = []  # List to store loss values for plotting
         for epoch in range(self.num_epochs):
@@ -96,8 +97,9 @@ class Option:
 
             print(f'Epoch [{epoch+1}/{self.num_epochs}], Loss Y2: {loss.item():.4f}')
 
-        title = f'Training Loss Over Epochs - Y2 - hidden size: {self.hidden_size} - sequence: {self.sequence}'
-        plot_loss(loss_values, title=title, save_path=f'plots/{title}.png')
+        if print_loss:
+            title = f'Training Loss Over Epochs - Y2 - hidden size: {self.hidden_size} - sequence: {self.sequence}'
+            plot_loss(loss_values, title=title, save_path=f'plots/{title}.png')
 
     def truncate_weights(self, model, threshold):
         """
