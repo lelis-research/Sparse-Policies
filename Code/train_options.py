@@ -43,7 +43,7 @@ uniq_seq_dict = {}
 trajectories = load_trajectories(problems, hidden_size_custom_relu, game_width)
 for problem, trajectory in trajectories.items():
     rnn = CustomRelu(game_width**2 * 2 + 9, hidden_size_custom_relu, 3)
-    rnn.load_state_dict(torch.load('binary/game-width' + str(game_width) + '-' + problem + '-relu-' + str(hidden_size_custom_relu) + '-model.pth'))
+    rnn.load_state_dict(torch.load('binary/game-width' + str(game_width) + '-' + problem + '-relu-' + str(hidden_size_custom_relu) + '-lr-' + str(l1_lambda) + '-model.pth'))
     models.append(rnn)
 
     print("Problem:", problem)
@@ -94,7 +94,7 @@ for seq, (problem, states) in uniq_seq_dict.items():
     options_list.append(option)
 
 # Save the options list to a file
-save_path = 'binary/options_list_hidden_size_' + str(hidden_size_custom_relu) + '_game_width_' + str(game_width) + '_num_epochs_' + str(num_epochs) + '_onlyws3.pkl'
+save_path = 'binary/options_list_hidden_size_' + str(hidden_size_custom_relu) + '_game_width_' + str(game_width) + '_num_epochs_' + str(num_epochs) + '-lr-' + str(l1_lambda) + '_onlyws3.pkl'
 with open(save_path, 'wb') as f:
     pickle.dump(options_list, f)
 

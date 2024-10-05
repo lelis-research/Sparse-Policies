@@ -146,10 +146,11 @@ def main():
     num_epochs = 5000
     game_width = 3
     problems = ["TL-BR", "TR-BL", "BR-TL", "BL-TR"]
-    hidden_size_custom_relu = 6
+    hidden_size_custom_relu = 64
+    l1_lambda = 0.005
 
     # Load options_list from the file
-    save_path = 'binary/options_list_hidden_size_' + str(hidden_size_custom_relu) + '_game_width_' + str(game_width) + '_num_epochs_' + str(num_epochs) + '_onlyws3.pkl'
+    save_path = 'binary/options_list_hidden_size_' + str(hidden_size_custom_relu) + '_game_width_' + str(game_width) + '_num_epochs_' + str(num_epochs) + '-lr-' + str(l1_lambda) + '_onlyws3.pkl'
     with open(save_path, 'rb') as f:
         options_list = pickle.load(f)
     print(f'Options list loaded from {save_path}')
@@ -159,17 +160,17 @@ def main():
     problems_options = group_options_by_problem(options_list)
 
     """
-    Levin Loss evaluation
+    1. Levin Loss evaluation
     """
     # evaluate_all_options_levin_loss(problems_options, trajectories)
 
     """
-    Evaluating base options in each cell
+    2. Evaluating base options in each cell
     """
-    # evalute_behaviors_each_cell(problems_options, problem="BL-TR", game_width=game_width)
+    # evalute_behaviors_each_cell(problems_options, problem="TL-BR", game_width=game_width)
 
     """
-    Analyzing the weights of the base options to see the effect of l1 regularization
+    3. Analyzing the weights of the base options to see the effect of l1 regularization
     """
     base_behaviors = extract_base_behaviors(problems_options)
     for behavior, option in base_behaviors.items():

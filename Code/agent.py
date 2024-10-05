@@ -211,10 +211,10 @@ def main():
 
     policy_agent = PolicyGuidedAgent()
 
-    # problem = "TL-BR"
+    problem = "TL-BR"
     # problem = "TR-BL"
     # problem = "BR-TL"
-    problem = "BL-TR"
+    # problem = "BL-TR"
 
     shortest_trajectory_length = np.inf
     best_trajectory = None
@@ -242,7 +242,7 @@ def main():
     env = Game(game_width, game_width, problem)
     policy_agent.run_with_relu_state(env, rnn)
 
-    torch.save(rnn.state_dict(), 'binary/game-width' + str(game_width) + '-' + problem + '-relu-' + str(hidden_size) + '-model.pth')
+    torch.save(rnn.state_dict(), 'binary/game-width' + str(game_width) + '-' + problem + '-relu-' + str(hidden_size) + '-lr-' + str(lambda_l1) + '-model.pth')
 
 if __name__ == "__main__":
     main()
