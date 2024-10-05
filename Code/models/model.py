@@ -62,7 +62,7 @@ class CustomRNN(nn.Module):
         return step_loss
 
 class CustomRelu(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size):
+    def __init__(self, input_size, hidden_size, output_size, lambda_l1=0.01):
         super(CustomRelu, self).__init__()
         self.hidden_size = hidden_size
         self.in2hidden = nn.Linear(input_size, hidden_size)
@@ -70,6 +70,7 @@ class CustomRelu(nn.Module):
         self.outsoftmax = nn.Softmax(dim=1)
         self.apply(self._weights_init_xavier)
 
+        self._lambda_l1 = lambda_l1
         self._optimizer = torch.optim.Adam(self.parameters(), lr=0.001, weight_decay=0.0)
         self._criterion = nn.CrossEntropyLoss()
     
@@ -141,7 +142,8 @@ class CustomRelu(nn.Module):
         return output
     
     def _l1_norm(self, lambda_l1):
-        l1_norm = sum(p.abs().sum() for p in self.parameters())
+        l1_norm = sum(p.abs().sum() for name, p in self.named_parameters() if "bias" not in name)
+        # l1_norm = sum(p.abs().sum() for p in self.parameters())
         return lambda_l1 * l1_norm
     
     def train(self, trajectory):
@@ -153,7 +155,7 @@ class CustomRelu(nn.Module):
             
             output = self(x_tensor)
             step_loss += self._criterion(output, y_tensor)
-            # step_loss += self._l1_norm(0.01)
+            step_loss += self._l1_norm(self._lambda_l1)
             
         step_loss.backward()    
         self._optimizer.step()

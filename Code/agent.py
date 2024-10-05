@@ -206,7 +206,8 @@ class PolicyGuidedAgent:
 def main():
     hidden_size = 64
     game_width = 3
-    rnn = CustomRelu(game_width**2 * 2 + 9, hidden_size, 3)
+    lambda_l1 = 0.005
+    rnn = CustomRelu(game_width**2 * 2 + 9, hidden_size, 3, lambda_l1=lambda_l1)
 
     policy_agent = PolicyGuidedAgent()
 
