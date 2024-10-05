@@ -5,7 +5,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import pickle
 import torch
 from data.custom_dataset import CustomDataset
-from model import CustomRelu
+from models.model import CustomRelu
 from options.options import Option
 from utils import setup_environment, run_environment, load_trajectories, update_uniq_seq_dict, generate_labels
 
@@ -21,9 +21,9 @@ from utils import setup_environment, run_environment, load_trajectories, update_
 #     y2_labels.append(y2)
 
 # Environment
-game_width = 5
+game_width = 3
 problems = ["TL-BR", "TR-BL", "BR-TL", "BL-TR"]
-hidden_size_custom_relu = 32
+hidden_size_custom_relu = 64
 
 # Model parameters
 # input_size = len(observations[0])  # Size of the observation vector
