@@ -4,7 +4,7 @@ import torch
 import numpy as np
 
 from combo import Game
-from model import CustomRNN, CustomRelu 
+from models.model import CustomRNN, CustomRelu 
 
 class Trajectory:
     def __init__(self):
@@ -76,7 +76,8 @@ class PolicyGuidedAgent:
             trajectory.add_pair(copy.deepcopy(env), a)
 
             if verbose:
-                print(env, a)
+                print("env: \n", env)
+                print("action: ", a)
                 print()
 
             env.apply_action(a)
@@ -203,17 +204,16 @@ class PolicyGuidedAgent:
         return trajectory
 
 def main():
-    hidden_size = 4
+    hidden_size = 64
     game_width = 3
-    # rnn = CustomRNN(27, 5, 3)
     rnn = CustomRelu(game_width**2 * 2 + 9, hidden_size, 3)
 
     policy_agent = PolicyGuidedAgent()
 
     # problem = "TL-BR"
     # problem = "TR-BL"
-    problem = "BR-TL"
-    # problem = "BL-TR"
+    # problem = "BR-TL"
+    problem = "BL-TR"
 
     shortest_trajectory_length = np.inf
     best_trajectory = None
