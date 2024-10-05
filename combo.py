@@ -84,36 +84,12 @@ class Game:
             self._matrix_unit[self._x][self._y] = 1
 
 
-    # def __repr__(self) -> str:
-    #     str_map = ""
-    #     for i in range(self._rows):
-    #         for j in range(self._columns):
-    #             if self._matrix_unit[i][j] == 1:
-    #                 str_map += " A "
-    #             elif self._matrix_structure[i][j] == 1:
-    #                  str_map += " B "
-    #             elif self._matrix_goal[i][j] == 1:
-    #                  str_map += " G "
-    #             else: 
-    #                  str_map += " 0 "
-    #         str_map += "\n"
-    #     return str_map
-    
-    def __repr__(self, option_idx) -> str:
+    def __repr__(self) -> str:
         str_map = ""
         for i in range(self._rows):
             for j in range(self._columns):
                 if self._matrix_unit[i][j] == 1:
-                    if option_idx == [0, 0, 1]:
-                        str_map += " U "
-                    elif option_idx == [0, 1, 2]:
-                        str_map += " D "
-                    elif option_idx == [2, 1, 0]:
-                        str_map += " L "
-                    elif option_idx == [1, 0, 2]:
-                        str_map += " R "
-                    else:
-                        str_map += " A "
+                    str_map += " A "
                 elif self._matrix_structure[i][j] == 1:
                      str_map += " B "
                 elif self._matrix_goal[i][j] == 1:
@@ -122,6 +98,30 @@ class Game:
                      str_map += " 0 "
             str_map += "\n"
         return str_map
+    
+    # def __repr__(self, option_idx) -> str:
+    #     str_map = ""
+    #     for i in range(self._rows):
+    #         for j in range(self._columns):
+    #             if self._matrix_unit[i][j] == 1:
+    #                 if option_idx == [0, 0, 1]:
+    #                     str_map += " U "
+    #                 elif option_idx == [0, 1, 2]:
+    #                     str_map += " D "
+    #                 elif option_idx == [2, 1, 0]:
+    #                     str_map += " L "
+    #                 elif option_idx == [1, 0, 2]:
+    #                     str_map += " R "
+    #                 else:
+    #                     str_map += " A "
+    #             elif self._matrix_structure[i][j] == 1:
+    #                  str_map += " B "
+    #             elif self._matrix_goal[i][j] == 1:
+    #                  str_map += " G "
+    #             else: 
+    #                  str_map += " 0 "
+    #         str_map += "\n"
+    #     return str_map
     
     def get_observation(self):
         one_hot_matrix_state = np.zeros((self._pattern_length, self._pattern_length), dtype=int)
