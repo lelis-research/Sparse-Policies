@@ -8,10 +8,10 @@ import torch.nn as nn
 from utils import plot_loss
 
 class Option:
-    def __init__(self, problem, trajectory, sequence, input_size, output_size_y1, hidden_size, learning_rate, l1_lambda, batch_size, num_epochs):
+    def __init__(self, problem, sequence, input_size, output_size_y1, hidden_size, learning_rate, l1_lambda, batch_size, num_epochs):
         self.problem = problem
         self.sequence = sequence
-        self.default_trajectory = trajectory
+        self.default_trajectory = None
         self.window_size = len(sequence)
         self.hidden_size = hidden_size
 
