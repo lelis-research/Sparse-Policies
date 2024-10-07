@@ -1,33 +1,13 @@
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import numpy as np
 import torch
 from combo import Game
 from agent import PolicyGuidedAgent, Trajectory
 from models.model import CustomRelu
-import matplotlib.pyplot as plt
 from data.custom_dataset import CustomDataset
 from options.options import Option
-
-
-
-def plot_loss(loss_values, title='Training Loss Over Epochs', save_path=None):
-    """
-    Plots the loss values over epochs.
-    
-    Parameters:
-    - loss_values: List of loss values recorded at each epoch.
-    - title: Title of the plot.
-    """
-    plt.figure(figsize=(10, 6))
-    plt.plot(loss_values, label='Training Loss', color='blue')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.title(title)
-    plt.legend()
-    plt.grid(True)
-    
-    if save_path:
-        plt.savefig(save_path)
-        print(f"Plot saved to {save_path}")
 
 
 def setup_environment(problem, dim):
@@ -65,7 +45,7 @@ def run_environment(env, model_y1, model_y2):
                 env.apply_action(a)
 
 
-def load_trajectories(problems, hidden_size, game_width):
+def load_trajectories(problems, hidden_size, game_width, l1_lambda):
     """
     This function loads one trajectory for each problem stored in variable "problems".
 
@@ -77,7 +57,7 @@ def load_trajectories(problems, hidden_size, game_width):
         agent = PolicyGuidedAgent()
         rnn = CustomRelu(game_width**2 * 2 + 9, hidden_size, 3)
         
-        rnn.load_state_dict(torch.load('binary/game-width' + str(game_width) + '-' + problem + '-relu-' + str(hidden_size) + '-model.pth'))
+        rnn.load_state_dict(torch.load('binary/game-width' + str(game_width) + '-' + problem + '-relu-' + str(hidden_size) + '-lr-' + str(l1_lambda) + '-model.pth'))
 
         trajectory = agent.run(env, rnn, greedy=True)
         trajectories[problem] = trajectory
@@ -145,7 +125,7 @@ def update_uniq_seq_dict(trajectory, problem, window_size, stride=1, seq_dict=No
     return seq_dict
 
 
-def generate_labels(uniq_seq_dict, seq):
+def generate_labels(uniq_seq_dict, seq, problem, multi_problem):
     """
     Generate y1 and y2 labels based on the action sequence.
     
@@ -166,7 +146,10 @@ def generate_labels(uniq_seq_dict, seq):
 
     # Extract the actions and states corresponding to the given sequence
     actions = list(seq)  # Convert the tuple of actions into a list
-    _, state_tuples = uniq_seq_dict[seq]  # Extract the list of state tuples for this sequence
+    if multi_problem:
+        state_tuples = uniq_seq_dict[seq][problem] # Extract the list of state tuples for this sequence and problem
+    else:
+        _, state_tuples = uniq_seq_dict[seq]  # Extract the list of state tuples for this sequence
     
     # The number of state tuples determines how many times the sequence should be repeated
     repeat_count = len(state_tuples)
@@ -227,7 +210,7 @@ def group_options_by_problem(options_list):
 
     return problems_options
 
-def process_option(uniq_seq_dict, problem, seq, states, input_size, output_size_y1, hidden_size_custom_relu, learning_rate, l1_lambda, batch_size, num_epochs):
+def process_option(uniq_seq_dict, problem, seq, states, input_size, output_size_y1, hidden_size_custom_relu, learning_rate, l1_lambda, batch_size, num_epochs, multi_problem):
     """
     This function contains the common logic for processing each sequence and problem.
     """
@@ -244,7 +227,7 @@ def process_option(uniq_seq_dict, problem, seq, states, input_size, output_size_
             # Get the observations for the current state
             observations.append(state.get_observation())
     
-    y1_labels, y2_labels = generate_labels(uniq_seq_dict, seq)
+    y1_labels, y2_labels = generate_labels(uniq_seq_dict, seq, problem, multi_problem)
 
     dataset_y1 = CustomDataset(observations, y1_labels)
     dataset_y2 = CustomDataset(observations, y2_labels)
