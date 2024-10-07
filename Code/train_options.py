@@ -29,7 +29,7 @@ models = []
 uniq_seq_dict = {}
 
 # Keeping track of sequences of actions and the models that generate them
-trajectories = load_trajectories(problems, hidden_size_custom_relu, game_width)
+trajectories = load_trajectories(problems, hidden_size_custom_relu, game_width, l1_lambda)
 for problem, trajectory in trajectories.items():
     rnn = CustomRelu(game_width**2 * 2 + 9, hidden_size_custom_relu, 3)
     rnn.load_state_dict(torch.load('binary/game-width' + str(game_width) + '-' + problem + '-relu-' + str(hidden_size_custom_relu) + '-lr-' + str(l1_lambda) + '-model.pth'))
@@ -49,11 +49,11 @@ for problem, trajectory in trajectories.items():
 if multi_problem:
     for seq, problem_dict in uniq_seq_dict.items():
         for problem, states in problem_dict.items():
-            option = process_option(uniq_seq_dict, problem, seq, states, input_size, output_size_y1, hidden_size_custom_relu, learning_rate, l1_lambda, batch_size, num_epochs)
+            option = process_option(uniq_seq_dict, problem, seq, states, input_size, output_size_y1, hidden_size_custom_relu, learning_rate, l1_lambda, batch_size, num_epochs, multi_problem)
             options_list.append(option)
 else:
     for seq, (problem, states) in uniq_seq_dict.items():
-        option = process_option(uniq_seq_dict, problem, seq, states, input_size, output_size_y1, hidden_size_custom_relu, learning_rate, l1_lambda, batch_size, num_epochs)
+        option = process_option(uniq_seq_dict, problem, seq, states, input_size, output_size_y1, hidden_size_custom_relu, learning_rate, l1_lambda, batch_size, num_epochs, multi_problem)
         options_list.append(option)
 
 
