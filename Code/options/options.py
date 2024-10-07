@@ -121,9 +121,15 @@ class Option:
         Function to print the model weights
         """
         for name, param in self.model_y1.state_dict().items():
-            print(f"Y1 | Layer: {name} | Size: {param.size()} | Values: {param}")
+            if param.dim() == 2:  # Check if the parameter is 2D (weights)
+                goal_loc_params = param[:, -9:]
+            elif param.dim() == 1:  # Check if the parameter is 1D (biases)
+                goal_loc_params = param[-9:]
+            else:
+                goal_loc_params = param
+            print(f"Y1 | Layer: {name} | Size: {param.size()} | Values: {goal_loc_params}")
 
         print("\n\n")
 
-        for name, param in self.model_y2.state_dict().items():
-            print(f"Y2 | Layer: {name} | Size: {param.size()} | Values: {param}")
+        # for name, param in self.model_y2.state_dict().items():
+        #     print(f"Y2 | Layer: {name} | Size: {param.size()} | Values: {param}")
