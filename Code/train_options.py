@@ -4,10 +4,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 import pickle
 import torch
-from data.custom_dataset import CustomDataset
 from models.model import CustomRelu
-from options.options import Option
-from utils import setup_environment, run_environment, load_trajectories, update_uniq_seq_dict, generate_labels
+from utils import setup_environment, run_environment, load_trajectories, update_uniq_seq_dict, generate_labels, process_option
 
 # # Load the dataset
 # with open('binary/dataset.pkl', 'rb') as f:
@@ -33,6 +31,7 @@ learning_rate = 0.1
 num_epochs = 5000
 l1_lambda = 0.005
 batch_size = 1
+multi_problem = True
 
 # Create an array of Options objects with different window sizes
 options_list = []
@@ -54,44 +53,19 @@ for problem, trajectory in trajectories.items():
 
     # Loop through different window sizes (from 2 to the length of the trajectory)
     for ws in window_sizes:
-        uniq_seq_dict = update_uniq_seq_dict(trajectory, problem, ws, seq_dict=uniq_seq_dict)
+        uniq_seq_dict = update_uniq_seq_dict(trajectory, problem, ws, seq_dict=uniq_seq_dict, multi_problem=multi_problem)
     
 
-# loop through sequeces and create options
-for seq, (problem, states) in uniq_seq_dict.items():
+if multi_problem:
+    for seq, problem_dict in uniq_seq_dict.items():
+        for problem, states in problem_dict.items():
+            option = process_option(uniq_seq_dict, problem, seq, states, input_size, output_size_y1, hidden_size_custom_relu, learning_rate, l1_lambda, batch_size, num_epochs)
+            options_list.append(option)
+else:
+    for seq, (problem, states) in uniq_seq_dict.items():
+        option = process_option(uniq_seq_dict, problem, seq, states, input_size, output_size_y1, hidden_size_custom_relu, learning_rate, l1_lambda, batch_size, num_epochs)
+        options_list.append(option)
 
-    # Initialize the Option object with the window size
-    option = Option(problem, trajectory, seq, input_size, output_size_y1, hidden_size_custom_relu, learning_rate, l1_lambda, batch_size, num_epochs)
-
-    # Each option has different dataset
-    # observations = [state.get_observation() for state in states] 
-    observations = []
-
-    # Loop over each tuple of states in the list of state tuples
-    for state_tuple in states:
-        # Loop over each individual state in the tuple
-        for state in state_tuple:
-            # Get the observations for the current state
-            observations.append(state.get_observation())
-            
-    
-    y1_labels, y2_labels = generate_labels(uniq_seq_dict, seq)
-
-    dataset_y1 = CustomDataset(observations, y1_labels)
-    dataset_y2 = CustomDataset(observations, y2_labels)
-    
-    # Train the models
-    option.train_y1(dataset_y1)
-    option.train_y2(dataset_y2)
-
-    print("Seq: ", seq)
-
-
-    # Truncate weights with the given threshold (optional, set to 0)
-    option.truncate_all_weights(threshold=0)
-
-    # Store the options for later evaluation
-    options_list.append(option)
 
 # Save the options list to a file
 save_path = 'binary/options_list_hidden_size_' + str(hidden_size_custom_relu) + '_game_width_' + str(game_width) + '_num_epochs_' + str(num_epochs) + '-lr-' + str(l1_lambda) + '_onlyws3.pkl'

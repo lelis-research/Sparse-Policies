@@ -4,6 +4,9 @@ from combo import Game
 from agent import PolicyGuidedAgent, Trajectory
 from models.model import CustomRelu
 import matplotlib.pyplot as plt
+from data.custom_dataset import CustomDataset
+from options.options import Option
+
 
 
 def plot_loss(loss_values, title='Training Loss Over Epochs', save_path=None):
@@ -82,7 +85,7 @@ def load_trajectories(problems, hidden_size, game_width):
     return trajectories
 
 
-def update_uniq_seq_dict(trajectory, problem, window_size, stride=1, seq_dict=None):
+def update_uniq_seq_dict(trajectory, problem, window_size, stride=1, seq_dict=None, multi_problem=False):
     """
     The unique sequence dictionary is a dictionary that maps a sequence of actions to a tuple containing the problem and a list of corresponding states.
     Parameters:
@@ -92,12 +95,23 @@ def update_uniq_seq_dict(trajectory, problem, window_size, stride=1, seq_dict=No
     - For each window, it checks if the sequence is already present in the dictionary.
     - If the sequence is not present, it adds the sequence as a key in the dictionary and associates it with the model and the corresponding states.
     - If the sequence is already present, it appends the corresponding states to the existing list of state tuples.
+    - multi_problem: If True, creates sub-dictionaries under each sequence for multiple problems.
     - seq_dict = {
             seq1: (problem1, [state_tuple1, state_tuple2, ...]),
             seq2: (problem2, [...]),
             ...
         }
+    
+    Example of seq_dict structure (with multi_problem=True):
+    {
+        seq1: {Prob1: [(s1, s2, ...), (s1, s2, ...), ...], Prob2: [(s1, s2, ...), ...]},
+        seq2: {Prob1: [...], Prob2: [...]},
+        ...
+    }
     """
+    if seq_dict is None:
+        seq_dict = {}
+    
     actions = trajectory.get_action_sequence()
     states = trajectory.get_state_sequence()
 
@@ -107,12 +121,26 @@ def update_uniq_seq_dict(trajectory, problem, window_size, stride=1, seq_dict=No
         # Collect the corresponding sequence of states for each action in the window
         state_tuple = tuple(states[i:i+window_size])
         
-        # If the sequence is not in the dictionary, add it with the corresponding state tuple
-        if seq not in seq_dict:
-            seq_dict[seq] = (problem, [state_tuple])
+        # If multi_problem flag is True, create a nested dictionary for each sequence
+        if multi_problem:
+            if seq not in seq_dict:
+                # Initialize the sequence with an empty dictionary for multiple problems
+                seq_dict[seq] = {}
+            
+            # If the problem is not in the sequence dictionary, initialize it with a list
+            if problem not in seq_dict[seq]:
+                seq_dict[seq][problem] = [state_tuple]
+            else:
+                # Append the new state tuple to the list under the current problem
+                seq_dict[seq][problem].append(state_tuple)
+        
         else:
-            # If the sequence already exists, append the new state tuple to the list
-            seq_dict[seq][1].append(state_tuple)
+            # If the sequence is not in the dictionary, add it with the corresponding state tuple
+            if seq not in seq_dict:
+                seq_dict[seq] = (problem, [state_tuple])
+            else:
+                # If the sequence already exists, append the new state tuple to the list
+                seq_dict[seq][1].append(state_tuple)
 
     return seq_dict
 
@@ -198,3 +226,34 @@ def group_options_by_problem(options_list):
         problems_options[problem].append(option)
 
     return problems_options
+
+def process_option(uniq_seq_dict, problem, seq, states, input_size, output_size_y1, hidden_size_custom_relu, learning_rate, l1_lambda, batch_size, num_epochs):
+    """
+    This function contains the common logic for processing each sequence and problem.
+    """
+        # Initialize the Option object with the window size
+    option = Option(problem, seq, input_size, output_size_y1, hidden_size_custom_relu, learning_rate, l1_lambda, batch_size, num_epochs)
+
+    # Each option has different dataset
+    observations = []
+
+    # Loop over each tuple of states in the list of state tuples
+    for state_tuple in states:
+        # Loop over each individual state in the tuple
+        for state in state_tuple:
+            # Get the observations for the current state
+            observations.append(state.get_observation())
+    
+    y1_labels, y2_labels = generate_labels(uniq_seq_dict, seq)
+
+    dataset_y1 = CustomDataset(observations, y1_labels)
+    dataset_y2 = CustomDataset(observations, y2_labels)
+    
+    # Train the models
+    option.train_y1(dataset_y1)
+    option.train_y2(dataset_y2)
+
+    # Truncate weights with the given threshold (optional, set to 0)
+    option.truncate_all_weights(threshold=0)
+
+    return option
