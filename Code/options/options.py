@@ -5,7 +5,7 @@ from models.net_y1 import NetY1
 from models.net_y2 import NetY2
 from torch.optim import lr_scheduler
 import torch.nn as nn
-from utils import plot_loss
+import matplotlib.pyplot as plt
 
 class Option:
     def __init__(self, problem, sequence, input_size, output_size_y1, hidden_size, learning_rate, l1_lambda, batch_size, num_epochs):
@@ -133,3 +133,24 @@ class Option:
 
         # for name, param in self.model_y2.state_dict().items():
         #     print(f"Y2 | Layer: {name} | Size: {param.size()} | Values: {param}")
+
+
+def plot_loss(loss_values, title='Training Loss Over Epochs', save_path=None):
+    """
+    Plots the loss values over epochs.
+    
+    Parameters:
+    - loss_values: List of loss values recorded at each epoch.
+    - title: Title of the plot.
+    """
+    plt.figure(figsize=(10, 6))
+    plt.plot(loss_values, label='Training Loss', color='blue')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.title(title)
+    plt.legend()
+    plt.grid(True)
+    
+    if save_path:
+        plt.savefig(save_path)
+        print(f"Plot saved to {save_path}")
