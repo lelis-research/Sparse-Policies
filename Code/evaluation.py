@@ -146,7 +146,7 @@ def main():
     num_epochs = 5000
     game_width = 3
     problems = ["TL-BR", "TR-BL", "BR-TL", "BL-TR"]
-    hidden_size_custom_relu = 64
+    hidden_size_custom_relu = 32
     l1_lambda = 0.005
 
     # Load options_list from the file
@@ -156,27 +156,27 @@ def main():
     print(f'Options list loaded from {save_path}')
 
 
-    trajectories = load_trajectories(problems, hidden_size_custom_relu, game_width)
+    trajectories = load_trajectories(problems, hidden_size_custom_relu, game_width, l1_lambda)
     problems_options = group_options_by_problem(options_list)
 
     """
     1. Levin Loss evaluation
     """
-    # evaluate_all_options_levin_loss(problems_options, trajectories)
+    evaluate_all_options_levin_loss(problems_options, trajectories)
 
     """
     2. Evaluating base options in each cell
     """
-    # evalute_behaviors_each_cell(problems_options, problem="TL-BR", game_width=game_width)
+    # evalute_behaviors_each_cell(problems_options, problem="BL-TR", game_width=game_width)
 
     """
     3. Analyzing the weights of the base options to see the effect of l1 regularization
     """
-    base_behaviors = extract_base_behaviors(problems_options)
-    for behavior, option in base_behaviors.items():
-        print("Behavior: ", behavior, " -- Sequence: ", option.sequence)
-        option.print_model_weights()
-        print("################################################ END BEHAVIOR \n\n")
+    # base_behaviors = extract_base_behaviors(problems_options)
+    # for behavior, option in base_behaviors.items():
+    #     print("Behavior: ", behavior, " -- Sequence: ", option.sequence)
+    #     option.print_model_weights()
+    #     print("################################################ END BEHAVIOR \n\n")
 
 
 
