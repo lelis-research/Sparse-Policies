@@ -64,7 +64,7 @@ class Option:
             print(f'Epoch [{epoch+1}/{self.num_epochs}], Loss Y1: {loss.item():.4f}, LR: {current_lr}')
 
         if print_loss:
-            title = f'Training Loss Over Epochs - Y1 - hidden size: {self.hidden_size} - sequence: {self.sequence}'
+            title = f'Training Loss Over Epochs - Y1 - hidden size: {self.hidden_size} - sequence: {self.sequence} - problem: {self.problem}'
             plot_loss(loss_values, title=title, save_path=f'plots/{title}.png')
 
     def train_y2(self, dataset_y2, print_loss=False):
@@ -98,7 +98,7 @@ class Option:
             print(f'Epoch [{epoch+1}/{self.num_epochs}], Loss Y2: {loss.item():.4f}')
 
         if print_loss:
-            title = f'Training Loss Over Epochs - Y2 - hidden size: {self.hidden_size} - sequence: {self.sequence}'
+            title = f'Training Loss Over Epochs - Y2 - hidden size: {self.hidden_size} - sequence: {self.sequence} - problem: {self.problem}'
             plot_loss(loss_values, title=title, save_path=f'plots/{title}.png')
 
     def truncate_weights(self, model, threshold):
@@ -116,18 +116,31 @@ class Option:
         self.truncate_weights(self.model_y1, threshold)
         self.truncate_weights(self.model_y2, threshold)
 
-    def print_model_weights(self):
+    def print_model_weights(self, game_width, agent_loc=False, goal_loc=False):
         """
         Function to print the model weights
         """
-        for name, param in self.model_y1.state_dict().items():
-            if param.dim() == 2:  # Check if the parameter is 2D (weights)
-                goal_loc_params = param[:, -9:]
-            elif param.dim() == 1:  # Check if the parameter is 1D (biases)
-                goal_loc_params = param[-9:]
-            else:
-                goal_loc_params = param
-            print(f"Y1 | Layer: {name} | Size: {param.size()} | Values: {goal_loc_params}")
+        if agent_loc:
+            print("Agent location weights:")
+            for name, param in self.model_y1.state_dict().items():
+                if param.dim() == 2:  # Check if the parameter is 2D (weights)
+                    agent_loc_params = param[:, :game_width*game_width]
+                # elif param.dim() == 1:  # Check if the parameter is 1D (biases)
+                #     agent_loc_params = param[:game_width*game_width]
+                else:
+                    agent_loc_params = param
+                print(f"Y1 | Layer: {name} | Size: {param.size()} | Values: {agent_loc_params}")
+
+        if goal_loc:
+            print("Goal location weights:")
+            for name, param in self.model_y1.state_dict().items():
+                if param.dim() == 2:  # Check if the parameter is 2D (weights)
+                    goal_loc_params = param[:, -game_width*game_width:]
+                # elif param.dim() == 1:  # Check if the parameter is 1D (biases)
+                #     goal_loc_params = param[-game_width*game_width:]
+                else:
+                    goal_loc_params = param
+                print(f"Y1 | Layer: {name} | Size: {param.size()} | Values: {goal_loc_params}")
 
         print("\n\n")
 

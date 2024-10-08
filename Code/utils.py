@@ -8,6 +8,8 @@ from agent import PolicyGuidedAgent, Trajectory
 from models.model import CustomRelu
 from data.custom_dataset import CustomDataset
 from options.options import Option
+import logging
+import io
 
 
 def setup_environment(problem, dim):
@@ -58,7 +60,7 @@ def load_trajectories(problems, hidden_size, game_width, l1_lambda):
         rnn = CustomRelu(game_width**2 * 2 + 9, hidden_size, 3)
         
         rnn.load_state_dict(torch.load('binary/game-width' + str(game_width) + '-' + problem + '-relu-' + str(hidden_size) + '-lr-' + str(l1_lambda) + '-model.pth'))
-
+        # rnn.load_state_dict(torch.load('binary/game-width' + str(game_width) + '-' + problem + '-relu-' + str(hidden_size) + '-model.pth'))
         trajectory = agent.run(env, rnn, greedy=True)
         trajectories[problem] = trajectory
 
@@ -234,10 +236,55 @@ def process_option(uniq_seq_dict, problem, seq, states, input_size, output_size_
     dataset_y2 = CustomDataset(observations, y2_labels)
     
     # Train the models
-    option.train_y1(dataset_y1)
-    option.train_y2(dataset_y2)
+    option.train_y1(dataset_y1, print_loss=True)
+    option.train_y2(dataset_y2, print_loss=True)
 
     # Truncate weights with the given threshold (optional, set to 0)
     # option.truncate_all_weights(threshold=0)
 
     return option
+
+
+# Function to capture printed output from a function that prints
+def capture_printed_output(func, *args, **kwargs):
+    # Create a StringIO object to capture the output
+    captured_output = io.StringIO()
+    
+    # Temporarily redirect sys.stdout to the StringIO object
+    sys.stdout = captured_output
+    
+    try:
+        # Call the function, which will print to the redirected stdout
+        func(*args, **kwargs)
+    finally:
+        # Restore sys.stdout to its original state
+        sys.stdout = sys.__stdout__
+    
+    # Get the printed content from StringIO and return it
+    return captured_output.getvalue()
+
+
+def log_weights(base_behaviors, hidden_size, game_width, l1_lambda, threshold, agent_loc, goal_loc):
+    logging.basicConfig(
+        filename=f'logs/base_behaviors_width_{game_width}_relu_{str(hidden_size)}_l1_{str(l1_lambda)}_thresh_{str(threshold)}_agentloc_{str(agent_loc)}_goalloc_{str(goal_loc)}_log.txt',  # Log file where the output will be saved
+        filemode='w',  # 'w' for overwrite each time, 'a' for append
+        level=logging.INFO,  # Log level
+        format='%(message)s',  # Log format
+    )
+
+    logger = logging.getLogger()
+
+    for behavior, options_for_behavior in base_behaviors.items():
+        for option in options_for_behavior:
+            logger.info(f"Behavior: {behavior} -- Sequence: {option.sequence} -- Problem: {option.problem}")
+            
+            option.truncate_all_weights(threshold=threshold)
+            
+            # Capture the printed model weights and log them
+            try:
+                # Ensure option.print_model_weights is valid and callable
+                weights_log = capture_printed_output(option.print_model_weights, game_width, agent_loc=agent_loc, goal_loc=goal_loc)
+                logger.info(weights_log)  # Log the captured output
+            except Exception as e:
+                logger.error(f"Error capturing weights: {e}")
+        logger.info("################################################ END BEHAVIOR \n\n")

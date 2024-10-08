@@ -3,7 +3,7 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from levin_loss import LevinLossMLP
-from utils import setup_environment, run_environment, group_options_by_problem, load_trajectories
+from utils import group_options_by_problem, load_trajectories, log_weights
 import copy
 import pickle
 from combo import Game
@@ -89,26 +89,26 @@ def evaluate_all_options_levin_loss(problems_options, trajectories):
 
     # Save the options list to a file
     save_path = 'binary/final_options.pkl'
-    with open(save_path, 'wb') as f:
-        pickle.dump(selected_options, f)
-    print(f'Options list saved to {save_path}')
+    # with open(save_path, 'wb') as f:
+    #     pickle.dump(selected_options, f)
+    # print(f'Options list saved to {save_path}')
 
 
 def extract_base_behaviors(problems_options):
     """
     This functions returns the model_y1 and model_y2 for the base behaviors (up, down, ledt, right).
     """
-    base_behaviors = {}
+    base_behaviors = {"up": [], "down": [], "left": [], "right": []}
     for problem, options in problems_options.items():
         for option in options:
             if option.sequence == (0, 0, 1):
-                base_behaviors["up"] = option
+                base_behaviors["up"].append(option)
             elif option.sequence == (0, 1, 2):
-                base_behaviors["down"] = option
+                base_behaviors["down"].append(option)
             elif option.sequence == (2, 1, 0):
-                base_behaviors["left"] = option
+                base_behaviors["left"].append(option)
             elif option.sequence == (1, 0, 2):
-                base_behaviors["right"] = option
+                base_behaviors["right"].append(option)
     return base_behaviors
 
 
@@ -119,25 +119,26 @@ def evalute_behaviors_each_cell(problems_options, problem, game_width):
     base_behaviors = extract_base_behaviors(problems_options)
     env = Game(game_width, game_width, problem)
 
-    for behavior, option in base_behaviors.items():
-        print("Behavior: ", behavior, " -- Sequence: ", option.sequence)
-        model_y1 = option.model_y1
-        model_y2 = option.model_y2
+    for behavior, options_for_behavior in base_behaviors.items():
+        for option in options_for_behavior:
+            print("Behavior: ", behavior, " -- Sequence: ", option.sequence, " -- Problem: ", option.problem)
+            model_y1 = option.model_y1
+            model_y2 = option.model_y2
 
-        for i in range(game_width):
-            for j in range(game_width):
-                env._matrix_unit = np.zeros((game_width, game_width))
-                env._matrix_unit[i][j] = 1
+            for i in range(game_width):
+                for j in range(game_width):
+                    env._matrix_unit = np.zeros((game_width, game_width))
+                    env._matrix_unit[i][j] = 1
 
-                print("Cell: ", i, j)
+                    print("Cell: ", i, j)
 
-                for _ in range(3):  # 3 is the length of the sequence of actions
-                    x_tensor = torch.tensor(env.get_observation(), dtype=torch.float32).view(1, -1)
-                    prob_actions = model_y1(x_tensor)
-                    stopping_probability = model_y2(x_tensor)
-                    a = torch.argmax(prob_actions).item()
-                    print(a, stopping_probability)
-                    env.apply_action(a)
+                    for _ in range(3):  # 3 is the length of the sequence of actions
+                        x_tensor = torch.tensor(env.get_observation(), dtype=torch.float32).view(1, -1)
+                        prob_actions = model_y1(x_tensor)
+                        stopping_probability = model_y2(x_tensor)
+                        a = torch.argmax(prob_actions).item()
+                        print(a, stopping_probability)
+                        env.apply_action(a)
         print("################################################ END BEHAVIOR \n\n")
 
 
@@ -148,6 +149,8 @@ def main():
     problems = ["TL-BR", "TR-BL", "BR-TL", "BL-TR"]
     hidden_size_custom_relu = 32
     l1_lambda = 0.005
+    l1_base = 0.005
+
 
     # Load options_list from the file
     save_path = 'binary/options_list_hidden_size_' + str(hidden_size_custom_relu) + '_game_width_' + str(game_width) + '_num_epochs_' + str(num_epochs) + '-lr-' + str(l1_lambda) + '_onlyws3.pkl'
@@ -156,27 +159,40 @@ def main():
     print(f'Options list loaded from {save_path}')
 
 
-    trajectories = load_trajectories(problems, hidden_size_custom_relu, game_width, l1_lambda)
+    trajectories = load_trajectories(problems, hidden_size_custom_relu, game_width, l1_base)
     problems_options = group_options_by_problem(options_list)
 
     """
     1. Levin Loss evaluation
     """
-    evaluate_all_options_levin_loss(problems_options, trajectories)
+    # evaluate_all_options_levin_loss(problems_options, trajectories)
 
     """
     2. Evaluating base options in each cell
     """
-    # evalute_behaviors_each_cell(problems_options, problem="BL-TR", game_width=game_width)
+    # evalute_behaviors_each_cell(problems_options, problem="TL-BR", game_width=game_width)
 
     """
     3. Analyzing the weights of the base options to see the effect of l1 regularization
     """
-    # base_behaviors = extract_base_behaviors(problems_options)
-    # for behavior, option in base_behaviors.items():
-    #     print("Behavior: ", behavior, " -- Sequence: ", option.sequence)
-    #     option.print_model_weights()
+    base_behaviors = extract_base_behaviors(problems_options)
+
+    threshold = 0.000001
+    agent_loc = True
+    goal_loc = True
+    log_weights(base_behaviors, hidden_size_custom_relu, game_width, l1_lambda, threshold, agent_loc, goal_loc)
+
+    # for behavior, options_for_behavior in base_behaviors.items():
+    #     for option in options_for_behavior:
+    #         # if behavior == "left":
+    #         print("Behavior: ", behavior, " -- Sequence: ", option.sequence, " -- Problem: ", option.problem)
+    #         option.truncate_all_weights(threshold=threshold)
+    #         option.print_model_weights(game_width, agent_loc=agent_loc, goal_loc=goal_loc)
     #     print("################################################ END BEHAVIOR \n\n")
+
+    # for problem, trajectory in trajectories.items():
+    #     print("Problem:", problem)
+    #     print("actions: ", trajectory.get_action_sequence(), " \n")
 
 
 
