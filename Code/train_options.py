@@ -59,7 +59,7 @@ else:
 
 
 # Save the options list to a file
-save_path = 'binary/options_list_hidden_size_' + str(hidden_size_custom_relu) + '_game_width_' + str(game_width) + '_num_epochs_' + str(num_epochs) + '-lr-' + str(l1_lambda) + '_onlyws3.pkl'
+save_path = 'binary/options_list_hidden_size_' + str(hidden_size_custom_relu) + '_game_width_' + str(game_width) + '_num_epochs_' + str(num_epochs) + '-l1-' + str(l1_lambda) + '_onlyws3.pkl'
 with open(save_path, 'wb') as f:
     pickle.dump(options_list, f)
 

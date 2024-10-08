@@ -148,12 +148,12 @@ def main():
     game_width = 3
     problems = ["TL-BR", "TR-BL", "BR-TL", "BL-TR"]
     hidden_size_custom_relu = 32
-    l1_lambda = 0.005
+    l1_lambda = 0.05
     l1_base = 0.005
 
 
     # Load options_list from the file
-    save_path = 'binary/options_list_hidden_size_' + str(hidden_size_custom_relu) + '_game_width_' + str(game_width) + '_num_epochs_' + str(num_epochs) + '-lr-' + str(l1_lambda) + '_onlyws3.pkl'
+    save_path = 'binary/options_list_hidden_size_' + str(hidden_size_custom_relu) + '_game_width_' + str(game_width) + '_num_epochs_' + str(num_epochs) + '-l1-' + str(l1_lambda) + '_onlyws3.pkl'
     with open(save_path, 'rb') as f:
         options_list = pickle.load(f)
     print(f'Options list loaded from {save_path}')
@@ -165,7 +165,7 @@ def main():
     """
     1. Levin Loss evaluation
     """
-    # evaluate_all_options_levin_loss(problems_options, trajectories)
+    evaluate_all_options_levin_loss(problems_options, trajectories)
 
     """
     2. Evaluating base options in each cell
@@ -180,7 +180,7 @@ def main():
     threshold = 0.000001
     agent_loc = True
     goal_loc = True
-    log_weights(base_behaviors, hidden_size_custom_relu, game_width, l1_lambda, threshold, agent_loc, goal_loc)
+    # log_weights(base_behaviors, hidden_size_custom_relu, game_width, l1_lambda, threshold, agent_loc, goal_loc)
 
     # for behavior, options_for_behavior in base_behaviors.items():
     #     for option in options_for_behavior:
