@@ -75,12 +75,8 @@ def update_uniq_seq_dict(trajectory, problem, window_size, stride=1, seq_dict=No
     - For each window, it checks if the sequence is already present in the dictionary.
     - If the sequence is not present, it adds the sequence as a key in the dictionary and associates it with the model and the corresponding states.
     - If the sequence is already present, it appends the corresponding states to the existing list of state tuples.
-    - multi_problem: If True, creates sub-dictionaries under each sequence for multiple problems.
-    - seq_dict = {
-            seq1: (problem1, [state_tuple1, state_tuple2, ...]),
-            seq2: (problem2, [...]),
-            ...
-        }
+    - multi_problem: If True
+    - uniq_seq_dict = {seq: [(problem, state_tuple), (problem, state_tuple), ...]}
     
     Example of seq_dict structure (with multi_problem=True):
     {
@@ -101,18 +97,12 @@ def update_uniq_seq_dict(trajectory, problem, window_size, stride=1, seq_dict=No
         # Collect the corresponding sequence of states for each action in the window
         state_tuple = tuple(states[i:i+window_size])
         
-        # If multi_problem flag is True, create a nested dictionary for each sequence
         if multi_problem:
             if seq not in seq_dict:
-                # Initialize the sequence with an empty dictionary for multiple problems
-                seq_dict[seq] = {}
+                # Initialize the sequence with an empty list to store tuples of (problem, state_tuple)
+                seq_dict[seq] = []
             
-            # If the problem is not in the sequence dictionary, initialize it with a list
-            if problem not in seq_dict[seq]:
-                seq_dict[seq][problem] = [state_tuple]
-            else:
-                # Append the new state tuple to the list under the current problem
-                seq_dict[seq][problem].append(state_tuple)
+            seq_dict[seq].append((problem, state_tuple))
         
         else:
             # If the sequence is not in the dictionary, add it with the corresponding state tuple
@@ -125,7 +115,7 @@ def update_uniq_seq_dict(trajectory, problem, window_size, stride=1, seq_dict=No
     return seq_dict
 
 
-def generate_labels(uniq_seq_dict, seq, problem, multi_problem):
+def generate_labels(uniq_seq_dict, seq, problem, multi_problem, state_tuple=None):
     """
     Generate y1 and y2 labels based on the action sequence.
     
@@ -147,7 +137,7 @@ def generate_labels(uniq_seq_dict, seq, problem, multi_problem):
     # Extract the actions and states corresponding to the given sequence
     actions = list(seq)  # Convert the tuple of actions into a list
     if multi_problem:
-        state_tuples = uniq_seq_dict[seq][problem] # Extract the list of state tuples for this sequence and problem
+        state_tuples = [state_tuple]
     else:
         _, state_tuples = uniq_seq_dict[seq]  # Extract the list of state tuples for this sequence
     
@@ -210,24 +200,35 @@ def group_options_by_problem(options_list):
 
     return problems_options
 
+
 def process_option(uniq_seq_dict, problem, seq, states, input_size, output_size_y1, hidden_size_custom_relu, learning_rate, l1_lambda, batch_size, num_epochs, multi_problem):
     """
     This function contains the common logic for processing each sequence and problem.
     """
-        # Initialize the Option object with the window size
+    # Initialize the Option object with the window size
     option = Option(problem, seq, input_size, output_size_y1, hidden_size_custom_relu, learning_rate, l1_lambda, batch_size, num_epochs)
 
     # Each option has different dataset
     observations = []
 
-    # Loop over each tuple of states in the list of state tuples
-    for state_tuple in states:
+    if multi_problem:
         # Loop over each individual state in the tuple
-        for state in state_tuple:
+        for state in states:    # here states is a tuple of states
             # Get the observations for the current state
             observations.append(state.get_observation())
+    else:
+        # Loop over each tuple of states in the list of state tuples
+        for state_tuple in states:
+            # Loop over each individual state in the tuple
+            for state in state_tuple:
+                # Get the observations for the current state
+                observations.append(state.get_observation())
     
-    y1_labels, y2_labels = generate_labels(uniq_seq_dict, seq, problem, multi_problem)
+    if multi_problem:
+        y1_labels, y2_labels = generate_labels(uniq_seq_dict, seq, problem, multi_problem, states)
+    else:
+        y1_labels, y2_labels = generate_labels(uniq_seq_dict, seq, problem, multi_problem)
+
 
     dataset_y1 = CustomDataset(observations, y1_labels)
     dataset_y2 = CustomDataset(observations, y2_labels)
@@ -237,6 +238,6 @@ def process_option(uniq_seq_dict, problem, seq, states, input_size, output_size_
     option.train_y2(dataset_y2)
 
     # Truncate weights with the given threshold (optional, set to 0)
-    option.truncate_all_weights(threshold=0)
+    # option.truncate_all_weights(threshold=0)
 
     return option

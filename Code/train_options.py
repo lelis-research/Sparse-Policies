@@ -47,13 +47,14 @@ for problem, trajectory in trajectories.items():
     
 
 if multi_problem:
-    for seq, problem_dict in uniq_seq_dict.items():
-        for problem, states in problem_dict.items():
-            option = process_option(uniq_seq_dict, problem, seq, states, input_size, output_size_y1, hidden_size_custom_relu, learning_rate, l1_lambda, batch_size, num_epochs, multi_problem)
+    for seq, problem_state_list in uniq_seq_dict.items():
+        for problem, states_tuple in problem_state_list:
+            print(f"Sequence: {seq}, Problem: {problem}, States: {states_tuple}")
+            option = process_option(uniq_seq_dict, problem, seq, states_tuple, input_size, output_size_y1, hidden_size_custom_relu, learning_rate, l1_lambda, batch_size, num_epochs, multi_problem)
             options_list.append(option)
 else:
-    for seq, (problem, states) in uniq_seq_dict.items():
-        option = process_option(uniq_seq_dict, problem, seq, states, input_size, output_size_y1, hidden_size_custom_relu, learning_rate, l1_lambda, batch_size, num_epochs, multi_problem)
+    for seq, (problem, states_tuple) in uniq_seq_dict.items():
+        option = process_option(uniq_seq_dict, problem, seq, states_tuple, input_size, output_size_y1, hidden_size_custom_relu, learning_rate, l1_lambda, batch_size, num_epochs, multi_problem)
         options_list.append(option)
 
 
