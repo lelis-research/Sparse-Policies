@@ -137,7 +137,7 @@ class PolicyGuidedAgent:
         stopping_prob = model_y2(x_tensor).item()  # model_y2 outputs a probability
         if verbose:
             print(f"Stopping probability: {stopping_prob}")
-        return stopping_prob <= 0.5
+        return stopping_prob <= 0.1
     
     def run_with_y1_y2(self, env, model_y1, model_y2, greedy=False, length_cap=None, verbose=False):
         """
@@ -145,17 +145,14 @@ class PolicyGuidedAgent:
         and model_y2 to determine when to stop.
         """
 
-        if greedy:
-            self._epsilon = 0.0
+        if greedy:  self._epsilon = 0.0
 
-        if isinstance(model_y1, CustomRNN):
-            self._is_recurrent = True
+        if isinstance(model_y1, CustomRNN): self._is_recurrent = True
 
         trajectory = Trajectory()
         current_length = 0
 
-        if verbose:
-            print('Beginning Trajectory')
+        if verbose: print('Beginning Trajectory')
 
         sequence_ended = False  # Flag to indicate the end of a sequence
     
@@ -165,36 +162,32 @@ class PolicyGuidedAgent:
             a = self.choose_action(env, model_y1, greedy, verbose)
             trajectory.add_pair(copy.deepcopy(env), a)
 
-            if verbose:
-                print(env, a, "\n")
+            if verbose: print(env, a, "\n")
 
             # Check stopping condition using model_y2
             if self.check_stopping(env, model_y2, verbose):
-                if verbose:
-                    print("Stopping the current sequence based on model_y2.")
+                if verbose: print("Stopping the current sequence based on model_y2.")
                 sequence_ended = True  # End the current sequence, but continue the outer loop
                 
             # Apply the chosen action
             env.apply_action(a)
 
-            current_length += 1
-
             if sequence_ended:
                 break
-            
+
+            current_length += 1
             if length_cap is not None and current_length > length_cap:
                 break
 
         self._h = None
-        if verbose:
-            print("End Trajectory \n\n")
+        if verbose: print("End Trajectory \n\n")
 
         return trajectory
 
 def main():
     hidden_size = 32
-    game_width = 5
-    lambda_l1 = 0.005
+    game_width = 3
+    lambda_l1 = 0.001
     rnn = CustomRelu(game_width**2 * 2 + 9, hidden_size, 3, lambda_l1=lambda_l1)
 
     policy_agent = PolicyGuidedAgent()
@@ -230,7 +223,7 @@ def main():
     env = Game(game_width, game_width, problem)
     policy_agent.run_with_relu_state(env, rnn)
 
-    torch.save(rnn.state_dict(), 'binary/game-width' + str(game_width) + '-' + problem + '-relu-' + str(hidden_size) + '-lr-' + str(lambda_l1) + '-model.pth')
+    torch.save(rnn.state_dict(), 'binary/game-width' + str(game_width) + '-' + problem + '-relu-' + str(hidden_size) + '-l1-' + str(lambda_l1) + '-model.pth')
 
 if __name__ == "__main__":
     main()

@@ -3,12 +3,9 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from levin_loss import LevinLossMLP
-from utils import group_options_by_problem, load_trajectories, log_weights
+from utils import group_options_by_problem, load_trajectories, extract_base_behaviors, log_weights, log_evalute_behaviors_each_cell
 import copy
 import pickle
-from combo import Game
-import numpy as np
-import torch
 
 
 def evaluate_all_options_for_problem(selected_options, problem, trajectories, number_actions, number_iterations, options_for_this_model):
@@ -23,12 +20,12 @@ def evaluate_all_options_for_problem(selected_options, problem, trajectories, nu
     for current_option in options_for_this_model:
         
         value = loss.compute_loss_y1_y2(selected_options + [current_option], problem, trajectories, number_actions, number_iterations)
-        print("Value: ", value)
+        print("-- Value: ", value, "for opt: ", current_option.sequence)
 
         if best_option is None or value < best_value:
             best_value = value
             best_option = copy.deepcopy(current_option)
-            print("Best Value: ", best_value)
+            print("- Best Value: ", best_value)
                             
     return best_option, best_value
 
@@ -48,23 +45,26 @@ def evaluate_all_options_levin_loss(problems_options, trajectories):
     loss = LevinLossMLP()
 
     selected_options = []
-    selected_options_problem = []
+    # selected_options_problem = []
 
     while previous_loss is None or best_loss < previous_loss:
+        print("************ NEW ITERATION ************")
         previous_loss = best_loss
 
         best_loss = None
         best_option = None
-        problem_option = None
+        # problem_option = None
 
         for problem, options_of_problem in problems_options.items():
+            print("evaluating option for problem: ", problem)
 
             option, levin_loss = evaluate_all_options_for_problem(selected_options, problem, trajectories, number_actions, number_iterations, options_of_problem)
+            print("Option: ", option.sequence, " - Loss: ", levin_loss)
 
             if best_loss is None or levin_loss < best_loss:
                 best_loss = levin_loss
                 best_option = option
-                problem_option = problem
+                # problem_option = problem
 
                 print('Best Loss so far: ', best_loss, problem)
             print("################################################ END PROBLEM")
@@ -73,76 +73,40 @@ def evaluate_all_options_levin_loss(problems_options, trajectories):
         we recompute the Levin loss after the automaton is selected so that we can use 
         the loss on all trajectories as the stopping condition for selecting automata 
         """
+        print("option ", best_option.sequence, " selected")
+        # if best_option.sequence in [(0, 0, 1), (0, 1, 2), (2, 1, 0), (1, 0, 2)]:
         selected_options.append(best_option)
-        selected_options_problem.append(problem_option)
+        # selected_options_problem.append(problem_option)
         best_loss = loss.compute_loss_y1_y2(selected_options, "", trajectories, number_actions, number_iterations)
 
+        print("selected options so far:")
+        for opt in selected_options:
+            print(opt.sequence)
         print("Levin loss of the current set: ", best_loss)
         print("################################################ END OPTION\n\n")
 
     # remove the last option added because it increased the loss
     selected_options = selected_options[:-1]
+    print("final selected options:")
+    for opt in selected_options:
+        print(opt.sequence)
 
+    for t in trajectories.items():
+        print("Trajectory: ", t[0])
+        print("Trajectory: ", t[1].get_action_sequence())
+        print("################################################ END TRAJECTORY\n")
     loss = LevinLossMLP()
-    loss.print_output_subpolicy_trajectory_y1y2(selected_options, selected_options_problem, trajectories, number_iterations)
+    loss.print_output_subpolicy_trajectory_y1y2(selected_options, trajectories, number_iterations)
 
     for i in range(len(selected_options)):
-        print("Option", i, ":", selected_options[i].sequence)
+        print("Option", i, ":", selected_options[i].sequence, "- from Problem: ", selected_options[i].problem)
 
     # Save the options list to a file
     save_path = 'binary/final_options.pkl'
     # with open(save_path, 'wb') as f:
     #     pickle.dump(selected_options, f)
     # print(f'Options list saved to {save_path}')
-
-
-def extract_base_behaviors(problems_options):
-    """
-    This functions returns the model_y1 and model_y2 for the base behaviors (up, down, ledt, right).
-    """
-    base_behaviors = {"up": [], "down": [], "left": [], "right": []}
-    for problem, options in problems_options.items():
-        for option in options:
-            if option.sequence == (0, 0, 1):
-                base_behaviors["up"].append(option)
-            elif option.sequence == (0, 1, 2):
-                base_behaviors["down"].append(option)
-            elif option.sequence == (2, 1, 0):
-                base_behaviors["left"].append(option)
-            elif option.sequence == (1, 0, 2):
-                base_behaviors["right"].append(option)
-    return base_behaviors
-
-
-def evalute_behaviors_each_cell(problems_options, problem, game_width):
-    """
-    In this function, we evaluate our base behaviors (4 sequences of actions) in each cell of the grid to see if they can perform as expected.
-    """
-    base_behaviors = extract_base_behaviors(problems_options)
-    env = Game(game_width, game_width, problem)
-
-    for behavior, options_for_behavior in base_behaviors.items():
-        for option in options_for_behavior:
-            print("Behavior: ", behavior, " -- Sequence: ", option.sequence, " -- Problem: ", option.problem)
-            model_y1 = option.model_y1
-            model_y2 = option.model_y2
-
-            for i in range(game_width):
-                for j in range(game_width):
-                    env._matrix_unit = np.zeros((game_width, game_width))
-                    env._matrix_unit[i][j] = 1
-
-                    print("Cell: ", i, j)
-
-                    for _ in range(3):  # 3 is the length of the sequence of actions
-                        x_tensor = torch.tensor(env.get_observation(), dtype=torch.float32).view(1, -1)
-                        prob_actions = model_y1(x_tensor)
-                        stopping_probability = model_y2(x_tensor)
-                        a = torch.argmax(prob_actions).item()
-                        print(a, stopping_probability)
-                        env.apply_action(a)
-        print("################################################ END BEHAVIOR \n\n")
-
+        
 
 def main():
 
@@ -150,12 +114,13 @@ def main():
     game_width = 3
     problems = ["TL-BR", "TR-BL", "BR-TL", "BL-TR"]
     hidden_size_custom_relu = 32
-    l1_lambda = 0.005
+    l1_lambda = 0.0005
     l1_base = 0.005
+    learning_rate = 0.1
 
 
     # Load options_list from the file
-    save_path = 'binary/options_list_hidden_size_' + str(hidden_size_custom_relu) + '_game_width_' + str(game_width) + '_num_epochs_' + str(num_epochs) + '-l1-' + str(l1_lambda) + '_onlyws3.pkl'
+    save_path = 'binary/options_list_hidden_size_' + str(hidden_size_custom_relu) + '_game_width_' + str(game_width) + '_num_epochs_' + str(num_epochs) + '_l1_' + str(l1_lambda) + '_lr_' + str(learning_rate) + '_onlyws3.pkl'
     with open(save_path, 'rb') as f:
         options_list = pickle.load(f)
     print(f'Options list loaded from {save_path}')
@@ -172,25 +137,17 @@ def main():
     """
     2. Evaluating base options in each cell
     """
-    # evalute_behaviors_each_cell(problems_options, problem="TL-BR", game_width=game_width)
+    # log_evalute_behaviors_each_cell(problems_options, problems, game_width, hidden_size_custom_relu, l1_lambda, learning_rate)
 
     """
     3. Analyzing the weights of the base options to see the effect of l1 regularization
     """
     base_behaviors = extract_base_behaviors(problems_options)
 
-    threshold = 0.000001
+    threshold = 0.00001
     agent_loc = True
     goal_loc = True
-    # log_weights(base_behaviors, hidden_size_custom_relu, game_width, l1_lambda, threshold, agent_loc, goal_loc)
-
-    # for behavior, options_for_behavior in base_behaviors.items():
-    #     for option in options_for_behavior:
-    #         # if behavior == "left":
-    #         print("Behavior: ", behavior, " -- Sequence: ", option.sequence, " -- Problem: ", option.problem)
-    #         option.truncate_all_weights(threshold=threshold)
-    #         option.print_model_weights(game_width, agent_loc=agent_loc, goal_loc=goal_loc)
-    #     print("################################################ END BEHAVIOR \n\n")
+    # log_weights(base_behaviors, hidden_size_custom_relu, game_width, l1_lambda, threshold, agent_loc, goal_loc, learning_rate)
 
     # for problem, trajectory in trajectories.items():
     #     print("Problem:", problem)

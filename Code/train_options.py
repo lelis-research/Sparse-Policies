@@ -4,11 +4,11 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 import pickle
 from models.model import CustomRelu
-from utils import setup_environment, run_environment, load_trajectories, update_uniq_seq_dict, process_option
+from utils import load_trajectories, update_uniq_seq_dict, process_option
 
 
 # Environment
-game_width = 5
+game_width = 3
 problems = ["TL-BR", "TR-BL", "BR-TL", "BL-TR"]
 hidden_size_custom_relu = 32
 
@@ -17,7 +17,7 @@ input_size = game_width**2 * 2 + 9 # (3*3) for agent position + (3*3) for goal p
 output_size_y1 = 3  # 3 possible actions for y1
 learning_rate = 0.1
 num_epochs = 5000
-l1_lambda = 0.05
+l1_lambda = 0.0005
 l1_base = 0.005
 batch_size = 1
 multi_problem = True
@@ -59,18 +59,8 @@ else:
 
 
 # Save the options list to a file
-save_path = 'binary/options_list_hidden_size_' + str(hidden_size_custom_relu) + '_game_width_' + str(game_width) + '_num_epochs_' + str(num_epochs) + '-l1-' + str(l1_lambda) + '_onlyws3.pkl'
+save_path = 'binary/options_list_hidden_size_' + str(hidden_size_custom_relu) + '_game_width_' + str(game_width) + '_num_epochs_' + str(num_epochs) + '_l1_' + str(l1_lambda) + '_lr_' + str(learning_rate) + '_onlyws3.pkl'
 with open(save_path, 'wb') as f:
     pickle.dump(options_list, f)
 
 print(f'Options list saved to {save_path}')
-
-# Print model weights for the last trained option as an example (for evaluation purposes)
-options_list[-1].print_model_weights()
-
-# Set up the environment
-problem = "TL-BR"  # You can change this to other problem types like "TR-BL", "BR-TL", etc.
-env = setup_environment(problem, game_width)
-
-# Run the environment using the trained models from the last options object
-run_environment(env, options_list[-1].model_y1, options_list[-1].model_y2)

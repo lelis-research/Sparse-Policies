@@ -245,6 +245,24 @@ def process_option(uniq_seq_dict, problem, seq, states, input_size, output_size_
     return option
 
 
+def extract_base_behaviors(problems_options):
+    """
+    This functions returns the model_y1 and model_y2 for the base behaviors (up, down, ledt, right).
+    """
+    base_behaviors = {"up": [], "down": [], "left": [], "right": []}
+    for problem, options in problems_options.items():
+        for option in options:
+            if option.sequence == (0, 0, 1):
+                base_behaviors["up"].append(option)
+            elif option.sequence == (0, 1, 2):
+                base_behaviors["down"].append(option)
+            elif option.sequence == (2, 1, 0):
+                base_behaviors["left"].append(option)
+            elif option.sequence == (1, 0, 2):
+                base_behaviors["right"].append(option)
+    return base_behaviors
+
+
 # Function to capture printed output from a function that prints
 def capture_printed_output(func, *args, **kwargs):
     # Create a StringIO object to capture the output
@@ -264,9 +282,9 @@ def capture_printed_output(func, *args, **kwargs):
     return captured_output.getvalue()
 
 
-def log_weights(base_behaviors, hidden_size, game_width, l1_lambda, threshold, agent_loc, goal_loc):
+def log_weights(base_behaviors, hidden_size, game_width, l1_lambda, threshold, agent_loc, goal_loc, learning_rate):
     logging.basicConfig(
-        filename=f'logs/base_behaviors_width_{game_width}_relu_{str(hidden_size)}_l1_{str(l1_lambda)}_thresh_{str(threshold)}_agentloc_{str(agent_loc)}_goalloc_{str(goal_loc)}_log.txt',  # Log file where the output will be saved
+        filename=f'logs/base_behaviors_width_{game_width}_relu_{str(hidden_size)}_l1_{str(l1_lambda)}_lr_{str(learning_rate)}_thresh_{str(threshold)}_agentloc_{str(agent_loc)}_goalloc_{str(goal_loc)}_log.txt',  # Log file where the output will be saved
         filemode='w',  # 'w' for overwrite each time, 'a' for append
         level=logging.INFO,  # Log level
         format='%(message)s',  # Log format
@@ -288,3 +306,45 @@ def log_weights(base_behaviors, hidden_size, game_width, l1_lambda, threshold, a
             except Exception as e:
                 logger.error(f"Error capturing weights: {e}")
         logger.info("################################################ END BEHAVIOR \n\n")
+
+
+def log_evalute_behaviors_each_cell(problems_options, problems, game_width, hidden_size, l1_lambda, learning_rate):
+    """
+    In this function, we evaluate our base behaviors (4 sequences of actions) in each cell of the grid to see if they can perform as expected.
+    """
+    logging.basicConfig(
+        filename=f'logs/each_cell_behavior_width_{game_width}_relu_{str(hidden_size)}_l1_{str(l1_lambda)}_lr_{str(learning_rate)}_log.txt',  # Log file where the output will be saved
+        filemode='w',  # 'w' for overwrite each time, 'a' for append
+        level=logging.INFO,  # Log level
+        format='%(message)s',  # Log format
+    )
+
+    logger = logging.getLogger()
+    base_behaviors = extract_base_behaviors(problems_options)
+    
+    for problem in problems:
+        logger.info(f"################################################ OUTER PROBLEM: {problem} \n")
+        env = Game(game_width, game_width, problem)
+
+        for behavior, options_for_behavior in base_behaviors.items():
+            for option in options_for_behavior:
+                logger.info(f"Behavior: {behavior} -- Sequence: {option.sequence} -- Problem: {option.problem}")
+                model_y1 = option.model_y1
+                model_y2 = option.model_y2
+
+                for i in range(game_width):
+                    for j in range(game_width):
+                        env._matrix_unit = np.zeros((game_width, game_width))
+                        env._matrix_unit[i][j] = 1
+
+                        logger.info(f"Cell: {i}, {j}")
+
+                        for _ in range(3):  # 3 is the length of the sequence of actions
+                            x_tensor = torch.tensor(env.get_observation(), dtype=torch.float32).view(1, -1)
+                            prob_actions = model_y1(x_tensor)
+                            stopping_probability = model_y2(x_tensor)
+                            a = torch.argmax(prob_actions).item()
+                            logger.info(f"{a} -- {stopping_probability}")
+                            env.apply_action(a)
+            logger.info("################################################ END BEHAVIOR \n\n")
+        logger.info("################################################ END OUTER PROBLEM \n\n")
