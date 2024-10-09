@@ -144,7 +144,6 @@ class PolicyGuidedAgent:
         This method runs the environment using model_y1 to choose actions
         and model_y2 to determine when to stop.
         """
-        max_sequence_length = 20
 
         if greedy:
             self._epsilon = 0.0
@@ -154,8 +153,6 @@ class PolicyGuidedAgent:
 
         trajectory = Trajectory()
         current_length = 0
-        sequence_action_count = 0  # Counter for the number of actions in the current sequence
-
 
         if verbose:
             print('Beginning Trajectory')
@@ -181,17 +178,8 @@ class PolicyGuidedAgent:
             env.apply_action(a)
 
             current_length += 1
-            sequence_action_count += 1
 
-            # If the maximum sequence length is reached, end the sequence
-            if sequence_action_count >= max_sequence_length:
-                if verbose:
-                    print(f"Max sequence length of {max_sequence_length} reached without stopping. Ending sequence.")
-                sequence_ended = True
-
-            # print("action: ", a)
             if sequence_ended:
-                # print("Sequence ended")
                 break
             
             if length_cap is not None and current_length > length_cap:

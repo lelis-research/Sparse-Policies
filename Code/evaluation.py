@@ -13,7 +13,7 @@ import torch
 
 def evaluate_all_options_for_problem(selected_options, problem, trajectories, number_actions, number_iterations, options_for_this_model):
     """
-    Function that evaluates all options for a given model. It returns the best option (the one that minimizes the Levin loss)
+    Function that evaluates all options for a given problem. It returns the best option (the one that minimizes the Levin loss)
     for the current set of selected options. It also returns the Levin loss of the best option. 
     """
     best_option = None
@@ -80,6 +80,8 @@ def evaluate_all_options_levin_loss(problems_options, trajectories):
         print("Levin loss of the current set: ", best_loss)
         print("################################################ END OPTION\n\n")
 
+    # remove the last option added because it increased the loss
+    selected_options = selected_options[:-1]
 
     loss = LevinLossMLP()
     loss.print_output_subpolicy_trajectory_y1y2(selected_options, selected_options_problem, trajectories, number_iterations)
@@ -148,7 +150,7 @@ def main():
     game_width = 3
     problems = ["TL-BR", "TR-BL", "BR-TL", "BL-TR"]
     hidden_size_custom_relu = 32
-    l1_lambda = 0.05
+    l1_lambda = 0.005
     l1_base = 0.005
 
 

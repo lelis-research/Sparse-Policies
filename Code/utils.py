@@ -59,7 +59,7 @@ def load_trajectories(problems, hidden_size, game_width, l1_lambda):
         agent = PolicyGuidedAgent()
         rnn = CustomRelu(game_width**2 * 2 + 9, hidden_size, 3)
         
-        rnn.load_state_dict(torch.load('binary/game-width' + str(game_width) + '-' + problem + '-relu-' + str(hidden_size) + '-lr-' + str(l1_lambda) + '-model.pth'))
+        rnn.load_state_dict(torch.load('binary/game-width' + str(game_width) + '-' + problem + '-relu-' + str(hidden_size) + '-l1-' + str(l1_lambda) + '-model.pth'))
         # rnn.load_state_dict(torch.load('binary/game-width' + str(game_width) + '-' + problem + '-relu-' + str(hidden_size) + '-model.pth'))
         trajectory = agent.run(env, rnn, greedy=True)
         trajectories[problem] = trajectory
