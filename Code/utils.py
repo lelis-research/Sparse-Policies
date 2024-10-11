@@ -280,6 +280,11 @@ def capture_printed_output(func, *args, **kwargs):
 
 
 def log_weights(base_behaviors, hidden_size, game_width, l1_lambda, threshold, agent_loc, goal_loc, learning_rate):
+    logging.shutdown()
+    # Clear existing handlers if any (this is needed because logging.basicConfig() can only be called once).
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
+
     logging.basicConfig(
         filename=f'logs/base_behaviors_width_{game_width}_relu_{str(hidden_size)}_l1_{str(l1_lambda)}_lr_{str(learning_rate)}_thresh_{str(threshold)}_agentloc_{str(agent_loc)}_goalloc_{str(goal_loc)}_log.txt',  # Log file where the output will be saved
         filemode='w',  # 'w' for overwrite each time, 'a' for append
@@ -309,6 +314,11 @@ def log_evalute_behaviors_each_cell(problems_options, problems, game_width, hidd
     """
     In this function, we evaluate our base behaviors (4 sequences of actions) in each cell of the grid to see if they can perform as expected.
     """
+    logging.shutdown()
+    # Clear existing handlers if any (this is needed because logging.basicConfig() can only be called once).
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
+        
     logging.basicConfig(
         filename=f'logs/each_cell_behavior_width_{game_width}_relu_{str(hidden_size)}_l1_{str(l1_lambda)}_lr_{str(learning_rate)}_log.txt',  # Log file where the output will be saved
         filemode='w',  # 'w' for overwrite each time, 'a' for append
