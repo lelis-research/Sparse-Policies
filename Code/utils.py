@@ -4,7 +4,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import numpy as np
 import torch
 from environment.combo import Game
-from agent import PolicyGuidedAgent, Trajectory
+from agents import PolicyGuidedAgent, Trajectory
 from models.model import CustomRelu
 from data.custom_dataset import CustomDataset
 from options.options import Option

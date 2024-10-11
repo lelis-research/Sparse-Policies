@@ -1,4 +1,4 @@
-from agent import PolicyGuidedAgent
+from agents import PolicyGuidedAgent
 import numpy as np
 import math, copy
 
