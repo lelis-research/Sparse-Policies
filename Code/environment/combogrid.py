@@ -1,22 +1,63 @@
 import random
 import numpy as np
+import math
+import gc
+
+class Problem:
+    def __init__(self, rows, columns, problem_str):
+        self.rows = rows
+        self.columns = columns
+        self.initial, self.goal = self._parse_problem(problem_str)
+
+    def _parse_problem(self, problem_str):
+        initial = self._parse_position(problem_str[:2])
+        goal = self._parse_position(problem_str[3:])
+        return initial, goal
+
+    def _parse_position(self, pos_str):
+        if pos_str[0] == 'T':
+            row = 0
+        elif pos_str[0] == 'B':
+            row = self.rows - 1
+        elif pos_str[0] == 'M':
+            row = math.floor(self.rows / 2)
+        else:
+            raise ValueError("Invalid row specifier. Use 'T' for top, 'B' for bottom, or 'M' for middle.")
+        
+        if pos_str[1] == 'L':
+            col = 0
+        elif pos_str[1] == 'R':
+            col = self.columns - 1
+        elif pos_str[0] == 'M':
+            col = math.floor(self.columns / 2)
+        else:
+            raise ValueError("Invalid column specifier. Use 'L' for left, 'R' for right, or 'M' for middle.")
+        
+        return (row, col)
+
 
 class Game:
-    def __init__(self, rows, columns, problem, init_x=None, init_y=None):
+    """
+    The (0, 0) in the matrices show top and left and it goes to the bottom and right as 
+    the indices increases.
+    """
+    def __init__(self, rows, columns, problem_str, init_x=None, init_y=None):
         self._rows = rows
         self._columns = columns
-        self._matrix_unit = np.zeros((rows, columns))
+
+        self.problem = Problem(rows, columns, problem_str)
+        
+        if init_x and init_y:
+            self.reset((init_x, init_y))
+        else:
+            self.reset()
+
         self._matrix_structure = np.zeros((rows, columns))
-        self._matrix_goal = np.zeros((rows, columns))
-        self._x = init_x
-        self._y = init_y
+        self._matrix_goal = np.zeros((rows, columns))        
 
-        self._problem_1 = "TL-BR" # initial location at top-left and goal at bottom-right
-        self._problem_2 = "TR-BL" # initial location at top-right and goal at bottom-left
-        self._problem_3 = "BR-TL" # initial location at bottom-right and goal at top-left
-        self._problem_4 = "BL-TR" # initial location at bottom-left and goal at top-right
-
-        self._set_initial_goal(problem)
+        goal = self.problem.goal
+        
+        self._matrix_goal[goal[0]][goal[1]] = 1
 
         # state of current action sequence
         """
@@ -26,7 +67,6 @@ class Game:
         2, 1, 0 -> left (2)
         1, 0, 2 -> right (3)
         """
-        self._state = []
         self._pattern_length = 3
 
         self._action_pattern = {}
@@ -35,33 +75,13 @@ class Game:
         self._action_pattern[(2, 1, 0)] = 2
         self._action_pattern[(1, 0, 2)] = 3
 
-    def _set_initial_goal(self, problem):
-        if problem == self._problem_1:
-            self._matrix_unit[0][0] = 1
-            self._matrix_goal[self._rows - 1][self._columns - 1] = 1
-
-            self._x = 0
-            self._y = 0
-        if problem == self._problem_2:
-            self._matrix_unit[0][self._columns - 1] = 1
-            self._matrix_goal[self._rows - 1][0] = 1
-
-            self._x = 0
-            self._y = self._columns - 1
-        if problem == self._problem_3:
-            self._matrix_unit[self._rows - 1][self._columns - 1] = 1
-            self._matrix_goal[0][0] = 1
-
-            self._x = self._rows - 1
-            self._y = self._columns - 1
-        if problem == self._problem_4:
-            self._matrix_unit[self._rows - 1][0] = 1
-            self._matrix_goal[0][self._columns - 1] = 1
-
-            self._x = self._rows - 1
-            self._y = 0
-
-
+    def reset(self, init_loc=None):
+        self._matrix_unit = np.zeros((self._rows, self._columns))
+        initial = self.problem.initial
+        self._x, self._y = init_loc if init_loc else initial
+        self._matrix_unit[self._x][self._y] = 1
+        self._state = []
+        gc.collect()
 
     def __repr__(self) -> str:
         str_map = ""
@@ -78,42 +98,32 @@ class Game:
             str_map += "\n"
         return str_map
     
-    # def __repr__(self, option_idx) -> str:
-    #     str_map = ""
-    #     for i in range(self._rows):
-    #         for j in range(self._columns):
-    #             if self._matrix_unit[i][j] == 1:
-    #                 if option_idx == [0, 0, 1]:
-    #                     str_map += " U "
-    #                 elif option_idx == [0, 1, 2]:
-    #                     str_map += " D "
-    #                 elif option_idx == [2, 1, 0]:
-    #                     str_map += " L "
-    #                 elif option_idx == [1, 0, 2]:
-    #                     str_map += " R "
-    #                 else:
-    #                     str_map += " A "
-    #             elif self._matrix_structure[i][j] == 1:
-    #                  str_map += " B "
-    #             elif self._matrix_goal[i][j] == 1:
-    #                  str_map += " G "
-    #             else: 
-    #                  str_map += " 0 "
-    #         str_map += "\n"
-    #     return str_map
+    def represent_options(self, options: dict) -> str:
+        str_map = ""
+        option_letters = "UDLR"
+        for i in range(self._rows):
+            for j in range(self._columns):
+                if self._matrix_structure[i][j] == 1:
+                     str_map += " B "
+                elif self._matrix_goal[i][j] == 1:
+                     str_map += " G "
+                elif (i,j) in options and tuple(options[(i,j)]) in self._action_pattern:
+                    str_map += f" {option_letters[self._action_pattern[tuple(options[(i,j)])]]} "
+                elif self._matrix_unit[i][j] == 1:
+                    str_map += " A "
+                else: 
+                     str_map += " 0 "
+            str_map += "\n"
+        return str_map
     
     def get_observation(self):
         one_hot_matrix_state = np.zeros((self._pattern_length, self._pattern_length), dtype=int)
         for i, v in enumerate(self._state):
             one_hot_matrix_state[v][i] = 1
-        # return np.concatenate((self._matrix_unit.ravel(), one_hot_matrix_state.ravel()))
         return np.concatenate((self._matrix_unit.ravel(), one_hot_matrix_state.ravel(), self._matrix_goal.ravel()))
        
     def is_over(self):
-        if self._matrix_goal[self._x][self._y] == 1:
-            return True
-        else:
-            return False
+        return self._matrix_goal[self._x][self._y] == 1
     
     def get_actions(self):
         return [0, 1, 2]
@@ -158,17 +168,12 @@ class Game:
                         self._matrix_unit[self._x][self._y] = 1
             self._state = []
 
-# state = Game(3, 3)
-# actions = state.get_actions()
-# a = actions[random.randint(0, len(actions) - 1)]
-# print(a)
-# while not state.is_over():
-#     actions = state.get_actions()
-#     a = actions[random.randint(0, len(actions) - 1)]
-#     state.apply_action(a)
+class basic_actions:
+    def __init__(self, action):
+        self.action = action
 
-#     print(state)
-#     print(state._state)
-#     print(state.get_observation())
-#     print()
-#     # print(state)
+    def predict(self, x):
+        return self.action
+
+    def predict_hierarchical(self, x, epsilon):
+        return self.predict(x)
