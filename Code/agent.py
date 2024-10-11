@@ -187,11 +187,11 @@ class PolicyGuidedAgent:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--base_model', default="nn", type=str)
-    parser.add_argument('--game_width', default=5, type=int)
+    parser.add_argument('--game_width', default=3, type=int)
     parser.add_argument('--hidden_size', default=32, type=int)
     parser.add_argument('--l1', default=0.001, type=float)
     parser.add_argument('--problem', default="All", type=str)
-    parser.add_argument('--lr', default=0.1, type=float)
+    parser.add_argument('--lr', default=0.01, type=float)
     parser.add_argument('--log_path', default="logs/", type=str)
 
 

@@ -47,7 +47,7 @@ def run_environment(env, model_y1, model_y2):
                 env.apply_action(a)
 
 
-def load_trajectories(problems, hidden_size, game_width, l1_lambda):
+def load_trajectories(problems, args):
     """
     This function loads one trajectory for each problem stored in variable "problems".
 
@@ -55,11 +55,11 @@ def load_trajectories(problems, hidden_size, game_width, l1_lambda):
     """
     trajectories = {}
     for problem in problems:
-        env = Game(game_width, game_width, problem)
+        env = Game(args.game_width, args.game_width, problem)
         agent = PolicyGuidedAgent()
-        rnn = CustomRelu(game_width**2 * 2 + 9, hidden_size, 3)
+        rnn = CustomRelu(args.game_width**2 * 2 + 9, args.hidden_size, 3)
         
-        rnn.load_state_dict(torch.load('binary/game-width' + str(game_width) + '-' + problem + '-relu-' + str(hidden_size) + '-l1-' + str(l1_lambda) + '-model.pth'))
+        rnn.load_state_dict(torch.load('binary/NN-game-width' + str(args.game_width) + '-' + problem + '-relu-' + str(args.hidden_size) + '-l1-' + str(args.l1) + '-lr-' + str(args.lr) + '-model.pth'))
         # rnn.load_state_dict(torch.load('binary/game-width' + str(game_width) + '-' + problem + '-relu-' + str(hidden_size) + '-model.pth'))
         trajectory = agent.run(env, rnn, greedy=True)
         trajectories[problem] = trajectory
@@ -203,7 +203,7 @@ def group_options_by_problem(options_list):
     return problems_options
 
 
-def process_option(uniq_seq_dict, problem, seq, states, input_size, output_size_y1, hidden_size_custom_relu, learning_rate, l1_lambda, batch_size, num_epochs, multi_problem):
+def process_option(uniq_seq_dict, problem, seq, states, input_size, output_size_y1, hidden_size_custom_relu, learning_rate, l1_lambda, batch_size, num_epochs, multi_problem, print_loss):
     """
     This function contains the common logic for processing each sequence and problem.
     """
@@ -236,11 +236,8 @@ def process_option(uniq_seq_dict, problem, seq, states, input_size, output_size_
     dataset_y2 = CustomDataset(observations, y2_labels)
     
     # Train the models
-    option.train_y1(dataset_y1, print_loss=True)
-    option.train_y2(dataset_y2, print_loss=True)
-
-    # Truncate weights with the given threshold (optional, set to 0)
-    # option.truncate_all_weights(threshold=0)
+    option.train_y1(dataset_y1, print_loss=print_loss)
+    option.train_y2(dataset_y2, print_loss=print_loss)
 
     return option
 
