@@ -1,7 +1,7 @@
 import gymnasium as gym
 import numpy as np
 import torch
-from combogrid import Game, basic_actions
+from environment.combogrid import Game, basic_actions
 from typing import List, Any
 from gymnasium.envs.registration import register
 

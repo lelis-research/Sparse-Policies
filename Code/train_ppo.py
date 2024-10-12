@@ -77,13 +77,16 @@ def main(args):
                         f'-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}_MODEL.pt'
         envs = gym.vector.SyncVectorEnv( 
             [make_env_simple_crossing(view_size=game_width, seed=seed) for _ in range(args.num_envs)])
-    elif args.env_id == "ComboGrid":
+
+    elif "ComboGrid" in args.env_id:
+        problem = args.env_id[len("ComboGrid_"):]
         model_file_name = f'binary/PPO-{problem}-gw{game_width}-h{hidden_size}-l1l{l1_lambda}_MODEL.pt'
         envs = gym.vector.SyncVectorEnv(
             [make_env(rows=game_width, columns=game_width, problem=problem) for _ in range(args.num_envs)],
         )    
         assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
         logger.info("envs.action_space.n", envs.action_space[0].n)
+
     elif args.env_id == "MiniGrid-FourRooms-v0":
         model_file_name = f'binary/four-rooms/PPO-gw{args.game_width}' + \
                         f'-h{args.hidden_size}-sd{seed}_MODEL.pt'

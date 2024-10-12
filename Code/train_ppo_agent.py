@@ -6,8 +6,8 @@ import gymnasium as gym
 import numpy as np
 import torch.nn as nn
 import torch.optim as optim
-from utils import utils
-from agents.policy_guided_agent import PPOAgent
+from utils import *
+from agents import PPOAgent
 
 
 def train_ppo(envs: gym.vector.SyncVectorEnv, args, model_file_name, device, writer=None, logger=None, seed=None):
@@ -168,7 +168,7 @@ def train_ppo(envs: gym.vector.SyncVectorEnv, args, model_file_name, device, wri
         writer.add_scalar("charts/SPS", int(global_step / (time.time() - start_time)), global_step)
         
         if iteration % 1000 == 0:
-            utils.logger_flush(logger)
+            logger_flush(logger)
 
     envs.close()
     writer.close()
