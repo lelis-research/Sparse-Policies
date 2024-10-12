@@ -10,6 +10,7 @@ from data.custom_dataset import CustomDataset
 from options.options import Option
 import logging
 import io
+import time
 
 
 def setup_environment(problem, dim):
@@ -355,3 +356,33 @@ def log_evalute_behaviors_each_cell(problems_options, problems, game_width, hidd
                             env.apply_action(a)
             logger.info("################################################ END BEHAVIOR \n\n")
         logger.info("################################################ END OUTER PROBLEM \n\n")
+
+
+def get_ppo_model_file_name(tag="", **kwargs):
+    file_name = f'binary/PPO' + \
+        f'-{kwargs["problem"]}' + \
+        f'-game-width{kwargs["game_width"]}' + \
+        f'-hidden{kwargs["hidden_size"]}' + \
+        f'{tag}_MODEL.pt'
+        # f'-l1lambda{kwargs["l1_lambda"]}' + \
+    return file_name
+
+def get_logger(logger_name, log_level, log_path):
+    # Logger configurations
+    logger = logging.getLogger(logger_name)
+    logger.setLevel(log_level.upper())
+    log_path = f"{log_path}_{str(int(time.time()))}.log"
+    handler = logging.FileHandler(log_path, mode='w')
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.INFO)
+    console_format = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    file_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(file_format)
+    console_handler.setFormatter(console_format)
+    logger.addHandler(handler)
+    logger.addHandler(console_handler)
+    return logger
+
+def logger_flush(logger):
+    for handler in logger.handlers:
+        handler.flush()
