@@ -6,14 +6,15 @@ import tyro
 import numpy as np
 import gymnasium as gym
 from scripts.args import Args
-from utils import utils
+from utils import *
 from torch.utils.tensorboard import SummaryWriter
 from environment.combogrid_gym import make_env
-# from environemnts.environments_minigrid import make_env_simple_crossing, make_env_four_rooms
+from environment.minigrid import make_env_simple_crossing, make_env_four_rooms
+
 from train_ppo_agent import train_ppo
 
 
-@utils.timing_decorator
+@timing_decorator
 def main(args):
     args.batch_size = int(args.num_envs * args.num_steps)
     args.minibatch_size = int(args.batch_size // args.num_minibatches)
@@ -22,7 +23,7 @@ def main(args):
     
     run_name = f"{args.env_id}__{args.exp_name}__{args.seed}__{int(time.time())}"
 
-    logger = utils.get_logger('ppo_trainer_logger_' + str(args.seed) + "_" + args.exp_name, args.log_level, args.log_path)
+    logger = get_logger('ppo_trainer_logger_' + str(args.seed) + "_" + args.exp_name, args.log_level, args.log_path)
 
     if args.track:
         import wandb
