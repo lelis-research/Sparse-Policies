@@ -26,8 +26,8 @@ class Args:
     """the id of the environment; choices fro [MiniGrid-SimpleCrossingS9N1-v0, ComboGrid, MiniGrid-FourRooms-v0]"""
     total_timesteps: int = 1_500_000
     """total timesteps of the experiments"""
-    learning_rate: Union[float, List] = (2.5e-4, 2.5e-4, 2.5e-4) # ComboGrid
-    # learning_rate: float = 2.5e-4 # ComboGrid - optuna
+    # learning_rate: Union[float, List] = (0.005, 0.001, 0.0005, 0.0001, 0.00005) # ComboGrid
+    learning_rate: float = 2.5e-4 # ComboGrid - optuna
     # learning_rate: Union[float, List] = (0.0005, 0.0005, 5e-05) # MiniGrid-FourRooms-v0
     """the learning rate of the optimizer"""
     num_envs: int = 4
@@ -46,14 +46,14 @@ class Args:
     """the K epochs to update the policy"""
     norm_adv: bool = True
     """Toggles advantages normalization"""
-    clip_coef: Union[float, List] = (0.2, 0.2, 0.2) # ComboGrid
-    # clip_coef: float = 0.2 # ComboGrid - optuna
+    # clip_coef: Union[float, List] = (0.1, 0.15, 0.2, 0.25, 0.3) # ComboGrid
+    clip_coef: float = 0.2 # ComboGrid - optuna
     # clip_coef: Union[float, List] = (0.15, 0.1, 0.2) # MiniGrid-FourRooms-v0
     """the surrogate clipping coefficient"""
     clip_vloss: bool = True
     """Toggles whether or not to use a clipped loss for the value function, as per the paper."""
-    ent_coef: Union[float, List] = (0.01, 0.01, 0.01) # ComboGrid
-    # ent_coef: float = 0.01 # ComboGrid - optuna
+    # ent_coef: Union[float, List] = (0.0, 0.05, 0.1, 0.15, 0.2) # ComboGrid
+    ent_coef: float = 0.01 # ComboGrid - optuna
     # ent_coef: Union[float, List] = (0.05, 0.2, 0.0) # MiniGrid-FourRooms-v0
     """coefficient of the entropy"""
     vf_coef: float = 0.5
@@ -69,6 +69,7 @@ class Args:
     hidden_size: int = 64
     """"""
     l1_lambda: float = 0
+    # l1_lambda: Union[float, List] = (0.0, 0.005, 0.001, 0.0005, 0.0001)
     """"""
 
     # to be filled in runtime

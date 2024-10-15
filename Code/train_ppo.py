@@ -20,8 +20,10 @@ def main(args):
     args.minibatch_size = int(args.batch_size // args.num_minibatches)
     args.num_iterations = args.total_timesteps // args.batch_size
     args.exp_name = f"{args.learning_rate}"
+
+    run_time = int(time.time())
     
-    run_name = f"{args.env_id}__{args.exp_name}__{args.seed}__{int(time.time())}"
+    run_name = f"{args.env_id}__{args.total_timesteps}__{args.learning_rate}__{args.seed}__{run_time}"
 
     logger = get_logger('ppo_trainer_logger_' + str(args.seed) + "_" + args.exp_name, args.log_level, args.log_path)
 
@@ -70,6 +72,9 @@ def main(args):
         'minibatch_size': args.minibatch_size,
         'num_iterations': args.num_iterations,
         'total timesteps': args.total_timesteps,
+        "num_envs": args.num_envs,
+        "ent_coef": args.ent_coef,
+        "clip_coef": args.clip_coef,
     }
 
     buffer = "\nParameters:"
@@ -85,7 +90,10 @@ def main(args):
 
     elif "ComboGrid" in args.env_id:
         problem = args.env_id[len("ComboGrid_"):]
-        model_file_name = f'binary/PPO-{problem}-gw{game_width}-h{hidden_size}-l1l{l1_lambda}-lr{args.learning_rate}-totaltimestep{args.total_timesteps}_MODEL.pt'
+        print("2 ########## ", args.env_id, problem)
+
+        model_file_name = f'binary/PPO-{problem}-gw{game_width}-h{hidden_size}-l1l{l1_lambda}-lr{args.learning_rate}-totaltimestep{args.total_timesteps}-{run_time}_MODEL.pt'
+        print("3 ########## ", model_file_name)
         envs = gym.vector.SyncVectorEnv(
             [make_env(rows=game_width, columns=game_width, problem=problem) for _ in range(args.num_envs)],
         )    
@@ -104,15 +112,34 @@ def main(args):
     train_ppo(envs, args, model_file_name, device, writer, logger=logger, seed=seed)
 
 
+# if __name__ == "__main__":
+#     args = tyro.cli(Args)
+#     lrs = args.learning_rate
+#     clip_coef = args.clip_coef
+#     ent_coef = args.ent_coef
+#     for i in range(len(args.seeds)):
+#         args.seed = args.seeds[i]
+#         args.ent_coef = ent_coef[i]
+#         args.clip_coef = clip_coef[i]
+#         args.learning_rate = lrs[i]
+#         main(args)
+
+## Normal Run
 if __name__ == "__main__":
     args = tyro.cli(Args)
-    lrs = args.learning_rate
-    clip_coef = args.clip_coef
-    ent_coef = args.ent_coef
-    for i in range(len(args.seeds)):
-        args.seed = args.seeds[i]
-        args.ent_coef = ent_coef[i]
-        args.clip_coef = clip_coef[i]
-        args.learning_rate = lrs[i]
+    args.seed = args.seeds[0]
+
+    if "All" in args.env_id:
+        for prob in ["TL-BR", "TR-BL", "BR-TL", "BL-TR"]:
+            args.env_id = f"ComboGrid_{prob}"
+            print("1 ########## ", args.env_id)
+            main(args)
+    else:
         main(args)
+
+## Optuna Run
+# if __name__ == "__main__":
+#     args = tyro.cli(Args)
+#     # args.seed = args.seeds[0]
+#     main(args)
     
