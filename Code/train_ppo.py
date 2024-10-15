@@ -64,7 +64,12 @@ def main(args):
         'hidden_size': hidden_size,
         'game_width': game_width,
         'l1_lambda': l1_lambda,
-        'problem': problem
+        'problem': problem,
+        'learning_rate': args.learning_rate,
+        'batch_size': args.batch_size,
+        'minibatch_size': args.minibatch_size,
+        'num_iterations': args.num_iterations,
+        'total timesteps': args.total_timesteps,
     }
 
     buffer = "\nParameters:"
@@ -80,7 +85,7 @@ def main(args):
 
     elif "ComboGrid" in args.env_id:
         problem = args.env_id[len("ComboGrid_"):]
-        model_file_name = f'binary/PPO-{problem}-gw{game_width}-h{hidden_size}-l1l{l1_lambda}_MODEL.pt'
+        model_file_name = f'binary/PPO-{problem}-gw{game_width}-h{hidden_size}-l1l{l1_lambda}-lr{args.learning_rate}-totaltimestep{args.total_timesteps}_MODEL.pt'
         envs = gym.vector.SyncVectorEnv(
             [make_env(rows=game_width, columns=game_width, problem=problem) for _ in range(args.num_envs)],
         )    

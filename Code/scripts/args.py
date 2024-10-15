@@ -27,6 +27,7 @@ class Args:
     total_timesteps: int = 1_500_000
     """total timesteps of the experiments"""
     learning_rate: Union[float, List] = (2.5e-4, 2.5e-4, 2.5e-4) # ComboGrid
+    # learning_rate: float = 2.5e-4 # ComboGrid - optuna
     # learning_rate: Union[float, List] = (0.0005, 0.0005, 5e-05) # MiniGrid-FourRooms-v0
     """the learning rate of the optimizer"""
     num_envs: int = 4
@@ -46,11 +47,13 @@ class Args:
     norm_adv: bool = True
     """Toggles advantages normalization"""
     clip_coef: Union[float, List] = (0.2, 0.2, 0.2) # ComboGrid
+    # clip_coef: float = 0.2 # ComboGrid - optuna
     # clip_coef: Union[float, List] = (0.15, 0.1, 0.2) # MiniGrid-FourRooms-v0
     """the surrogate clipping coefficient"""
     clip_vloss: bool = True
     """Toggles whether or not to use a clipped loss for the value function, as per the paper."""
     ent_coef: Union[float, List] = (0.01, 0.01, 0.01) # ComboGrid
+    # ent_coef: float = 0.01 # ComboGrid - optuna
     # ent_coef: Union[float, List] = (0.05, 0.2, 0.0) # MiniGrid-FourRooms-v0
     """coefficient of the entropy"""
     vf_coef: float = 0.5
