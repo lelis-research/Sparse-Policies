@@ -1,8 +1,13 @@
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from levin_loss import LevinLossMLP
-from utils import group_options_by_problem, load_trajectories, extract_base_behaviors, log_weights, log_evalute_behaviors_each_cell
+from levin_loss import LevinLossMLP, LevinLossPPO
+from utils import (group_options_by_problem, 
+                   load_trajectories, 
+                   extract_base_behaviors, 
+                   log_weights, 
+                   log_evalute_behaviors_each_cell,
+                   load_trajectories_ppo,)
 import copy
 import pickle
 import argparse
@@ -102,11 +107,11 @@ def evaluate_all_options_levin_loss(problems_options, trajectories):
         print("Option", i, ":", selected_options[i].sequence, "- from Problem: ", selected_options[i].problem)
 
     # Save the options list to a file
-    save_path = 'binary/final_options.pkl'
+    # save_path = 'binary/final_options.pkl'
     # with open(save_path, 'wb') as f:
     #     pickle.dump(selected_options, f)
     # print(f'Options list saved to {save_path}')
-        
+    
 
 def main():
 
@@ -126,54 +131,54 @@ def main():
     parser.add_argument('--weight_thresh', default=0.00001, type=float)
     parser.add_argument('--agent_loc', default=True, type=bool)
     parser.add_argument('--goal_loc', default=True, type=bool)
+    parser.add_argument('--total_timesteps', default=50000, type=int)
+    parser.add_argument('--ent_coef', default=0.0, type=float)
+    parser.add_argument('--clip_coef', default=0.01, type=float)
 
     args = parser.parse_args()
 
-    game_width = args.game_width
-    hidden_size_custom_relu = args.hidden_size
-    l1_lambda = args.l1
-    learning_rate = args.lr
-    num_epochs = args.num_epoch
 
     problems = ["TL-BR", "TR-BL", "BR-TL", "BL-TR"]
 
+    save_path = 'binary/' + args.base_model + '_options_list_relu_' + str(args.hidden_size) + '_game_width_' + str(args.game_width) + '_num_epochs_' + str(args.num_epoch) + '_l1_' + str(args.l1) + '_lr_' + str(args.lr) + '_onlyws3.pkl'
+    with open(save_path, 'rb') as f:
+        options_list = pickle.load(f)
+    print(f'Options list loaded from {save_path}')
+
+
     if args.base_model == "nn":
-
-        save_path = 'binary/NN_options_list_relu_' + str(hidden_size_custom_relu) + '_game_width_' + str(game_width) + '_num_epochs_' + str(num_epochs) + '_l1_' + str(l1_lambda) + '_lr_' + str(learning_rate) + '_onlyws3.pkl'
-        with open(save_path, 'rb') as f:
-            options_list = pickle.load(f)
-        print(f'Options list loaded from {save_path}')
-
-
         trajectories = load_trajectories(problems, args)
-        problems_options = group_options_by_problem(options_list)
+    elif args.base_model == "ppo":
+        trajectories = load_trajectories_ppo(problems, args)
 
-        for problem, trajectory in trajectories.items():
-            print("Problem:", problem)
-            print("actions: ", trajectory.get_action_sequence(), " \n")
+    problems_options = group_options_by_problem(options_list)
 
-        print(f"Eval methods: {args.eval_method}")
-        if "levinloss" in args.eval_method:
-            """
-            1. Levin Loss evaluation
-            """
-            print("Running Levin Loss evaluation")
-            evaluate_all_options_levin_loss(problems_options, trajectories)
+    for problem, trajectory in trajectories.items():
+        print("Problem:", problem)
+        print("actions: ", trajectory.get_action_sequence(), " \n")
 
-        if "each_cell" in args.eval_method:
-            """
-            2. Evaluating base options in each cell
-            """
-            print("Running evaluation of base options in each cell")
-            log_evalute_behaviors_each_cell(problems_options, problems, game_width, hidden_size_custom_relu, l1_lambda, learning_rate)
+    print(f"Eval methods: {args.eval_method}")
+    if "levinloss" in args.eval_method:
+        """
+        1. Levin Loss evaluation
+        """
+        print("Running Levin Loss evaluation")
+        evaluate_all_options_levin_loss(problems_options, trajectories)
 
-        if "weights" in args.eval_method:
-            """
-            3. Analyzing the weights of the base options to see the effect of l1 regularization
-            """
-            print("Analyzing weights of base options")
-            base_behaviors = extract_base_behaviors(problems_options)
-            log_weights(base_behaviors, hidden_size_custom_relu, game_width, l1_lambda, args.weight_thresh, args.goal_loc, args.goal_loc, learning_rate)
+    if "each_cell" in args.eval_method:
+        """
+        2. Evaluating base options in each cell
+        """
+        print("Running evaluation of base options in each cell")
+        log_evalute_behaviors_each_cell(problems_options, problems, args.game_width, args.hidden_size, args.l1, args.lr)
+
+    if "weights" in args.eval_method:
+        """
+        3. Analyzing the weights of the base options to see the effect of l1 regularization
+        """
+        print("Analyzing weights of base options")
+        base_behaviors = extract_base_behaviors(problems_options)
+        log_weights(base_behaviors, args.hidden_size, args.game_width, args.l1, args.weight_thresh, args.goal_loc, args.goal_loc, args.lr)
 
 
 if __name__ == "__main__":

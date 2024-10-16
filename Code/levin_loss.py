@@ -1,9 +1,11 @@
-from agents import PolicyGuidedAgent
+from agents import PolicyGuidedAgent, PPOAgent
 import numpy as np
 import math, copy
+from environment.combo import Game
 
 
 class LevinLossMLP:
+
     def is_mlp_applicable(self, trajectory, actions, j):
         """
         This function checks whether an MLP is applicable in a given state. 
@@ -58,8 +60,20 @@ class LevinLossMLP:
             """
             agent = PolicyGuidedAgent()
 
-            # trajectory = agent.run_with_y1_y2(env, model_y1, model_y2, length_cap=number_steps-1)
-            trajectory = agent.run_with_y1_y2(env, option.model_y1, option.model_y2)
+            # print("######## type env: ", type(env))
+
+            if type(env) != Game:
+                # print("True")
+                env = Game(
+                    rows=env._rows,
+                    columns=env._columns,
+                    problem=env._problem
+                )
+                # print("######## type env: ", type(env)) 
+                # trajectory = agent.run_with_y1_y2(env, model_y1, model_y2, length_cap=number_steps-1)
+                trajectory = agent.run_with_y1_y2(env, option.model_y1, option.model_y2)
+            else:
+                trajectory = agent.run_with_y1_y2(env, option.model_y1, option.model_y2)
 
             actions = []
             for _, action in trajectory.get_trajectory():
@@ -379,6 +393,143 @@ class LevinLossMLP:
             print('Number of Decisions: ',  M[len(t)])
 
     def print_output_subpolicy_trajectory_y1y2(self, options_list, trajectories, number_steps):
+        """
+        This function prints the "behavior" of the options encoded in a set of options. 
+        It shows when each option is applicable in different states of the different trajectories.
+        """
+        for problem, trajectory in trajectories.items():
+            print(problem)
+
+            model_opt_usage = {}
+            t = trajectory.get_trajectory()
+            M = np.arange(len(t) + 1)
+
+            for j in range(len(t) + 1):
+                if j > 0:
+                    if M[j - 1] + 1 < M[j]:
+                        M[j] = M[j - 1] + 1
+
+                if j < len(t):
+                    for i, option in enumerate(options_list):
+                        if options_list[i].problem == problem:
+                            continue
+
+                        actions = self._run_y1_y2(copy.deepcopy(t[j][0]), options_list[i], number_steps)
+
+                        if self.is_mlp_applicable(t, actions, j):
+                            M[j + len(actions)] = min(M[j + len(actions)], M[j] + 1)
+
+                            model_opt_name = 'o' + str(i)
+                            if model_opt_name not in model_opt_usage:
+                                model_opt_usage[model_opt_name] = []
+
+                            usage = ['-' for _ in range(len(t))]
+                            for k in range(j, j + len(actions)):
+                                usage[k] = str(i)
+                            model_opt_usage[model_opt_name].append(usage)
+
+            for model_opt, matrix in model_opt_usage.items():
+                print('Model Option: ', model_opt)
+                for _, action in t:
+                    print(action, end="")
+                print()
+                for use in matrix:
+                    for v in use:
+                        print(v, end='')
+                    print()
+                print()
+            print('Number of Decisions: ', M[len(t)])
+            print("#### End Problem #### \n")
+
+
+class LevinLossPPO:     
+    def is_mlp_applicable(self, trajectory, actions, j):
+        """
+        This function checks whether an MLP is applicable in a given state. 
+
+        An MLP is applicable if the sequence of actions it produces matches
+        the sequence of actions in the trajectory. Note that we do not consider an
+        MLP if it has less than 2 actions, as it would be equivalent to a 
+        primitive action. 
+        """
+        if len(actions) <= 1 or len(actions) + j > len(trajectory):
+            return False
+        
+        for i in range(len(actions)):
+            if actions[i] != trajectory[i + j][1]:
+                return False
+        return True
+    
+
+    def _run(self, env, option, number_steps):
+        """
+        This function executes an option, which is given by two neural network models (model_y1 and model_y2)
+        and a number of steps. It runs the models for the specified number of steps and returns the actions taken for those steps.
+        """
+        agent = PolicyGuidedAgent()
+        agent = PPOAgent()
+
+        # trajectory = agent.run_with_y1_y2(env, model_y1, model_y2, length_cap=number_steps-1)
+        trajectory = agent.run_with_y1_y2(env, option.model_y1, option.model_y2)
+
+        actions = []
+        for _, action in trajectory.get_trajectory():
+            actions.append(action)
+
+        return actions
+    
+    def loss(self, options_list, trajectory, number_actions, joint_problem_name_list, problem_mlp, number_steps):
+        """
+        This function implements the dynamic programming method from Alikhasi & Lelis (2024), 
+        adapted for options that contain two models: model_y1 and model_y2.
+        """
+        t = trajectory.get_trajectory()
+        M = np.arange(len(t) + 1)
+
+        for j in range(len(t) + 1):
+            if j > 0:
+                M[j] = min(M[j - 1] + 1, M[j])
+            if j < len(t):
+                for i in range(len(options_list)):
+                    # The option being considered for selection cannot be evaluated on the trajectory
+                    # generated by the option trained to solve the problem.
+                    if joint_problem_name_list[j] == problem_mlp:
+                        continue
+
+                    # Run the option's model_y1 and model_y2 on the environment
+                    actions = self._run(copy.deepcopy(t[j][0]), options_list[i], number_steps)
+
+                    if self.is_mlp_applicable(t, actions, j):
+                        M[j + len(actions)] = min(M[j + len(actions)], M[j] + 1)
+
+        uniform_probability = (1 / (len(options_list) + number_actions))
+        depth = len(t) + 1
+        number_decisions = M[len(t)]
+
+        # Use the Levin loss in log space to avoid numerical issues
+        log_depth = math.log(depth)
+        log_uniform_probability = math.log(uniform_probability)
+        return log_depth - number_decisions * log_uniform_probability
+    
+
+    def compute_loss(self, options_list, problem_of_option, trajectories, number_actions, number_steps):
+        """
+        This function computes the Levin loss of a set of options (model_y1 and model_y2 models in each option).
+        It stitches all trajectories together into a single long trajectory to compute the loss.
+        """
+        chained_trajectory = None
+        joint_problem_name_list = []
+        for problem, trajectory in trajectories.items():
+            if chained_trajectory is None:
+                chained_trajectory = copy.deepcopy(trajectory)
+            else:
+                chained_trajectory._sequence = chained_trajectory._sequence + copy.deepcopy(trajectory._sequence)
+            name_list = [problem for _ in range(len(trajectory._sequence))]
+            joint_problem_name_list = joint_problem_name_list + name_list
+        return self.loss(options_list, chained_trajectory, number_actions, joint_problem_name_list, problem_of_option, number_steps)
+    
+
+    def print_output_subpolicy_trajectory(self, options_list, trajectories, number_steps):
         """
         This function prints the "behavior" of the options encoded in a set of options. 
         It shows when each option is applicable in different states of the different trajectories.

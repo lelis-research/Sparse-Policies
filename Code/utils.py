@@ -11,6 +11,9 @@ from options.options import Option
 import logging
 import io
 import time
+from scripts.args import Args
+from agents import PPOAgent
+from environment.combogrid_gym import ComboGym
 
 
 def setup_environment(problem, dim):
@@ -60,10 +63,38 @@ def load_trajectories(problems, args):
         agent = PolicyGuidedAgent()
         rnn = CustomRelu(args.game_width**2 * 2 + 9, args.hidden_size, 3)
         
-        rnn.load_state_dict(torch.load('binary/NN-game-width' + str(args.game_width) + '-' + problem + '-relu-' + str(args.hidden_size) + '-l1-' + str(args.l1) + '-lr-' + str(args.lr) + '-model.pth'))
+        rnn.load_state_dict(torch.load('binary/NN-game-width' + str(args.game_width) + '-' + problem + '-relu-' + str(args.hidden_size) + '-l1-' + str(args.l1_base) + '-lr-' + str(args.lr) + '-model.pth'))
         # rnn.load_state_dict(torch.load('binary/game-width' + str(game_width) + '-' + problem + '-relu-' + str(hidden_size) + '-model.pth'))
         trajectory = agent.run(env, rnn, greedy=True)
         trajectories[problem] = trajectory
+
+    return trajectories
+
+
+def load_trajectories_ppo(problems, args):
+    """
+    This function loads one trajectory for each problem stored in variable "problems".
+
+    The trajectories are returned as a dictionary, with one entry for each problem. 
+    """
+    
+    trajectories = {}
+    for problem in problems:
+        
+        # TODO: handle l1_lambda
+        model_path = f'binary/PPO-{problem}-gw{args.game_width}-h{args.hidden_size}-l1l{int(args.l1)}-lr{args.lr}-totaltimestep{args.total_timesteps}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}_MODEL.pt'
+        env = ComboGym(rows=args.game_width, columns=args.game_width, problem=problem)
+        
+        print(f"Loading Trajectories from {model_path} ...")
+        
+        agent = PPOAgent(env, hidden_size=args.hidden_size)
+        
+        agent.load_state_dict(torch.load(model_path))
+
+        trajectory = agent.run(env, verbose=True)
+        trajectories[problem] = trajectory
+
+        print(f"The trajectory length: {len(trajectory.get_state_sequence())} \n\n")
 
     return trajectories
 

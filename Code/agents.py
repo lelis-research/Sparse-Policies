@@ -15,9 +15,14 @@ from typing import Union
 class Trajectory:
     def __init__(self):
         self._sequence = []
+        self.logits = []
 
-    def add_pair(self, state, action):
+    def add_pair(self, state, action, logits=None):
         self._sequence.append((state, action))
+        # self.logits.append(copy.deepcopy(logits))
+
+    def get_logits_sequence(self):
+        return self.logits
     
     def get_trajectory(self):
         return self._sequence
@@ -27,6 +32,9 @@ class Trajectory:
     
     def get_state_sequence(self):
         return [s for s, _ in self._sequence]
+    
+    def __repr__(self):
+        return f"Trajectory(sequence={self._sequence})"
 
 class RandomAgent:
     def run(self, env):
@@ -143,7 +151,7 @@ class PolicyGuidedAgent:
         stopping_prob = model_y2(x_tensor).item()  # model_y2 outputs a probability
         if verbose:
             print(f"Stopping probability: {stopping_prob}")
-        return stopping_prob <= 0.1
+        return stopping_prob <= 0.5
     
     def run_with_y1_y2(self, env, model_y1, model_y2, greedy=False, length_cap=None, verbose=False):
         """
@@ -290,11 +298,11 @@ class PPOAgent(nn.Module):
         while not done:
             o = torch.tensor(o, dtype=torch.float32)
             a, _, _, _, logits = self.get_action_and_value(o)
-            trajectory.add_pair(copy.deepcopy(env), a.item(), logits)
+            trajectory.add_pair(copy.deepcopy(env), a.item())
 
             if verbose:
-                print(env, a)
-                print(env.env.agent_pos, env.goal_position, env.is_over())
+                print(env._game)
+                print(a.item(), env.is_over())
                 print()
 
             next_o, _, terminal, truncated, _ = env.step(a.item())
