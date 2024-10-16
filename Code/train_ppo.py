@@ -58,7 +58,11 @@ def main(args):
 
     # Loading options if toggled
     if args.options_enabled:
-        save_path = 'binary/' + args.options_base_model + '_options_list_relu_' + str(args.hidden_size) + '_game_width_' + str(args.game_width) + '_num_epochs_' + str(args.options_num_epochs) + '_l1_' + str(args.options_l1_lambda) + '_lr_' + str(args.options_learning_rate) + '_onlyws3.pkl'
+        if args.options_only_len_3:
+            save_path = 'binary/' + args.options_base_model + '_options_list_relu_' + str(args.hidden_size) + '_game_width_' + str(args.game_width) + '_num_epochs_' + str(args.options_num_epochs) + '_l1_' + str(args.options_l1_lambda) + '_lr_' + str(args.options_learning_rate) + '_onlyws3.pkl'
+        else:
+            save_path = 'binary/' + args.options_base_model + '_options_list_relu_' + str(args.hidden_size) + '_game_width_' + str(args.game_width) + '_num_epochs_' + str(args.options_num_epochs) + '_l1_' + str(args.options_l1_lambda) + '_lr_' + str(args.options_learning_rate) + '.pkl'
+
         with open(save_path, 'rb') as f:
             options_list = pickle.load(f)
         print(f'Options list loaded from {save_path}')

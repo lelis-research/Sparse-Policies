@@ -97,3 +97,5 @@ class Args:
     """the l1 lambda used for training the options"""
     options_learning_rate: float = 0.1
     """the learning rate used for training the options"""
+    options_only_len_3: bool = True
+    """ if toggled, we have only options of length 3"""
