@@ -5,3 +5,9 @@ Thoughts.txt
 /plots/
 .DS_Store
 /old_binary/
+/wandb/
+/ppo_logs/
+/outputs/
+/binary/
+/.vscode/
+
