@@ -35,6 +35,8 @@ def train_ppo(envs: gym.vector.SyncVectorEnv, args, model_file_name, device, wri
     next_obs = torch.Tensor(next_obs).to(device)
     next_done = torch.zeros(args.num_envs).to(device)
 
+    total_episodic_return = []  # for optuna
+
     for iteration in range(1, args.num_iterations + 1):
         # Annealing the rate if instructed to do so.
         if args.anneal_lr:
@@ -66,6 +68,7 @@ def train_ppo(envs: gym.vector.SyncVectorEnv, args, model_file_name, device, wri
                         logger.info(f"global_step={global_step}, episodic_return={info['episode']['r']}")
                         writer.add_scalar("charts/episodic_return", info["episode"]["r"], global_step)
                         writer.add_scalar("charts/episodic_length", info["episode"]["l"], global_step)
+                        total_episodic_return.append(info['episode']['r'])
 
         # bootstrap value if not done
         with torch.no_grad():
@@ -170,9 +173,18 @@ def train_ppo(envs: gym.vector.SyncVectorEnv, args, model_file_name, device, wri
         if iteration % 1000 == 0:
             logger_flush(logger)
 
+
+    # Compute the average episodic return
+    if total_episodic_return:
+        avg_return = sum(total_episodic_return) / len(total_episodic_return)
+    else:
+        avg_return = 0.0
+
     envs.close()
     writer.close()
     os.makedirs(os.path.dirname(model_file_name), exist_ok=True)
     torch.save(agent.state_dict(), model_file_name)
     logger.info(f"Saved on {model_file_name}")
+
+    return avg_return
 

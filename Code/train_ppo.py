@@ -109,7 +109,7 @@ def main(args):
         raise NotImplementedError
     
         
-    train_ppo(envs, args, model_file_name, device, writer, logger=logger, seed=seed)
+    average_return = train_ppo(envs, args, model_file_name, device, writer, logger=logger, seed=seed)
 
 
 # if __name__ == "__main__":
