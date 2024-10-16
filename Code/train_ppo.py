@@ -4,6 +4,7 @@ import time
 import torch
 import tyro
 import numpy as np
+import pickle
 import gymnasium as gym
 from scripts.args import Args
 from utils import *
@@ -55,6 +56,13 @@ def main(args):
 
     device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
 
+    # Loading options if toggled
+    if args.options_enabled:
+        save_path = 'binary/' + args.options_base_model + '_options_list_relu_' + str(args.hidden_size) + '_game_width_' + str(args.game_width) + '_num_epochs_' + str(args.options_num_epochs) + '_l1_' + str(args.options_l1_lambda) + '_lr_' + str(args.options_learning_rate) + '_onlyws3.pkl'
+        with open(save_path, 'rb') as f:
+            options_list = pickle.load(f)
+        print(f'Options list loaded from {save_path}')
+
     # env setup
     game_width = args.game_width
     hidden_size = args.hidden_size
@@ -92,11 +100,16 @@ def main(args):
         problem = args.env_id[len("ComboGrid_"):]
         print("2 ########## ", args.env_id, problem)
 
-        model_file_name = f'binary/PPO-{problem}-gw{game_width}-h{hidden_size}-l1l{l1_lambda}-lr{args.learning_rate}-totaltimestep{args.total_timesteps}-{run_time}_MODEL.pt'
+        model_file_name = f'binary/PPO-{problem}-gw{game_width}-h{hidden_size}-l1l{l1_lambda}-lr{args.learning_rate}-totaltimestep{args.total_timesteps}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}_MODEL.pt'
         print("3 ########## ", model_file_name)
-        envs = gym.vector.SyncVectorEnv(
-            [make_env(rows=game_width, columns=game_width, problem=problem) for _ in range(args.num_envs)],
-        )    
+        if args.options_enabled:
+            envs = gym.vector.SyncVectorEnv(
+                [make_env(rows=game_width, columns=game_width, problem=problem, options=options_list) for _ in range(args.num_envs)],
+            ) 
+        else:
+            envs = gym.vector.SyncVectorEnv(
+                [make_env(rows=game_width, columns=game_width, problem=problem) for _ in range(args.num_envs)],
+            )    
         assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
         logger.info("envs.action_space.n", envs.action_space[0].n)
 

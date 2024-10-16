@@ -85,3 +85,15 @@ class Args:
     """The name of the log file"""
     log_level: str = "INFO"
     """The logging level"""
+
+    # Options section
+    options_enabled: bool = False
+    """if toggled, options will be enabled for training PPO"""
+    options_base_model: str = "nn"
+    """the base model for the options"""
+    options_num_epochs: int = 5000
+    """the number of epochs for the options"""
+    options_l1_lambda: float = 0.0005
+    """the l1 lambda used for training the options"""
+    options_learning_rate: float = 0.1
+    """the learning rate used for training the options"""
