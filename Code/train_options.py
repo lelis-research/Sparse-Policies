@@ -67,7 +67,7 @@ def main():
 
 
     # Save the options list to a file
-    save_path = 'binary/' + args.base_model.upper + '_options_list_relu_' + str(args.hidden_size) + '_game_width_' + str(args.game_width) + '_num_epochs_' + str(args.num_epoch) + '_l1_' + str(args.l1) + '_lr_' + str(args.lr) + '.pkl'
+    save_path = 'binary/' + str(args.base_model.upper()) + '_options_list_relu_' + str(args.hidden_size) + '_game_width_' + str(args.game_width) + '_num_epochs_' + str(args.num_epoch) + '_l1_' + str(args.l1) + '_lr_' + str(args.lr) + '.pkl'
     with open(save_path, 'wb') as f:
         pickle.dump(options_list, f)
     print(f'Options list saved to {save_path}')
