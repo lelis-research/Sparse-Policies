@@ -107,9 +107,9 @@ def main(args):
         problem = args.env_id[len("ComboGrid_"):]
         print("2 ########## ", args.env_id, problem)
 
-        print("3 ########## ", model_file_name)
         if args.options_enabled:
             model_file_name = f'binary/PPO-{problem}-gw{game_width}-h{hidden_size}-l1l{l1_lambda}-lr{args.learning_rate}-totaltimestep{args.total_timesteps}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}_options_MODEL.pt'
+            print("3 ########## ", model_file_name)
             envs = gym.vector.SyncVectorEnv(
                 [make_env(rows=game_width, columns=game_width, problem=problem, options=options_list) for _ in range(args.num_envs)],
             ) 
