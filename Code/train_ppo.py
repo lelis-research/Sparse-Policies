@@ -11,7 +11,6 @@ from utils import *
 from torch.utils.tensorboard import SummaryWriter
 from environment.combogrid_gym import make_env
 from environment.minigrid import make_env_simple_crossing, make_env_four_rooms
-
 from train_ppo_agent import train_ppo
 
 
@@ -20,11 +19,10 @@ def main(args):
     args.batch_size = int(args.num_envs * args.num_steps)
     args.minibatch_size = int(args.batch_size // args.num_minibatches)
     args.num_iterations = args.total_timesteps // args.batch_size
-    args.exp_name = f"{args.learning_rate}"
 
     run_time = int(time.time())
     
-    run_name = f"{args.env_id}__{args.total_timesteps}__{args.learning_rate}__{args.seed}__{run_time}"
+    run_name = f"{args.env_id}__{args.total_timesteps}__{args.learning_rate}__{args.seed}__{run_time}_{args.exp_name}"
 
     logger = get_logger('ppo_trainer_logger_' + str(args.seed) + "_" + args.exp_name, args.log_level, args.log_path)
 
@@ -66,6 +64,11 @@ def main(args):
         with open(save_path, 'rb') as f:
             options_list = pickle.load(f)
         print(f'Options list loaded from {save_path}')
+
+        # excluding options from current problem
+        current_problem = args.env_id[len("ComboGrid_"):]
+        options_list = [option for option in options_list if option.problem != current_problem]
+    
 
     # env setup
     game_width = args.game_width
