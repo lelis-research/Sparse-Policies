@@ -24,7 +24,7 @@ def main(args):
     
     run_name = f"{args.env_id}__{args.total_timesteps}__{args.learning_rate}__{args.seed}__{run_time}_{args.exp_name}"
 
-    logger = get_logger('ppo_trainer_logger_' + str(args.seed) + "_" + args.exp_name, args.log_level, args.log_path)
+    logger = get_logger('ppo_trainer_logger_' + str(args.seed) + "_" + run_name, args.log_level, args.log_path)
 
     if args.track:
         import wandb
