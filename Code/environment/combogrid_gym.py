@@ -87,12 +87,12 @@ class ComboGym(gym.Env):
         if self.option_index and action >= self.option_index:
             reward_sum = 0
             option = self.program_stack[action]
-            verbose = False
+            verbose = True
             # trajectory = Trajectory()
             sequence_ended = False  # Flag to indicate the end of a sequence
             terminated, truncated = False, False
 
-            if verbose: print('Beginning Trajectory')
+            if verbose: print('Beginning Option')
 
             current_length = 0
             max_length = 20
@@ -100,9 +100,10 @@ class ComboGym(gym.Env):
 
                 # Choose action using model_y1
                 a = choose_action(self._game, option.model_y1, greedy=False, verbose=verbose)
-                # trajectory.add_pair(copy.deepcopy(self._game), a)
 
-                if verbose: print(self._game, a, "\n")
+                if verbose: 
+                    # print(self._game, a, "\n")
+                    print("action: ", a)
 
                 # Check stopping condition using model_y2
                 if check_stopping(self._game, option.model_y2, verbose):

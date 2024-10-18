@@ -68,7 +68,7 @@ class Args:
     """the length of the combo/mini grid square"""
     hidden_size: int = 64
     """"""
-    l1_lambda: float = 0
+    l1_lambda: float = 0.0
     # l1_lambda: Union[float, List] = (0.0, 0.005, 0.001, 0.0005, 0.0001)
     """"""
 
