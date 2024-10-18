@@ -134,13 +134,15 @@ def main():
     parser.add_argument('--total_timesteps', default=50000, type=int)
     parser.add_argument('--ent_coef', default=0.0, type=float)
     parser.add_argument('--clip_coef', default=0.01, type=float)
+    parser.add_argument('--len3', default=False, type=bool)
 
     args = parser.parse_args()
 
 
     problems = ["TL-BR", "TR-BL", "BR-TL", "BL-TR"]
 
-    save_path = 'binary/' + args.base_model + '_options_list_relu_' + str(args.hidden_size) + '_game_width_' + str(args.game_width) + '_num_epochs_' + str(args.num_epoch) + '_l1_' + str(args.l1) + '_lr_' + str(args.lr) + '_onlyws3.pkl'
+    save_path = 'binary/' + args.base_model + '_options_list_relu_' + str(args.hidden_size) + '_game_width_' + str(args.game_width) + '_num_epochs_' + str(args.num_epoch) + '_l1_' + str(args.l1) + '_lr_' + str(args.lr) + '.pkl'
+    if args.len3:   save_path = save_path.replace(".pkl", "_onlyws3.pkl")
     with open(save_path, 'rb') as f:
         options_list = pickle.load(f)
     print(f'Options list loaded from {save_path}')
