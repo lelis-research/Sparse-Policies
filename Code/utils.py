@@ -70,13 +70,11 @@ def load_trajectories(problems, args):
     return trajectories
 
 
-def load_trajectories_ppo(problems, args, options_enabled=False, num_runs=1):
+def load_trajectories_ppo(problems, args):
     """
-    This function loads one or more trajectories for each problem stored in the variable "problems".
-    The number of runs is controlled by the 'num_runs' parameter.
+    This function loads one trajectory for each problem stored in variable "problems".
 
-    The trajectories are returned as a dictionary, with one entry for each problem, where each entry
-    contains a list of trajectories for that problem (if num_runs > 1).
+    The trajectories are returned as a dictionary, with one entry for each problem. 
     """
     
     trajectories = {}
@@ -84,7 +82,6 @@ def load_trajectories_ppo(problems, args, options_enabled=False, num_runs=1):
         
         # TODO: handle l1_lambda
         model_path = f'binary/PPO-{problem}-gw{args.game_width}-h{args.hidden_size}-l1l{int(args.l1)}-lr{args.lr}-totaltimestep{args.total_timesteps}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}_MODEL.pt'
-        if options_enabled: model_path = model_path.replace("_MODEL", "_options_MODEL")
         env = ComboGym(rows=args.game_width, columns=args.game_width, problem=problem)
         
         print(f"Loading Trajectories from {model_path} ...")
@@ -93,15 +90,8 @@ def load_trajectories_ppo(problems, args, options_enabled=False, num_runs=1):
         
         agent.load_state_dict(torch.load(model_path))
 
-        problem_trajectories = []
-        for run_id in range(num_runs):
-            print(f"Run {run_id + 1}/{num_runs} for problem: {problem}")
-            trajectory = agent.run(env, verbose=True)
-            problem_trajectories.append(trajectory)
-            print(f"The trajectory length for run {run_id + 1}: {len(trajectory.get_state_sequence())} \n")
-        
-        # Save the list of trajectories for the problem
-        trajectories[problem] = problem_trajectories if num_runs > 1 else problem_trajectories[0]
+        trajectory = agent.run(env, verbose=True)
+        trajectories[problem] = trajectory
 
         print(f"The trajectory length: {len(trajectory.get_state_sequence())} \n\n")
 
