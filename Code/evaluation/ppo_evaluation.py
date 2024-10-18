@@ -22,7 +22,6 @@ def run_agent(agent, envs, problem, device):
         # print("observation: ", obs)
         with torch.no_grad():
             action, _, _, _, _ = agent.get_action_and_value(obs.unsqueeze(0))
-            # print(int(action.cpu().numpy()))
         obs, reward, terminated, truncated, info = envs.step([int(action.cpu().numpy())])
         obs = torch.tensor(obs, dtype=torch.float32).to(device)
         total_reward += reward
@@ -30,7 +29,6 @@ def run_agent(agent, envs, problem, device):
         num_decisions += 1
 
     print(f'Problem {problem}: Total Reward = {total_reward} in {num_decisions} decisions')
-    # print(info)
     if "final_info" in info:
         for inf in info["final_info"]:
             if inf and "episode" in inf:
@@ -87,7 +85,7 @@ def main():
                 envs = gym.vector.SyncVectorEnv(
                     [make_env(rows=args.game_width, columns=args.game_width, problem=prob, options=options_list) for _ in range(1)],
                 ) 
-            else:
+            else:   # TODO: debug this part
                 envs = gym.vector.SyncVectorEnv(
                     [make_env(rows=args.game_width, columns=args.game_width, problem=prob) for _ in range(1)],
                 )    
