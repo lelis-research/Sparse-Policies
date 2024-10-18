@@ -11,7 +11,6 @@ from options.options import Option
 import logging
 import io
 import time
-from scripts.args import Args
 from agents import PPOAgent
 from environment.combogrid_gym import ComboGym
 
@@ -318,7 +317,7 @@ def log_weights(base_behaviors, args):
         logging.root.removeHandler(handler)
 
     logging.basicConfig(
-        filename=f'logs/base_behaviors_width_{args.game_width}_relu_{str(args.hidden_size)}_l1_{str(args.l1)}_lr_{str(args.lr)}_thresh_{str(args.weight_thresh)}_agentloc_{str(args.agent_loc)}_goalloc_{str(args.goal_loc)}_log.txt',  # Log file where the output will be saved
+        filename=f'logs/base_behaviors_width_{args.game_width}_{int(time.time())}_relu_{str(args.hidden_size)}_l1_{str(args.l1)}_lr_{str(args.lr)}_thresh_{str(args.weight_thresh)}_agentloc_{str(args.agent_loc)}_goalloc_{str(args.goal_loc)}_log.txt',  # Log file where the output will be saved
         filemode='w',  # 'w' for overwrite each time, 'a' for append
         level=logging.INFO,  # Log level
         format='%(message)s',  # Log format
@@ -354,7 +353,7 @@ def log_evalute_behaviors_each_cell(problems_options, problems, args):
         logging.root.removeHandler(handler)
         
     logging.basicConfig(
-        filename=f'logs/each_cell_behavior_width_{args.game_width}_relu_{str(args.hidden_size)}_l1_{str(args.l1)}_lr_{str(args.lr)}_log.txt',  # Log file where the output will be saved
+        filename=f'logs/each_cell_behavior_width_{args.game_width}_{int(time.time())}_relu_{str(args.hidden_size)}_l1_{str(args.l1)}_lr_{str(args.lr)}_log.txt',  # Log file where the output will be saved
         filemode='w',  # 'w' for overwrite each time, 'a' for append
         level=logging.INFO,  # Log level
         format='%(message)s',  # Log format
