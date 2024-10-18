@@ -111,8 +111,9 @@ class ComboGym(gym.Env):
                     sequence_ended = True  # End the current sequence, but continue the outer loop
                     
                 # Apply the chosen action
-                # self._game.apply_action(a)
+                print("obs actions before: ", self.get_observation()[9:-9])
                 obs, reward, terminated, truncated, _ = process_action(a)
+                print("obs actions after:  ", obs[9:-9])
                 reward_sum += reward
 
                 current_length += 1
