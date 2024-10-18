@@ -172,7 +172,7 @@ def main():
         2. Evaluating base options in each cell
         """
         print("Running evaluation of base options in each cell")
-        log_evalute_behaviors_each_cell(problems_options, problems, args.game_width, args.hidden_size, args.l1, args.lr)
+        log_evalute_behaviors_each_cell(problems_options, problems, args)
 
     if "weights" in args.eval_method:
         """
@@ -180,7 +180,7 @@ def main():
         """
         print("Analyzing weights of base options")
         base_behaviors = extract_base_behaviors(problems_options)
-        log_weights(base_behaviors, args.hidden_size, args.game_width, args.l1, args.weight_thresh, args.goal_loc, args.goal_loc, args.lr)
+        log_weights(base_behaviors, args)
 
 
 if __name__ == "__main__":

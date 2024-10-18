@@ -311,14 +311,14 @@ def capture_printed_output(func, *args, **kwargs):
     return captured_output.getvalue()
 
 
-def log_weights(base_behaviors, hidden_size, game_width, l1_lambda, threshold, agent_loc, goal_loc, learning_rate):
+def log_weights(base_behaviors, args):
     logging.shutdown()
     # Clear existing handlers if any (this is needed because logging.basicConfig() can only be called once).
     for handler in logging.root.handlers[:]:
         logging.root.removeHandler(handler)
 
     logging.basicConfig(
-        filename=f'logs/base_behaviors_width_{game_width}_relu_{str(hidden_size)}_l1_{str(l1_lambda)}_lr_{str(learning_rate)}_thresh_{str(threshold)}_agentloc_{str(agent_loc)}_goalloc_{str(goal_loc)}_log.txt',  # Log file where the output will be saved
+        filename=f'logs/base_behaviors_width_{args.game_width}_relu_{str(args.hidden_size)}_l1_{str(args.l1)}_lr_{str(args.lr)}_thresh_{str(args.weight_thresh)}_agentloc_{str(args.agent_loc)}_goalloc_{str(args.goal_loc)}_log.txt',  # Log file where the output will be saved
         filemode='w',  # 'w' for overwrite each time, 'a' for append
         level=logging.INFO,  # Log level
         format='%(message)s',  # Log format
@@ -326,23 +326,25 @@ def log_weights(base_behaviors, hidden_size, game_width, l1_lambda, threshold, a
 
     logger = logging.getLogger()
 
+    logger.info("Arguments: %s", vars(args))
+
     for behavior, options_for_behavior in base_behaviors.items():
         for option in options_for_behavior:
             logger.info(f"Behavior: {behavior} -- Sequence: {option.sequence} -- Problem: {option.problem}")
             
-            option.truncate_all_weights(threshold=threshold)
+            option.truncate_all_weights(threshold=args.weight_thresh)
             
             # Capture the printed model weights and log them
             try:
                 # Ensure option.print_model_weights is valid and callable
-                weights_log = capture_printed_output(option.print_model_weights, game_width, agent_loc=agent_loc, goal_loc=goal_loc)
+                weights_log = capture_printed_output(option.print_model_weights, args.game_width, agent_loc=args.agent_loc, goal_loc=args.goal_loc)
                 logger.info(weights_log)  # Log the captured output
             except Exception as e:
                 logger.error(f"Error capturing weights: {e}")
         logger.info("################################################ END BEHAVIOR \n\n")
 
 
-def log_evalute_behaviors_each_cell(problems_options, problems, game_width, hidden_size, l1_lambda, learning_rate):
+def log_evalute_behaviors_each_cell(problems_options, problems, args):
     """
     In this function, we evaluate our base behaviors (4 sequences of actions) in each cell of the grid to see if they can perform as expected.
     """
@@ -352,18 +354,19 @@ def log_evalute_behaviors_each_cell(problems_options, problems, game_width, hidd
         logging.root.removeHandler(handler)
         
     logging.basicConfig(
-        filename=f'logs/each_cell_behavior_width_{game_width}_relu_{str(hidden_size)}_l1_{str(l1_lambda)}_lr_{str(learning_rate)}_log.txt',  # Log file where the output will be saved
+        filename=f'logs/each_cell_behavior_width_{args.game_width}_relu_{str(args.hidden_size)}_l1_{str(args.l1)}_lr_{str(args.lr)}_log.txt',  # Log file where the output will be saved
         filemode='w',  # 'w' for overwrite each time, 'a' for append
         level=logging.INFO,  # Log level
         format='%(message)s',  # Log format
     )
 
     logger = logging.getLogger()
+    logger.info("Arguments: %s", vars(args))
     base_behaviors = extract_base_behaviors(problems_options)
     
     for problem in problems:
         logger.info(f"################################################ OUTER PROBLEM: {problem} \n")
-        env = Game(game_width, game_width, problem)
+        env = Game(args.game_width, args.game_width, problem)
 
         for behavior, options_for_behavior in base_behaviors.items():
             for option in options_for_behavior:
@@ -371,9 +374,9 @@ def log_evalute_behaviors_each_cell(problems_options, problems, game_width, hidd
                 model_y1 = option.model_y1
                 model_y2 = option.model_y2
 
-                for i in range(game_width):
-                    for j in range(game_width):
-                        env._matrix_unit = np.zeros((game_width, game_width))
+                for i in range(args.game_width):
+                    for j in range(args.game_width):
+                        env._matrix_unit = np.zeros((args.game_width, args.game_width))
                         env._matrix_unit[i][j] = 1
 
                         logger.info(f"Cell: {i}, {j}")
