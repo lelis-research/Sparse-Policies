@@ -291,6 +291,21 @@ def extract_base_behaviors(problems_options):
     return base_behaviors
 
 
+def extract_any_behaviors(problems_options, behavior_sequences_list: list[tuple]):
+    """
+    This functions returns the model_y1 and model_y2 for the base behaviors (up, down, ledt, right).
+    """
+    desired_behaviors = {}
+    for behave_seq in behavior_sequences_list:
+        desired_behaviors[behave_seq] = []
+
+    for problem, options in problems_options.items():
+        for option in options:
+            if option.sequence in behavior_sequences_list:
+                desired_behaviors[option.sequence].append(option)
+    return desired_behaviors
+
+
 # Function to capture printed output from a function that prints
 def capture_printed_output(func, *args, **kwargs):
     # Create a StringIO object to capture the output
@@ -390,6 +405,38 @@ def log_evalute_behaviors_each_cell(problems_options, problems, args):
             logger.info("################################################ END BEHAVIOR \n\n")
         logger.info("################################################ END OUTER PROBLEM \n\n")
 
+
+def log_weights_any_behavior(behaviors, args):
+    logging.shutdown()
+    # Clear existing handlers if any (this is needed because logging.basicConfig() can only be called once).
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
+
+    logging.basicConfig(
+        filename=f'logs/behaviors_width_{args.game_width}_{int(time.time())}_relu_{str(args.hidden_size)}_l1_{str(args.l1)}_lr_{str(args.lr)}_thresh_{str(args.weight_thresh)}_agentloc_{str(args.agent_loc)}_goalloc_{str(args.goal_loc)}_log.txt',  # Log file where the output will be saved
+        filemode='w',  # 'w' for overwrite each time, 'a' for append
+        level=logging.INFO,  # Log level
+        format='%(message)s',  # Log format
+    )
+
+    logger = logging.getLogger()
+
+    logger.info("Arguments: %s", vars(args))
+
+    for behavior, options_for_behavior in behaviors.items():
+        for option in options_for_behavior:
+            logger.info(f"Behavior: {behavior} -- Sequence: {option.sequence} -- Problem: {option.problem}")
+            
+            option.truncate_all_weights(threshold=args.weight_thresh)
+            
+            # Capture the printed model weights and log them
+            try:
+                # Ensure option.print_model_weights is valid and callable
+                weights_log = capture_printed_output(option.print_model_weights, args.game_width, agent_loc=args.agent_loc, goal_loc=args.goal_loc)
+                logger.info(weights_log)  # Log the captured output
+            except Exception as e:
+                logger.error(f"Error capturing weights: {e}")
+        logger.info("################################################ END BEHAVIOR \n\n")
 
 
 def timing_decorator(func):

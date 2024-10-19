@@ -7,7 +7,8 @@ from utils import (group_options_by_problem,
                    extract_base_behaviors, 
                    log_weights, 
                    log_evalute_behaviors_each_cell,
-                   load_trajectories_ppo,)
+                   load_trajectories_ppo,
+                   extract_any_behaviors,)
 import copy
 import pickle
 import argparse
@@ -181,6 +182,12 @@ def main():
         print("Analyzing weights of base options")
         base_behaviors = extract_base_behaviors(problems_options)
         log_weights(base_behaviors, args)
+
+    if "weights_any" in args.eval_method:
+        # TODO: complete this
+        print("Analyzing weights of desired options")
+        base_behaviors = extract_any_behaviors(problems_options, args.behaviors)
+        # log_weights(base_behaviors, args)
 
 
 if __name__ == "__main__":
