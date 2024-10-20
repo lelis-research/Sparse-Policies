@@ -111,15 +111,15 @@ class ComboGym(gym.Env):
                     sequence_ended = True  # End the current sequence, but continue the outer loop
                     
                 # Apply the chosen action
-                # prev_agent_loc = copy.deepcopy(self.get_observation()[:9])
-                print("obs actions before: ", self.get_observation()[9:-9])
+                prev_agent_loc = copy.deepcopy(self.get_observation()[:9])
+                # print("obs actions before: ", self.get_observation()[9:-9])
                 obs, reward, terminated, truncated, _ = process_action(a)
-                print("obs actions after:  ", obs[9:-9])
+                # print("obs actions after:  ", obs[9:-9])
                 reward_sum += reward
 
-                # if not np.array_equal(obs[:9], prev_agent_loc):
-                #     print("Agent moved")
-                #     reward_sum += 2
+                if not np.array_equal(obs[:9], prev_agent_loc):
+                    # print("Agent moved")
+                    reward_sum += 2
 
                 current_length += 1
                 if current_length >= max_length:
