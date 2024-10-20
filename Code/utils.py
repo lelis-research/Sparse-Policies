@@ -325,24 +325,33 @@ def capture_printed_output(func, *args, **kwargs):
     return captured_output.getvalue()
 
 
-def log_weights(base_behaviors, args):
+def log_weights(behaviors, args, is_base=True):
     logging.shutdown()
     # Clear existing handlers if any (this is needed because logging.basicConfig() can only be called once).
     for handler in logging.root.handlers[:]:
         logging.root.removeHandler(handler)
 
-    logging.basicConfig(
-        filename=f'logs/base_behaviors_width_{args.game_width}_{int(time.time())}_relu_{str(args.hidden_size)}_l1_{str(args.l1)}_lr_{str(args.lr)}_thresh_{str(args.weight_thresh)}_agentloc_{str(args.agent_loc)}_goalloc_{str(args.goal_loc)}_log.txt',  # Log file where the output will be saved
-        filemode='w',  # 'w' for overwrite each time, 'a' for append
-        level=logging.INFO,  # Log level
-        format='%(message)s',  # Log format
-    )
+    if is_base:
+        logging.basicConfig(
+            filename=f'logs/base_behaviors_width_{args.game_width}_{int(time.time())}_relu_{str(args.hidden_size)}_l1_{str(args.l1)}_lr_{str(args.lr)}_thresh_{str(args.weight_thresh)}_agentloc_{str(args.agent_loc)}_goalloc_{str(args.goal_loc)}_log.txt',  # Log file where the output will be saved
+            filemode='w',  # 'w' for overwrite each time, 'a' for append
+            level=logging.INFO,  # Log level
+            format='%(message)s',  # Log format
+        )
+    else:
+        behaves = "_".join(map(str, behaviors.keys()))
+        logging.basicConfig(
+            filename=f'logs/behaviors_{behaves}_width_{args.game_width}_{int(time.time())}_relu_{str(args.hidden_size)}_l1_{str(args.l1)}_lr_{str(args.lr)}_thresh_{str(args.weight_thresh)}_agentloc_{str(args.agent_loc)}_goalloc_{str(args.goal_loc)}_log.txt',  # Log file where the output will be saved
+            filemode='w',  # 'w' for overwrite each time, 'a' for append
+            level=logging.INFO,  # Log level
+            format='%(message)s',  # Log format
+        )
 
     logger = logging.getLogger()
 
     logger.info("Arguments: %s", vars(args))
 
-    for behavior, options_for_behavior in base_behaviors.items():
+    for behavior, options_for_behavior in behaviors.items():
         for option in options_for_behavior:
             logger.info(f"Behavior: {behavior} -- Sequence: {option.sequence} -- Problem: {option.problem}")
             

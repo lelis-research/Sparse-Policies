@@ -114,6 +114,12 @@ def evaluate_all_options_levin_loss(problems_options, trajectories):
     # print(f'Options list saved to {save_path}')
     
 
+def parse_tuples(lst):
+    try:
+        return [tuple(int(item) for item in s.strip().strip('()').split(',')) for s in lst]
+    except ValueError:
+        raise argparse.ArgumentTypeError("Each tuple must contain integers separated by commas.")
+
 def main():
 
     parser = argparse.ArgumentParser()
@@ -128,7 +134,7 @@ def main():
     parser.add_argument('--num_epoch', default=5000, type=int)
     parser.add_argument('--l1_base', default=0.001, type=float)
     parser.add_argument('--print_loss', default=False, type=bool)
-    parser.add_argument('--eval_method', nargs='+', default=["levinloss"], type=str, help="['levinloss', 'each_cell', 'weights'] (default: levinloss)")
+    parser.add_argument('--eval_method', nargs='+', default=["levinloss"], type=str, help="['levinloss', 'each_cell', 'weights', 'weights_any'] (default: levinloss)")
     parser.add_argument('--weight_thresh', default=0.00001, type=float)
     parser.add_argument('--agent_loc', default=True, type=bool)
     parser.add_argument('--goal_loc', default=True, type=bool)
@@ -136,6 +142,7 @@ def main():
     parser.add_argument('--ent_coef', default=0.0, type=float)
     parser.add_argument('--clip_coef', default=0.01, type=float)
     parser.add_argument('--len3', default=False, type=bool)
+    parser.add_argument('--other_behaviors', nargs='+', default=[], type=str)
 
     args = parser.parse_args()
 
@@ -184,10 +191,10 @@ def main():
         log_weights(base_behaviors, args)
 
     if "weights_any" in args.eval_method:
-        # TODO: complete this
-        print("Analyzing weights of desired options")
-        base_behaviors = extract_any_behaviors(problems_options, args.behaviors)
-        # log_weights(base_behaviors, args)
+        print("Analyzing weights of desired options", args.other_behaviors)
+        args.other_behaviors = parse_tuples(args.other_behaviors)
+        behaviors = extract_any_behaviors(problems_options, args.other_behaviors)
+        log_weights(behaviors, args, is_base=False)
 
 
 if __name__ == "__main__":
