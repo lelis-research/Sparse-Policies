@@ -9,7 +9,7 @@ import gymnasium as gym
 from scripts.args import Args
 from utils import *
 from torch.utils.tensorboard import SummaryWriter
-from environment.combogrid_gym import make_env
+from environment.combogrid_gym import make_env, make_env_combo_four_goals
 from environment.minigrid import make_env_simple_crossing, make_env_four_rooms
 from train_ppo_agent import train_ppo
 
@@ -57,9 +57,9 @@ def main(args):
     # Loading options if toggled
     if args.options_enabled:
         if args.options_only_len_3:
-            save_path = 'binary/' + args.options_base_model + '_options_list_relu_' + str(args.hidden_size) + '_game_width_' + str(args.game_width) + '_num_epochs_' + str(args.options_num_epochs) + '_l1_' + str(args.options_l1_lambda) + '_lr_' + str(args.options_learning_rate) + '_onlyws3.pkl'
+            save_path = 'binary/' + args.options_base_model + '_options_list_relu_' + str(args.options_hidden_size) + '_game_width_' + str(args.options_game_width) + '_num_epochs_' + str(args.options_num_epochs) + '_l1_' + str(args.options_l1_lambda) + '_lr_' + str(args.options_learning_rate) + '_onlyws3.pkl'
         else:
-            save_path = 'binary/' + args.options_base_model + '_options_list_relu_' + str(args.hidden_size) + '_game_width_' + str(args.game_width) + '_num_epochs_' + str(args.options_num_epochs) + '_l1_' + str(args.options_l1_lambda) + '_lr_' + str(args.options_learning_rate) + '.pkl'
+            save_path = 'binary/' + args.options_base_model + '_options_list_relu_' + str(args.options_hidden_size) + '_game_width_' + str(args.options_game_width) + '_num_epochs_' + str(args.options_num_epochs) + '_l1_' + str(args.options_l1_lambda) + '_lr_' + str(args.options_learning_rate) + '.pkl'
 
         with open(save_path, 'rb') as f:
             options_list = pickle.load(f)
@@ -79,7 +79,9 @@ def main(args):
     params = {
         'seed': seed,
         'hidden_size': hidden_size,
+        'hidden_size_options': args.options_hidden_size,
         'game_width': game_width,
+        'game_width_options': args.options_game_width,
         'l1_lambda': l1_lambda,
         'problem': problem,
         'learning_rate': args.learning_rate,
@@ -121,6 +123,20 @@ def main(args):
         assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
         logger.info("envs.action_space.n", envs.action_space[0].n)
 
+    elif "ComboTest" in args.env_id:
+        if args.options_enabled:
+            model_file_name = f'binary/PPO-{args.env_id}-gw{game_width}-h{hidden_size}-l1l{l1_lambda}-lr{args.learning_rate}-totaltimestep{args.total_timesteps}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}_options_MODEL.pt'
+            envs = gym.vector.SyncVectorEnv(
+                [make_env_combo_four_goals(rows=game_width, columns=game_width, options=options_list) for _ in range(args.num_envs)],
+            ) 
+        else:
+            model_file_name = f'binary/PPO-{args.env_id}-gw{game_width}-h{hidden_size}-l1l{l1_lambda}-lr{args.learning_rate}-totaltimestep{args.total_timesteps}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}_MODEL.pt'
+            envs = gym.vector.SyncVectorEnv(
+                [make_env_combo_four_goals(rows=game_width, columns=game_width) for _ in range(args.num_envs)],
+            )    
+        assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
+        logger.info("envs.action_space.n", envs.action_space[0].n)
+
     elif args.env_id == "MiniGrid-FourRooms-v0":
         model_file_name = f'binary/four-rooms/PPO-gw{args.game_width}' + \
                         f'-h{args.hidden_size}-sd{seed}_MODEL.pt'
@@ -146,21 +162,22 @@ def main(args):
 #         main(args)
 
 ## Normal Run
-if __name__ == "__main__":
-    args = tyro.cli(Args)
-    args.seed = args.seeds[0]
-
-    if "All" in args.env_id:
-        for prob in ["TL-BR", "TR-BL", "BR-TL", "BL-TR"]:
-            args.env_id = f"ComboGrid_{prob}"
-            print("1 ########## ", args.env_id)
-            main(args)
-    else:
-        main(args)
-
-## Optuna Run
 # if __name__ == "__main__":
 #     args = tyro.cli(Args)
-#     # args.seed = args.seeds[0]
-#     main(args)
+#     args.seed = args.seeds[0]
+
+#     if "All" in args.env_id:
+#         for prob in ["TL-BR", "TR-BL", "BR-TL", "BL-TR"]:
+#             args.env_id = f"ComboGrid_{prob}"
+#             print("1 ########## ", args.env_id)
+#             main(args)
+#     else:
+#         main(args)
+
+
+if __name__ == "__main__":
+    args = tyro.cli(Args)
+    for s in args.seeds:
+        args.seed = s
+        main(args)
     

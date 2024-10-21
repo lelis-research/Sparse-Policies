@@ -99,3 +99,7 @@ class Args:
     """the learning rate used for training the options"""
     options_only_len_3: bool = False
     """ if toggled, we have only options of length 3"""
+    options_hidden_size: int = 32
+    """the hidden size of the networks of the options"""
+    options_game_width: int = 3
+    """game width of the games the options are trained on"""
