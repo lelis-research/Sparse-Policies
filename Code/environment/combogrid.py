@@ -197,10 +197,6 @@ class TestGame:
             print(f"Adding problem: {prob}")
             self._problems.append(Problem(rows, columns, prob))
         
-        if init_x and init_y:
-            self.reset((init_x, init_y))
-        else:
-            self.reset()
 
         self._matrix_structure = np.zeros((rows, columns))
         self._matrix_goal = np.zeros((rows, columns))        
@@ -212,7 +208,12 @@ class TestGame:
         # for handling number of goals the agent has reached
         self.goals_reached = 0
         self.total_goals = len(self._problems)
-
+        
+        if init_x and init_y:
+            self.reset((init_x, init_y))
+        else:
+            self.reset()
+            
         # state of current action sequence
         """
         Mapping used: 
@@ -238,10 +239,10 @@ class TestGame:
         self.goals_reached = 0
         
         # Reset the goal matrix
-        # self._matrix_goal.fill(0)
-        # for problem in self._problems:
-        #     goal = problem.goal
-        #     self._matrix_goal[goal[0]][goal[1]] = 1
+        self._matrix_goal.fill(0)
+        for problem in self._problems:
+            goal = problem.goal
+            self._matrix_goal[goal[0]][goal[1]] = 1
 
         gc.collect()
 
