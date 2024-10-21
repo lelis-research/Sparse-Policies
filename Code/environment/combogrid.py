@@ -298,6 +298,8 @@ class TestGame:
         2, 1, 0 -> left (2)
         1, 0, 2 -> right (3)
         """
+        self.goal_reached_this_step = False
+
         # each column in _state_matrix represents an action
         self._state.append(action)
 
@@ -333,6 +335,7 @@ class TestGame:
                 if self._matrix_goal[self._x][self._y] == 1:
                     self._matrix_goal[self._x][self._y] = 0  # Remove the goal
                     self.goals_reached += 1
+                    self.goal_reached_this_step = True
                     print(f"Goal reached at ({self._x}, {self._y}). Total goals reached: {self.goals_reached}/{self.total_goals}")
 
             self._state = []
