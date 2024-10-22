@@ -6,7 +6,7 @@ import argparse
 import torch
 from agents import PPOAgent
 import gymnasium as gym
-from environment.combogrid_gym import make_env
+from environment.combogrid_gym import make_env, make_env_combo_four_goals
 
 
 def run_agent(agent, envs, problem, device):
@@ -43,7 +43,7 @@ def main():
     parser.add_argument('--game_width', default=3, type=int)
     parser.add_argument('--hidden_size', default=32, type=int)
     parser.add_argument('--l1', default=0.0, type=float)
-    parser.add_argument('--problem', default="All", type=str, help="All, TL-BR, TR-BL, BR-TL, BL-TR")
+    parser.add_argument('--problem', default="All", type=str, help="All, TL-BR, TR-BL, BR-TL, BL-TR, Test")
     parser.add_argument('--lr', default=0.01, type=float)
     parser.add_argument('--log_path', default="logs/", type=str)
     parser.add_argument('--eval_method', nargs='+', default=[None], type=str, help="Nothing but printing trajectories for now")
@@ -96,6 +96,32 @@ def main():
             agent.eval()    # running for inference
             run_agent(agent, envs, prob, device)
 
+    elif "Test" in args.problem:
+        if args.options_enabled:
+
+            save_path = 'binary/' + args.base_model_option + '_options_list_relu_' + str(args.hidden_size) + '_game_width_' + str(args.game_width) + '_num_epochs_' + str(args.num_epoch) + '_l1_' + str(args.l1_option) + '_lr_' + str(args.lr_option) + '.pkl'
+            if args.len3:   save_path = save_path.replace(".pkl", "_onlyws3.pkl")
+            with open(save_path, 'rb') as f:
+                options_list = pickle.load(f)
+            print(f'\n\n Options list loaded from {save_path} \n')
+            
+            
+            model_file_name = f'binary/PPO-ComboTest-gw{args.game_width}-h{args.hidden_size}-l1l{args.l1}-lr{args.lr}-totaltimestep{args.total_timesteps}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}_options_MODEL.pt'
+            envs = gym.vector.SyncVectorEnv(
+                [make_env_combo_four_goals(rows=args.game_width, columns=args.game_width, options=options_list) for _ in range(1)],
+            ) 
+        else:
+            model_file_name = f'binary/PPO-ComboTest-gw{args.game_width}-h{args.hidden_size}-l1l{args.l1}-lr{args.lr}-totaltimestep{args.total_timesteps}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}_MODEL.pt'
+            envs = gym.vector.SyncVectorEnv(
+                [make_env_combo_four_goals(rows=args.game_width, columns=args.game_width) for _ in range(1)],
+            )    
+        assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
+        
+        print("Model file name: ", model_file_name)
+        agent = PPOAgent(envs, hidden_size=args.hidden_size).to(device)
+        agent.load_state_dict(torch.load(model_file_name))
+        agent.eval()    # running for inference
+        run_agent(agent, envs, "ComboTest", device)
 
 
 
