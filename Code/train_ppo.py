@@ -65,9 +65,10 @@ def main(args):
             options_list = pickle.load(f)
         print(f'Options list loaded from {save_path}')
 
-        # excluding options from current problem
-        current_problem = args.env_id[len("ComboGrid_"):]
-        options_list = [option for option in options_list if option.problem != current_problem]
+        if args.env_id != "ComboTest":
+            # excluding options from current problem
+            current_problem = args.env_id[len("ComboGrid_"):]
+            options_list = [option for option in options_list if option.problem != current_problem]
     
 
     # env setup
@@ -107,11 +108,8 @@ def main(args):
 
     elif "ComboGrid" in args.env_id:
         problem = args.env_id[len("ComboGrid_"):]
-        print("2 ########## ", args.env_id, problem)
-
         if args.options_enabled:
             model_file_name = f'binary/PPO-{problem}-gw{game_width}-h{hidden_size}-l1l{l1_lambda}-lr{args.learning_rate}-totaltimestep{args.total_timesteps}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}_options_MODEL.pt'
-            print("3 ########## ", model_file_name)
             envs = gym.vector.SyncVectorEnv(
                 [make_env(rows=game_width, columns=game_width, problem=problem, options=options_list) for _ in range(args.num_envs)],
             ) 
