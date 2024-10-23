@@ -1,7 +1,7 @@
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from levin_loss import LevinLossMLP, LevinLossPPO
+from levin_loss import LevinLossMLP
 from utils import (group_options_by_problem, 
                    load_trajectories, 
                    extract_base_behaviors, 
@@ -36,7 +36,7 @@ def evaluate_all_options_for_problem(selected_options, problem, trajectories, nu
     return best_option, best_value
 
 
-def evaluate_all_options_levin_loss(problems_options, trajectories):
+def evaluate_all_options_levin_loss(problems_options, trajectories, args):
     """
     This function implements the greedy approach for selecting options.
     This method evaluates all different options of a given model and adds to the pool of options the one that minimizes
@@ -108,10 +108,12 @@ def evaluate_all_options_levin_loss(problems_options, trajectories):
         print("Option", i, ":", selected_options[i].sequence, "- from Problem: ", selected_options[i].problem)
 
     # Save the options list to a file
-    # save_path = 'binary/final_options.pkl'
-    # with open(save_path, 'wb') as f:
-    #     pickle.dump(selected_options, f)
-    # print(f'Options list saved to {save_path}')
+    if args.save_options:
+        print("Saving options list")
+        save_path = 'binary/selected_options_relu_' + str(args.hidden_size) + '_gw_' + str(args.game_width) + '_num_epochs_' + str(args.num_epoch) + '_l1_' + str(args.l1) + '_lr_' + str(args.lr) + '.pkl'
+        with open(save_path, 'wb') as f:
+            pickle.dump(selected_options, f)
+        print(f'Options list saved to {save_path}')
     
 
 def parse_tuples(lst):
@@ -119,6 +121,7 @@ def parse_tuples(lst):
         return [tuple(int(item) for item in s.strip().strip('()').split(',')) for s in lst]
     except ValueError:
         raise argparse.ArgumentTypeError("Each tuple must contain integers separated by commas.")
+
 
 def main():
 
@@ -143,6 +146,7 @@ def main():
     parser.add_argument('--clip_coef', default=0.01, type=float)
     parser.add_argument('--len3', default=False, type=bool)
     parser.add_argument('--other_behaviors', nargs='+', default=[], type=str)
+    parser.add_argument('--save_options', action='store_true', help="Save the options extracted from levin loss selection")
 
     args = parser.parse_args()
 
@@ -173,7 +177,7 @@ def main():
         1. Levin Loss evaluation
         """
         print("Running Levin Loss evaluation")
-        evaluate_all_options_levin_loss(problems_options, trajectories)
+        evaluate_all_options_levin_loss(problems_options, trajectories, args)
 
     if "each_cell" in args.eval_method:
         """
