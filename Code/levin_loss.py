@@ -59,6 +59,8 @@ class LevinLossMLP:
             and a number of steps. It runs the models for the specified number of steps and returns the actions taken for those steps.
             """
             agent = PolicyGuidedAgent()
+            greedy = True
+            length_cap = 20
 
             # print("######## type env: ", type(env))
 
@@ -71,9 +73,9 @@ class LevinLossMLP:
                 )
                 # print("######## type env: ", type(env)) 
                 # trajectory = agent.run_with_y1_y2(env, model_y1, model_y2, length_cap=number_steps-1)
-                trajectory = agent.run_with_y1_y2(env, option.model_y1, option.model_y2)
+                trajectory = agent.run_with_y1_y2(env, option.model_y1, option.model_y2, greedy=greedy, length_cap=length_cap)
             else:
-                trajectory = agent.run_with_y1_y2(env, option.model_y1, option.model_y2)
+                trajectory = agent.run_with_y1_y2(env, option.model_y1, option.model_y2, greedy=greedy, length_cap=length_cap)
 
             actions = []
             for _, action in trajectory.get_trajectory():
