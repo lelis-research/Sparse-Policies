@@ -228,7 +228,7 @@ class ComboGymFourGoals(gym.Env):
         if self.option_index and action >= self.option_index:
             reward_sum = 0
             option = self.program_stack[action]
-            verbose = True
+            verbose = False
             sequence_ended = False  # Flag to indicate the end of a sequence
             terminated, truncated = False, False
 
@@ -239,7 +239,7 @@ class ComboGymFourGoals(gym.Env):
             while not sequence_ended and not terminated and not truncated:
 
                 # Choose action using model_y1
-                a = choose_action(self._game, option.model_y1, greedy=False, verbose=verbose)
+                a = choose_action(self._game, option.model_y1, greedy=True, verbose=verbose)
 
                 if verbose: 
                     # print(self._game, a, "\n")

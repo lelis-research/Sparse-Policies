@@ -56,10 +56,11 @@ def main(args):
 
     # Loading options if toggled
     if args.options_enabled:
-        if args.options_only_len_3:
+        if args.options_only_len_3: # Not handled with options selected from levin loss
             save_path = 'binary/' + args.options_base_model + '_options_list_relu_' + str(args.options_hidden_size) + '_game_width_' + str(args.options_game_width) + '_num_epochs_' + str(args.options_num_epochs) + '_l1_' + str(args.options_l1_lambda) + '_lr_' + str(args.options_learning_rate) + '_onlyws3.pkl'
         else:
-            save_path = 'binary/' + args.options_base_model + '_options_list_relu_' + str(args.options_hidden_size) + '_game_width_' + str(args.options_game_width) + '_num_epochs_' + str(args.options_num_epochs) + '_l1_' + str(args.options_l1_lambda) + '_lr_' + str(args.options_learning_rate) + '.pkl'
+            save_path = 'binary/selected_options_relu_' + str(args.options_hidden_size) + '_gw_' + str(args.options_game_width) + '_num_epochs_' + str(args.options_num_epochs) + '_l1_' + str(args.options_l1_lambda) + '_lr_' + str(args.options_learning_rate) + '.pkl'
+            # save_path = 'binary/' + args.options_base_model + '_options_list_relu_' + str(args.options_hidden_size) + '_game_width_' + str(args.options_game_width) + '_num_epochs_' + str(args.options_num_epochs) + '_l1_' + str(args.options_l1_lambda) + '_lr_' + str(args.options_learning_rate) + '.pkl'
 
         with open(save_path, 'rb') as f:
             options_list = pickle.load(f)
@@ -159,23 +160,23 @@ def main(args):
 #         args.learning_rate = lrs[i]
 #         main(args)
 
-## Normal Run
-# if __name__ == "__main__":
-#     args = tyro.cli(Args)
-#     args.seed = args.seeds[0]
-
-#     if "All" in args.env_id:
-#         for prob in ["TL-BR", "TR-BL", "BR-TL", "BL-TR"]:
-#             args.env_id = f"ComboGrid_{prob}"
-#             print("1 ########## ", args.env_id)
-#             main(args)
-#     else:
-#         main(args)
-
-
+# Normal Run
 if __name__ == "__main__":
     args = tyro.cli(Args)
-    for s in args.seeds:
-        args.seed = s
+    args.seed = args.seeds[0]
+
+    if "All" in args.env_id:
+        for prob in ["TL-BR", "TR-BL", "BR-TL", "BL-TR"]:
+            args.env_id = f"ComboGrid_{prob}"
+            print("1 ########## ", args.env_id)
+            main(args)
+    else:
         main(args)
+
+
+# if __name__ == "__main__":
+#     args = tyro.cli(Args)
+#     for s in args.seeds:
+#         args.seed = s
+#         main(args)
     
