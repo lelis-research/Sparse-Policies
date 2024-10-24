@@ -163,7 +163,6 @@ def main(args):
 # Normal Run
 if __name__ == "__main__":
     args = tyro.cli(Args)
-    args.seed = args.seeds[0]
 
     if "All" in args.env_id:
         for prob in ["TL-BR", "TR-BL", "BR-TL", "BL-TR"]:

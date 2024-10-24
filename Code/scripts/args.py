@@ -8,6 +8,8 @@ class Args:
     """the name of this experiment"""
     seeds: List[int] = (0,1,2)
     """seed of the experiment"""
+    seed: int = 0
+    """seed of the experiment"""
     torch_deterministic: bool = True
     """if toggled, `torch.backends.cudnn.deterministic=False`"""
     cuda: bool = True
