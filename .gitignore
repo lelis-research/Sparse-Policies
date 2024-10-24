@@ -10,4 +10,5 @@ Thoughts.txt
 /outputs/
 /binary/
 /.vscode/
-
+/old_options_uniq_seq/
+/old_options_uniq_seq_prob/
