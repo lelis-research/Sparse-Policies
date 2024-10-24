@@ -66,9 +66,12 @@ class ComboGym(gym.Env):
                     prob_actions, _h = model(x_tensor, _h)
                 else:
                     prob_actions = model(x_tensor)
+                    # print("prob_actions: ", prob_actions)
                 if greedy:
+                    print("prob_actions: ", prob_actions)
                     a = torch.argmax(prob_actions).item()
                 else:
+                    print("prob_actions: ", prob_actions)
                     a = torch.multinomial(prob_actions, 1).item()
             return a
     
@@ -80,7 +83,7 @@ class ComboGym(gym.Env):
             x_tensor = torch.tensor(env.get_observation(), dtype=torch.float32).view(1, -1)
             stopping_prob = model_y2(x_tensor).item()  # model_y2 outputs a probability
             if verbose:
-                print(f"Stopping probability: {stopping_prob}")
+                print(f"-- Stopping probability: {stopping_prob}")
             return stopping_prob <= 0.5
 
         # Execute the option
@@ -88,11 +91,12 @@ class ComboGym(gym.Env):
             reward_sum = 0
             option = self.program_stack[action]
             verbose = True
+            if verbose: print("-- Option: ", option.sequence, "-- index: ", action)
             # trajectory = Trajectory()
             sequence_ended = False  # Flag to indicate the end of a sequence
             terminated, truncated = False, False
 
-            if verbose: print('Beginning Option')
+            if verbose: print('-- Beginning Option')
 
             current_length = 0
             max_length = 20
@@ -103,11 +107,11 @@ class ComboGym(gym.Env):
 
                 if verbose: 
                     # print(self._game, a, "\n")
-                    print("action: ", a)
+                    print("-- opt action: ", a)
 
                 # Check stopping condition using model_y2
                 if check_stopping(self._game, option.model_y2, verbose):
-                    if verbose: print("Stopping the current sequence based on model_y2.")
+                    if verbose: print("-- Stopping the current sequence based on model_y2.")
                     sequence_ended = True  # End the current sequence, but continue the outer loop
                     
                 # Apply the chosen action
@@ -117,9 +121,9 @@ class ComboGym(gym.Env):
                 # print("obs actions after:  ", obs[9:-9])
                 reward_sum += reward
 
-                if not np.array_equal(obs[:9], prev_agent_loc):
-                    # print("Agent moved")
-                    reward_sum += 2
+                # if not np.array_equal(obs[:9], prev_agent_loc):
+                #     # print("Agent moved")
+                #     reward_sum += 2
 
                 current_length += 1
                 if current_length >= max_length:

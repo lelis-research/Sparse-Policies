@@ -19,9 +19,10 @@ def run_agent(agent, envs, problem, device):
     num_decisions = 0
 
     while not done:
-        # print("observation: ", obs)
+        # print("observation: ", obs[:, :9])
         with torch.no_grad():
             action, _, _, _, _ = agent.get_action_and_value(obs.unsqueeze(0))
+            print("action: ", int(action.cpu().numpy()))
         obs, reward, terminated, truncated, info = envs.step([int(action.cpu().numpy())])
         obs = torch.tensor(obs, dtype=torch.float32).to(device)
         total_reward += reward
@@ -70,15 +71,20 @@ def main():
     if "All" in args.problem:
         for prob in problems:
 
-            model_file_name = f'binary/{args.base_model}-{prob}-gw{args.game_width}-h{args.hidden_size}-l1l{int(args.l1)}-lr{args.lr}-totaltimestep{args.total_timesteps}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}_MODEL.pt'
+            model_file_name = f'binary/{args.base_model}-{prob}-gw{args.game_width}-h{args.hidden_size}-l1l{args.l1}-lr{args.lr}-totaltimestep{args.total_timesteps}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}_MODEL.pt'
             if args.options_enabled:
 
-                save_path = 'binary/' + args.base_model_option + '_options_list_relu_' + str(args.hidden_size) + '_game_width_' + str(args.game_width) + '_num_epochs_' + str(args.num_epoch) + '_l1_' + str(args.l1_option) + '_lr_' + str(args.lr_option) + '.pkl'
-                if args.len3:   save_path = save_path.replace(".pkl", "_onlyws3.pkl")
+                # save_path = 'binary/' + args.base_model_option + '_options_list_relu_' + str(args.hidden_size) + '_game_width_' + str(args.game_width) + '_num_epochs_' + str(args.num_epoch) + '_l1_' + str(args.l1_option) + '_lr_' + str(args.lr_option) + '.pkl'
+                save_path = 'binary/selected_options_relu_' + str(args.hidden_size) + '_gw_' + str(args.game_width) + '_num_epochs_' + str(args.num_epoch) + '_l1_' + str(args.l1_option) + '_lr_' + str(args.lr_option) + '.pkl'
+                if args.len3:   save_path = save_path.replace(".pkl", "_onlyws3.pkl")   # Not handled with options selected from levin loss
                 with open(save_path, 'rb') as f:
                     options_list = pickle.load(f)
                 print(f'\n\n Options list loaded from {save_path} \n')
+                for option in options_list:
+                    print("Option: ", option.sequence, option.problem)
                 options_list = [option for option in options_list if option.problem != prob]
+                for option in options_list:
+                    print("filtered Option: ", option.sequence, option.problem)
 
 
                 model_file_name = model_file_name.replace("_MODEL.pt", "_options_MODEL.pt")
@@ -99,7 +105,9 @@ def main():
     elif "Test" in args.problem:
         if args.options_enabled:
 
-            save_path = 'binary/' + args.base_model_option + '_options_list_relu_' + str(args.hidden_size) + '_game_width_' + str(args.game_width) + '_num_epochs_' + str(args.num_epoch) + '_l1_' + str(args.l1_option) + '_lr_' + str(args.lr_option) + '.pkl'
+            # save_path = 'binary/' + args.base_model_option + '_options_list_relu_' + str(args.hidden_size) + '_game_width_' + str(args.game_width) + '_num_epochs_' + str(args.num_epoch) + '_l1_' + str(args.l1_option) + '_lr_' + str(args.lr_option) + '.pkl'
+            save_path = 'binary/selected_options_relu_' + str(args.hidden_size) + '_gw_' + str(args.game_width) + '_num_epochs_' + str(args.num_epoch) + '_l1_' + str(args.l1_option) + '_lr_' + str(args.lr_option) + '.pkl'
+
             if args.len3:   save_path = save_path.replace(".pkl", "_onlyws3.pkl")
             with open(save_path, 'rb') as f:
                 options_list = pickle.load(f)
