@@ -27,6 +27,8 @@ def load_experiment_data(log_dir, tag, experiment_pattern, experiment_name):
     run_pattern = os.path.join(log_dir, experiment_pattern)
     run_dirs = glob.glob(run_pattern)
 
+    print("run dirs: ", run_dirs)
+
     if not run_dirs:
         print(f"No runs found for experiment pattern '{experiment_pattern}'.")
         return None
@@ -87,7 +89,7 @@ def write_average_to_tensorboard(exp_data, log_dir, experiment_name, tag):
     writer.close()
     print(f"Averaged data written to TensorBoard at '{average_run_dir}'.")
 
-def plot_all_experiments_together(data, metric_name, plot_individual_runs=False):
+def plot_all_experiments_together(data, metric_name, plot_individual_runs=False, smoothing_window=1):
     """Plots individual runs and averages for all experiments on the same plot using Matplotlib."""
     plt.figure(figsize=(12, 8))
     sns.set(style='darkgrid')
@@ -103,8 +105,13 @@ def plot_all_experiments_together(data, metric_name, plot_individual_runs=False)
         # Plot individual runs
         if plot_individual_runs:
             for run in runs:
-                run_data = exp_data[exp_data['Run'] == run]
-                plt.plot(run_data['Step'], run_data['Value'],
+                run_data = exp_data[exp_data['Run'] == run].copy()
+                # Apply smoothing
+                if smoothing_window > 1:
+                    run_data['SmoothedValue'] = run_data['Value'].rolling(window=smoothing_window, min_periods=1).mean()
+                else:
+                    run_data['SmoothedValue'] = run_data['Value']
+                plt.plot(run_data['Step'], run_data['SmoothedValue'],
                          label=f'{experiment} - {run}',
                          color=palette[i], alpha=0.5, linewidth=1)
 
@@ -112,15 +119,23 @@ def plot_all_experiments_together(data, metric_name, plot_individual_runs=False)
         grouped = exp_data.groupby('Step')['Value'].agg(['mean', 'std']).reset_index()
         grouped['std'] = grouped['std'].fillna(0)
 
-        # Plot mean
-        plt.plot(grouped['Step'], grouped['mean'],
+        # Apply smoothing to mean and std
+        if smoothing_window > 1:
+            grouped['SmoothedMean'] = grouped['mean'].rolling(window=smoothing_window, min_periods=1).mean()
+            grouped['SmoothedStd'] = grouped['std'].rolling(window=smoothing_window, min_periods=1).mean()
+        else:
+            grouped['SmoothedMean'] = grouped['mean']
+            grouped['SmoothedStd'] = grouped['std']
+
+        # Plot smoothed mean
+        plt.plot(grouped['Step'], grouped['SmoothedMean'],
                  label=f'{experiment} Average',
                  color=palette[i], linewidth=2)
 
-        # Plot variance
+        # Plot variance using smoothed std
         plt.fill_between(grouped['Step'],
-                         grouped['mean'] - grouped['std'],
-                         grouped['mean'] + grouped['std'],
+                         grouped['SmoothedMean'] - grouped['SmoothedStd'],
+                         grouped['SmoothedMean'] + grouped['SmoothedStd'],
                          color=palette[i], alpha=0.2)
 
     plt.xlabel('Global Step')
@@ -130,12 +145,12 @@ def plot_all_experiments_together(data, metric_name, plot_individual_runs=False)
     plt.tight_layout()
     plt.show()
 
-def plot_all_experiments_together_plotly(data, metric_name, plot_individual_runs=False):
+def plot_all_experiments_together_plotly(data, metric_name, plot_individual_runs=False, smoothing_window=1):
     """Plots individual runs and averages for all experiments on the same plot using Plotly."""
     fig = go.Figure()
 
     experiments = data['Experiment'].unique()
-    colors = ['blue', 'red', 'green', 'orange', 'purple', 'brown']  # Extend this list if needed
+    colors = ['blue', 'red', 'green', 'orange', 'purple', 'brown', 'cyan', 'magenta']  # Extend this list if needed
 
     for i, experiment in enumerate(experiments):
         exp_data = data[data['Experiment'] == experiment]
@@ -144,10 +159,15 @@ def plot_all_experiments_together_plotly(data, metric_name, plot_individual_runs
         # Plot individual runs
         if plot_individual_runs:
             for run in runs:
-                run_data = exp_data[exp_data['Run'] == run]
+                run_data = exp_data[exp_data['Run'] == run].copy()
+                # Apply smoothing
+                if smoothing_window > 1:
+                    run_data['SmoothedValue'] = run_data['Value'].rolling(window=smoothing_window, min_periods=1).mean()
+                else:
+                    run_data['SmoothedValue'] = run_data['Value']
                 fig.add_trace(go.Scatter(
                     x=run_data['Step'],
-                    y=run_data['Value'],
+                    y=run_data['SmoothedValue'],
                     mode='lines',
                     name=f'{experiment} - {run}',
                     line=dict(color=colors[i % len(colors)], width=1, dash='dot'),
@@ -159,21 +179,29 @@ def plot_all_experiments_together_plotly(data, metric_name, plot_individual_runs
         grouped = exp_data.groupby('Step')['Value'].agg(['mean', 'std']).reset_index()
         grouped['std'] = grouped['std'].fillna(0)
 
-        # Plot mean line
+        # Apply smoothing to mean and std
+        if smoothing_window > 1:
+            grouped['SmoothedMean'] = grouped['mean'].rolling(window=smoothing_window, min_periods=1).mean()
+            grouped['SmoothedStd'] = grouped['std'].rolling(window=smoothing_window, min_periods=1).mean()
+        else:
+            grouped['SmoothedMean'] = grouped['mean']
+            grouped['SmoothedStd'] = grouped['std']
+
+        # Plot smoothed mean line
         fig.add_trace(go.Scatter(
             x=grouped['Step'],
-            y=grouped['mean'],
+            y=grouped['SmoothedMean'],
             mode='lines',
             name=f'{experiment} Average',
             line=dict(color=colors[i % len(colors)], width=3)
         ))
 
-        # Add shaded area for std dev
+        # Add shaded area for smoothed std dev
         fig.add_trace(go.Scatter(
             x=np.concatenate([grouped['Step'], grouped['Step'][::-1]]),
-            y=np.concatenate([grouped['mean'] - grouped['std'], (grouped['mean'] + grouped['std'])[::-1]]),
+            y=np.concatenate([grouped['SmoothedMean'] - grouped['SmoothedStd'], (grouped['SmoothedMean'] + grouped['SmoothedStd'])[::-1]]),
             fill='toself',
-            fillcolor=f'rgba({(i * 50) % 256}, {(i * 80) % 256}, {(i * 110) % 256}, 0.2)',
+            fillcolor=f'rgba({(i * 60) % 256}, {(i * 80) % 256}, {(i * 100) % 256}, 0.2)',
             line=dict(color='rgba(0,0,0,0)'),
             hoverinfo='skip',
             showlegend=False
@@ -198,19 +226,45 @@ if __name__ == '__main__':
     metric_name = 'Episodic Return'
 
     # Set to True to plot individual runs
-    plot_individual_runs = False  # Set to False if you don't want to plot individual runs
+    plot_individual_runs = False  # Set to True if you want to plot individual runs
+
+    # Smoothing window size
+    smoothing_window = 10  # Adjust the window size as needed
 
     # List of experiments to plot
     experiments = [
         {
-            'pattern': 'ComboTest__150000__0.005__*__1729539342_base_ppo_comboTest_gw3*',
-            'name': 'Base PPO'
+            'pattern': 'ComboGrid_TL-BR__150000__0.005__*__*_levin_loss_options_ppo_not_greedy',
+            'name': 'ComboGrid TL-BR PPO w/ options'
         },
         {
-            'pattern': 'ComboTest__150000__0.005__*__1729545086_ppo_comboTest_gw3_options*',
-            'name': 'PPO with Options'
+            'pattern': 'ComboGrid_TR-BL__150000__0.005__*__*_levin_loss_options_ppo_not_greedy',
+            'name': 'ComboGrid TR-BL PPO w/ options'
         },
-        # Add more experiments as needed
+        {
+            'pattern': 'ComboGrid_BR-TL__150000__0.005__*__*_levin_loss_options_ppo_not_greedy',
+            'name': 'ComboGrid BR-TL PPO w/ options'
+        },
+        {
+            'pattern': 'ComboGrid_BL-TR__150000__0.005__*__*_levin_loss_options_ppo_not_greedy',
+            'name': 'ComboGrid BL-TR PPO w/ options'
+        },
+        {
+            'pattern': 'ComboGrid_TL-BR__150000__0.005__*__*_base_ppo_reward+2',
+            'name': 'ComboGrid TL-BR PPO'
+        },
+        {
+            'pattern': 'ComboGrid_TR-BL__150000__0.005__*__*_base_ppo_reward+2',
+            'name': 'ComboGrid TR-BL PPO'
+        },
+        {
+            'pattern': 'ComboGrid_BR-TL__150000__0.005__*__*_base_ppo_reward+2',
+            'name': 'ComboGrid BR-TL PPO'
+        },
+        {
+            'pattern': 'ComboGrid_BL-TR__150000__0.005__*__*_base_ppo_reward+2',
+            'name': 'ComboGrid BL-TR PPO'
+        },
     ]
 
     all_data = []
@@ -236,11 +290,18 @@ if __name__ == '__main__':
     if all_data:
         # Combine data from all experiments
         combined_data = pd.concat(all_data, ignore_index=True)
-
-        # Plot all experiments together using Matplotlib
-        plot_all_experiments_together(combined_data, metric_name, plot_individual_runs=plot_individual_runs)
-
+        
         # Plot all experiments together using Plotly
-        plot_all_experiments_together_plotly(combined_data, metric_name, plot_individual_runs=plot_individual_runs)
+        plot_all_experiments_together_plotly(
+            combined_data, metric_name,
+            plot_individual_runs=plot_individual_runs,
+            smoothing_window=smoothing_window
+        )
+        # Plot all experiments together using Matplotlib
+        plot_all_experiments_together(
+            combined_data, metric_name,
+            plot_individual_runs=plot_individual_runs,
+            smoothing_window=smoothing_window
+        )
     else:
         print('No data to plot.')
