@@ -265,7 +265,23 @@ if __name__ == '__main__':
             'pattern': 'ComboGrid_BL-TR__150000__0.005__*__*_base_ppo_reward+2',
             'name': 'ComboGrid BL-TR PPO'
         },
-    ]
+        {
+            'pattern': 'ComboGrid_TL-BR__150000__0.005__*__*_best_options_l1_0001_lr_001',
+            'name': 'ComboGrid TL-BR PPO w/ options best'
+        },
+        {
+            'pattern': 'ComboGrid_TR-BL__150000__0.005__*__*_best_options_l1_0001_lr_001',
+            'name': 'ComboGrid TR-BL PPO w/ options best'
+        },
+        {
+            'pattern': 'ComboGrid_BR-TL__150000__0.005__*__*_best_options_l1_0001_lr_001',
+            'name': 'ComboGrid BR-TL PPO w/ options best'
+        },
+        {
+            'pattern': 'ComboGrid_BL-TR__150000__0.005__*__*_best_options_l1_0001_lr_001',
+            'name': 'ComboGrid BL-TR PPO w/ options best'
+        },
+    ] 
 
     all_data = []
 
