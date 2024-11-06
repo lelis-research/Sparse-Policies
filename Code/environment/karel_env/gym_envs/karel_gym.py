@@ -3,12 +3,11 @@ import os
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 sys.path.insert(0, project_root)
 
-import gym
-from gym import spaces
+import gymnasium as gym
 import numpy as np
 from typing import Optional, Callable, List, Any
 import torch
-import random, copy
+import random
 
 from environment.karel_env.karel.environment import KarelEnvironment, basic_actions
 from environment.karel_env.karel_tasks.top_off import TopOff, TopOffSparse
@@ -106,16 +105,19 @@ class KarelGymEnv(gym.Env):
         return task, task_specific
 
     def _set_action_observation_spaces(self, options: Optional[list] = None):
-        self.observation_space = spaces.Box(
+        self.observation_space = gym.spaces.Box(
             low=0,
             high=1,
             shape=self.task.state_shape,
             dtype=np.float32
         )
+
         if options is not None:
             self.setup_options(options)
         else:
-            self.action_space = spaces.Discrete(len(self.task.actions_list))
+            self.action_space = gym.spaces.Discrete(len(self.task.actions_list))
+            self.program_stack = None
+            self.option_index = None
 
     def setup_options(self, options:List[Any]=None):
         """
@@ -148,11 +150,8 @@ class KarelGymEnv(gym.Env):
             if self.current_step >= self.max_steps:
                 terminated = True
 
-            observation = self._get_observation()
-            info = {}
-
-            return observation, reward, terminated, info
-        
+            return self._get_reduced_observation(), reward, terminated, truncated, {}
+                
         # helper function for executing options
         def choose_action(env, model, greedy=False, verbose=False):
             _epsilon = 0.3
@@ -189,6 +188,7 @@ class KarelGymEnv(gym.Env):
         # Execute the option
         # TODO: reward should be revised
         if self.option_index and action >= self.option_index:
+            print("--- Outside process action")
             reward_sum = 0
             option = self.program_stack[action]
             verbose = True
@@ -226,13 +226,10 @@ class KarelGymEnv(gym.Env):
         else:
             return process_action(action)
 
-    def reset(self):
+    def reset(self, seed=0, options=None):
         self.current_step = 0
         self.task, self.task_specific = self._initialize_task()
-
-        # Get the initial observation
-        observation = self._get_observation()
-        return observation
+        return self._get_reduced_observation, {}
 
     def render(self, mode='human'):
         if mode == 'human':
@@ -243,7 +240,7 @@ class KarelGymEnv(gym.Env):
         else:
             super(KarelGymEnv, self).render(mode=mode)
 
-    def _get_observation(self) -> np.ndarray:
+    def get_observation(self) -> np.ndarray:
         return self.task.get_state().astype(np.float32)
         
     def _get_reduced_observation(self) -> np.ndarray:
@@ -329,7 +326,6 @@ class KarelGymEnv(gym.Env):
             self.env_width = self.config['env_width']
 
 
-
 def make_karel_env(env_config: Optional[dict] = None) -> Callable:
     """
     Factory function to create a KarelGymEnv instance with the given configuration.
@@ -365,33 +361,24 @@ if __name__ == "__main__":
 
     env = make_karel_env(env_config=env_config)()
     init_obs = env.reset()
-    print("size of observation:", init_obs.shape)
-    # print("Initial observation:", init_obs)
-    # print("-- Reduced Obs shape:", env.get_reduced_observation().shape)
-    print("-- Reduced Obs:", env.get_reduced_observation())
-
     env.render()
-    env.task.state2image(init_obs, root_dir=project_root + '/environment/').show()
+    env.task.state2image(env.get_observation(), root_dir=project_root + '/environment/').show()
 
     action_names = env.task.actions_list
     action_mapping = {name: idx for idx, name in enumerate(action_names)}
-
-    # action_sequence = ['move', 'turnRight', 'move', 'putMarker', 'pickMarker']
     action_sequence = ['turnLeft', 'move', 'turnRight', 'move', 'turnLeft', 'move', 'turnRight', 'move'] # for stairclimber 6*6
-    
     actions = [action_mapping[name] for name in action_sequence]
 
     done = False
     total_reward = 0
     for action in actions:
         print("-- Action:", action_names[action])
-        obs, reward, done, info = env.step(action)
+        obs, reward, done, truncated,info = env.step(action)
         # print("-- Observation:", obs)
-        # print("-- Reduced Obs:", env.get_reduced_observation())
         print("-- Reward:", reward)
         total_reward += reward
         env.render()
-        # env.task.state2image(obs, root_dir=project_root + '/environment/').show()
+        env.task.state2image(env.get_observation(), root_dir=project_root + '/environment/').show()
         if done:
             print("Episode done")
             break
@@ -401,5 +388,4 @@ if __name__ == "__main__":
     print("--- reseting ...")
     reset_obs = env.reset()
     env.render()
-    # env.task.state2image(reset_obs, root_dir=project_root + '/environment/').show()
     print("init obs == reset obs:", np.all(init_obs == reset_obs))
