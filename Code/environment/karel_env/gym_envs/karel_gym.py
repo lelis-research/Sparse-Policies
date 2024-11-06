@@ -154,9 +154,72 @@ class KarelGymEnv(gym.Env):
         else:
             super(KarelGymEnv, self).render(mode=mode)
 
-    def _get_observation(self):
+    def _get_observation(self) -> np.ndarray:
         return self.task.get_state().astype(np.float32)
         
+    def _get_reduced_observation(self) -> np.ndarray:
+        """
+        Returns a reduced observation containing only the current cell, the cell in front,
+        the left cell, and the right cell.
+        """
+        if hasattr(self.task, 'env'):
+            env = self.task.env
+        else:
+            env = self.task
+
+        # Get the full state
+        full_observation = env.get_state()
+
+        # Get agent's position and orientation
+        row, col, d = env.get_hero_pos()
+
+        # Define direction deltas
+        # Directions: 0 - North, 1 - East, 2 - South, 3 - West
+        direction_deltas = {
+            0: (-1, 0),  # North
+            1: (0, 1),   # East
+            2: (1, 0),   # South
+            3: (0, -1)   # West
+        }
+
+        # Current cell
+        current_cell_features = full_observation[:, row, col]
+
+        # Front cell
+        dr_front, dc_front = direction_deltas[d]
+        front_row, front_col = row + dr_front, col + dc_front
+
+        # Left cell
+        d_left = (d - 1) % 4
+        dr_left, dc_left = direction_deltas[d_left]
+        left_row, left_col = row + dr_left, col + dc_left
+
+        # Right cell
+        d_right = (d + 1) % 4
+        dr_right, dc_right = direction_deltas[d_right]
+        right_row, right_col = row + dr_right, col + dc_right
+
+        def get_cell_features(r, c):
+            if 0 <= r < env.state_shape[1] and 0 <= c < env.state_shape[2]:
+                return full_observation[:, r, c]
+            else:
+                # Return a zero vector if out of bounds
+                return np.zeros(full_observation.shape[0], dtype=full_observation.dtype)
+
+        front_cell_features = get_cell_features(front_row, front_col)
+        left_cell_features = get_cell_features(left_row, left_col)
+        right_cell_features = get_cell_features(right_row, right_col)
+
+        # Combine the features into a single array
+        reduced_observation = np.stack([
+            current_cell_features,
+            front_cell_features,
+            left_cell_features,
+            right_cell_features
+        ], axis=0)  # Shape: (4, num_features)
+
+        return reduced_observation
+
     def _handle_initial_state(self):
         initial_state = self.config.get('initial_state')
         if initial_state is not None:
@@ -190,7 +253,7 @@ def make_karel_env(env_config: Optional[dict] = None) -> Callable:
 
 
 if __name__ == "__main__":
-    # Define the initial state
+
     num_features = 16
     env_height = 6
     env_width = 6
@@ -207,7 +270,7 @@ if __name__ == "__main__":
         'max_steps': 10,
         'sparse_reward': False,
         'crash_penalty': -1.0,
-        'seed': 42,
+        'seed': 3,
         'initial_state': initial_state
     }
 
@@ -215,6 +278,9 @@ if __name__ == "__main__":
     init_obs = env.reset()
     print("size of observation:", init_obs.shape)
     # print("Initial observation:", init_obs)
+    # print("-- Reduced Obs shape:", env.get_reduced_observation().shape)
+    print("-- Reduced Obs:", env.get_reduced_observation())
+
     env.render()
     env.task.state2image(init_obs, root_dir=project_root + '/environment/').show()
 
@@ -222,7 +288,7 @@ if __name__ == "__main__":
     action_mapping = {name: idx for idx, name in enumerate(action_names)}
 
     # action_sequence = ['move', 'turnRight', 'move', 'putMarker', 'pickMarker']
-    action_sequence = ['turnLeft', 'move', 'turnRight', 'move', 'turnLeft', 'move', 'turnRight', 'move', 'pickMarker'] # for stairclimber 6*6
+    action_sequence = ['turnLeft', 'move', 'turnRight', 'move', 'turnLeft', 'move', 'turnRight', 'move'] # for stairclimber 6*6
     
     actions = [action_mapping[name] for name in action_sequence]
 
@@ -232,11 +298,13 @@ if __name__ == "__main__":
         print("-- Action:", action_names[action])
         obs, reward, done, info = env.step(action)
         # print("-- Observation:", obs)
+        # print("-- Reduced Obs:", env.get_reduced_observation())
         print("-- Reward:", reward)
         total_reward += reward
         env.render()
-        env.task.state2image(obs, root_dir=project_root + '/environment/').show()
+        # env.task.state2image(obs, root_dir=project_root + '/environment/').show()
         if done:
+            print("Episode done")
             break
     print("Total Reward:", total_reward)
 
@@ -244,5 +312,5 @@ if __name__ == "__main__":
     print("--- reseting ...")
     reset_obs = env.reset()
     env.render()
-    env.task.state2image(obs, root_dir=project_root + '/environment/').show()
+    # env.task.state2image(reset_obs, root_dir=project_root + '/environment/').show()
     print("init obs == reset obs:", np.all(init_obs == reset_obs))

@@ -247,77 +247,7 @@ class KarelEnvironment(BaseEnvironment):
         else:
             self.state[5 + num_marker, r, c] = False
             self.state[6 + num_marker, r, c] = True
-            self.markers_grid[r, c] += 1
-
-    def state2image_leaps(self, s=None, grid_size=100, root_dir='./environment/'):
-        h = s.shape[0]
-        w = s.shape[1]
-        img = np.ones((h*grid_size, w*grid_size, 1))
-        import pickle
-        from PIL import Image
-        import os.path as osp
-        f = pickle.load(open(osp.join(root_dir, 'karel_env/asset/texture.pkl'), 'rb'))
-        wall_img = f['wall'].astype('uint8')
-        marker_img = f['marker'].astype('uint8')
-        agent_0_img = f['agent_0'].astype('uint8')
-        agent_1_img = f['agent_1'].astype('uint8')
-        agent_2_img = f['agent_2'].astype('uint8')
-        agent_3_img = f['agent_3'].astype('uint8')
-        blank_img = f['blank'].astype('uint8')
-        #blanks
-        for y in range(h):
-            for x in range(w):
-                img[y*grid_size:(y+1)*grid_size, x*grid_size:(x+1)*grid_size] = blank_img
-        # wall
-        y, x = np.where(s[:, :, 4])
-        for i in range(len(x)):
-            img[y[i]*grid_size:(y[i]+1)*grid_size, x[i]*grid_size:(x[i]+1)*grid_size] = wall_img
-        # marker
-        y, x = np.where(np.sum(s[:, :, 6:], axis=-1))
-        for i in range(len(x)):
-            img[y[i]*grid_size:(y[i]+1)*grid_size, x[i]*grid_size:(x[i]+1)*grid_size] = marker_img
-        # karel
-        y, x = np.where(np.sum(s[:, :, :4], axis=-1))
-        if len(y) == 1:
-            y = y[0]
-            x = x[0]
-            idx = np.argmax(s[y, x])
-            marker_present = np.sum(s[y, x, 6:]) > 0
-            if marker_present:
-                extra_marker_img = Image.fromarray(f['marker'].squeeze()).copy()
-                if idx == 0:
-                    extra_marker_img.paste(Image.fromarray(f['agent_0'].squeeze()))
-                    extra_marker_img = f['marker'].squeeze() + f['agent_0'].squeeze()
-                    extra_marker_img = np.minimum(f['marker'].squeeze() , f['agent_0'].squeeze())
-                    img[y*grid_size:(y+1)*grid_size, x*grid_size:(x+1)*grid_size] = np.expand_dims(np.array(extra_marker_img), axis=-1)
-                elif idx == 1:
-                    extra_marker_img.paste(Image.fromarray(f['agent_1'].squeeze()))
-                    extra_marker_img = f['marker'].squeeze() + f['agent_1'].squeeze()
-                    extra_marker_img = np.minimum(f['marker'].squeeze() , f['agent_1'].squeeze())
-                    img[y*grid_size:(y+1)*grid_size, x*grid_size:(x+1)*grid_size] = np.expand_dims(np.array(extra_marker_img), axis=-1)
-                elif idx == 2:
-                    extra_marker_img.paste(Image.fromarray(f['agent_2'].squeeze()))
-                    extra_marker_img = f['marker'].squeeze() + f['agent_2'].squeeze()
-                    extra_marker_img = np.minimum(f['marker'].squeeze() , f['agent_2'].squeeze())
-                    img[y*grid_size:(y+1)*grid_size, x*grid_size:(x+1)*grid_size] = np.expand_dims(np.array(extra_marker_img), axis=-1)
-                elif idx == 3:
-                    extra_marker_img.paste(Image.fromarray(f['agent_3'].squeeze()))
-                    extra_marker_img = f['marker'].squeeze() + f['agent_3'].squeeze()
-                    extra_marker_img = np.minimum(f['marker'].squeeze() , f['agent_3'].squeeze())
-                    img[y*grid_size:(y+1)*grid_size, x*grid_size:(x+1)*grid_size] = np.expand_dims(np.array(extra_marker_img), axis=-1)
-            else:
-                if idx == 0:
-                    img[y*grid_size:(y+1)*grid_size, x*grid_size:(x+1)*grid_size] = f['agent_0']
-                elif idx == 1:
-                    img[y*grid_size:(y+1)*grid_size, x*grid_size:(x+1)*grid_size] = f['agent_1']
-                elif idx == 2:
-                    img[y*grid_size:(y+1)*grid_size, x*grid_size:(x+1)*grid_size] = f['agent_2']
-                elif idx == 3:
-                    img[y*grid_size:(y+1)*grid_size, x*grid_size:(x+1)*grid_size] = f['agent_3']
-        elif len(y) > 1:
-            raise ValueError
-        return img
-        
+            self.markers_grid[r, c] += 1   
 
     def state2image(self, s=None, grid_size=100, root_dir='./environment/'):
         if s is None:
