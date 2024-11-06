@@ -1,5 +1,5 @@
 import optuna
-from tuner import Tuner 
+from code.tuning.tuner import Tuner 
 
 tuner = Tuner(
     script="/Users/amirhosseinrajabpour/Documents/UofA/Thesis/neural-policy-decomposition-main/code/train_ppo.py --env_id ComboGrid_TL-BR",
