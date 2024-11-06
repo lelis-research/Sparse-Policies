@@ -106,9 +106,14 @@ class Args:
     options_game_width: int = 3
     """game width of the games the options are trained on"""
 
-    # KArel env args
+    # Karel env args
+    task_name: str = "stair_climber"  # Task can be 'base', 'harvester', 'stairClimber', etc.
+    env_height: int = 10
     max_steps: int = 100  # Maximum steps per episode
-    karel_task: str = "program"  # Task can be 'program', 'harvester', 'stairClimber', etc.
-    task_definition: str = "program"  # Can be 'program' or other definitions
+    sparse_reward: bool = False
+    crash_penalty: float = -1.0
+    karel_seed: int = 3
+
+    # I don't know about these two
     reward_diff: bool = False
     final_reward_scale: bool = True

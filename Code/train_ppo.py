@@ -10,8 +10,8 @@ from scripts.args import Args
 from utils import *
 from torch.utils.tensorboard import SummaryWriter
 from environment.combogrid_gym import make_env, make_env_combo_four_goals
-from code.karel_env_leaps.karel_gym_leaps import make_karel_env
-from environment.minigrid import make_env_simple_crossing, make_env_four_rooms
+from environment.karel_env.gym_envs.karel_gym import make_karel_env
+# from environment.minigrid import make_env_simple_crossing, make_env_four_rooms
 from train_ppo_agent import train_ppo
 
 
@@ -102,13 +102,19 @@ def main(args):
         buffer += f"\n- {key}: {value}"
     logger.info(buffer)
 
-    if args.env_id == "MiniGrid-SimpleCrossingS9N1-v0":
-        model_file_name = f'binary/simple-crossing-s9n1-v0/PPO-gw{args.game_width}' + \
-                        f'-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}_MODEL.pt'
-        envs = gym.vector.SyncVectorEnv( 
-            [make_env_simple_crossing(view_size=game_width, seed=seed) for _ in range(args.num_envs)])
-
-    elif "ComboGrid" in args.env_id:
+    # if args.env_id == "MiniGrid-SimpleCrossingS9N1-v0":
+    #     model_file_name = f'binary/simple-crossing-s9n1-v0/PPO-gw{args.game_width}' + \
+    #                     f'-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}_MODEL.pt'
+    #     envs = gym.vector.SyncVectorEnv( 
+    #         [make_env_simple_crossing(view_size=game_width, seed=seed) for _ in range(args.num_envs)])
+    
+    # elif args.env_id == "MiniGrid-FourRooms-v0":
+    #     model_file_name = f'binary/four-rooms/PPO-gw{args.game_width}' + \
+    #                     f'-h{args.hidden_size}-sd{seed}_MODEL.pt'
+    #     envs = gym.vector.SyncVectorEnv( 
+    #         [make_env_four_rooms(view_size=game_width, seed=seed) for _ in range(args.num_envs)])
+ 
+    if "ComboGrid" in args.env_id:
         problem = args.env_id[len("ComboGrid_"):]
         if args.options_enabled:
             model_file_name = f'binary/PPO-{problem}-gw{game_width}-h{hidden_size}-l1l{l1_lambda}-lr{args.learning_rate}-totaltimestep{args.total_timesteps}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}_options_MODEL.pt'
@@ -137,22 +143,22 @@ def main(args):
         assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
         logger.info("envs.action_space.n", envs.action_space[0].n)
 
-    elif args.env_id == "MiniGrid-FourRooms-v0":
-        model_file_name = f'binary/four-rooms/PPO-gw{args.game_width}' + \
-                        f'-h{args.hidden_size}-sd{seed}_MODEL.pt'
-        envs = gym.vector.SyncVectorEnv( 
-            [make_env_four_rooms(view_size=game_width, seed=seed) for _ in range(args.num_envs)])
-    
+   
     elif "Karel" in args.env_id:
-        model_file_name = f'binary/PPO-{args.env_id}-gw{args.game_width}-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}_MODEL.pt'
+        model_file_name = f'binary/PPO-{args.env_id}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}_MODEL.pt'
+        problem = args.env_id[len("Karel_"):]
         env_config = {
-            'width': args.game_width,
-            'height': args.game_width,
+            'task_name': problem,
+            'env_height': args.game_height,
+            'env_width': args.game_width,
             'max_steps': args.max_steps,
-            'task': args.karel_task,  # New argument to specify the task
-            'task_definition': args.task_definition,
-            'reward_diff': args.reward_diff,
-            'final_reward_scale': args.final_reward_scale
+            'sparse_reward': args.sparse_reward,
+            'crash_penalty': args.crash_penalty,
+            'seed': args.karel_seed,
+            'initial_state': None,
+
+            # 'reward_diff': args.reward_diff,
+            # 'final_reward_scale': args.final_reward_scale
         }
         envs = gym.vector.SyncVectorEnv(
             [make_karel_env(config=env_config) for _ in range(args.num_envs)]
@@ -165,14 +171,12 @@ def main(args):
 
 
 
-# Normal Run
 if __name__ == "__main__":
     args = tyro.cli(Args)
 
     if "All" in args.env_id:
         for prob in ["TL-BR", "TR-BL", "BR-TL", "BL-TR"]:
             args.env_id = f"ComboGrid_{prob}"
-            print("1 ########## ", args.env_id)
             main(args)
     else:
         main(args)
