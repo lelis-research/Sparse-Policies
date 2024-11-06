@@ -296,3 +296,8 @@ class KarelEnvironment(BaseEnvironment):
         elif len(y_coords) > 1:
             raise ValueError("Multiple Karel positions found")
         return Image.fromarray(img.squeeze(), 'L')
+
+
+class basic_actions:
+    def __init__(self, action):
+        self.action = action

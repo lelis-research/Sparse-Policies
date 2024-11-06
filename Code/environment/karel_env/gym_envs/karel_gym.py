@@ -6,9 +6,11 @@ sys.path.insert(0, project_root)
 import gym
 from gym import spaces
 import numpy as np
-from typing import Optional, Callable
+from typing import Optional, Callable, List, Any
+import torch
+import random, copy
 
-from environment.karel_env.karel.environment import KarelEnvironment
+from environment.karel_env.karel.environment import KarelEnvironment, basic_actions
 from environment.karel_env.karel_tasks.top_off import TopOff, TopOffSparse
 from environment.karel_env.karel_tasks.stair_climber import StairClimber, StairClimberSparse
 
@@ -59,7 +61,7 @@ class KarelGymEnv(gym.Env):
         self.task_name = self.config['task_name']
         self.task, self.task_specific = self._initialize_task()
 
-        self._set_action_observation_spaces()
+        self._set_action_observation_spaces(options)
 
         self.reset()
 
@@ -103,39 +105,126 @@ class KarelGymEnv(gym.Env):
 
         return task, task_specific
 
-    def _set_action_observation_spaces(self):
-        self.action_space = spaces.Discrete(len(self.task.actions_list))
+    def _set_action_observation_spaces(self, options: Optional[list] = None):
         self.observation_space = spaces.Box(
             low=0,
             high=1,
             shape=self.task.state_shape,
             dtype=np.float32
         )
-
-    def step(self, action):
-        assert self.action_space.contains(action), "Invalid action"
-
-        action_name = self.task.actions_list[action]
-        self.task.run_action(action_name)
-        env = self.task
-
-        self.current_step += 1
-
-        # Get the reward and check if the episode is terminated
-        if self.task_name != 'base':
-            terminated, reward = self.task_specific.get_reward(self.task)
+        if options is not None:
+            self.setup_options(options)
         else:
-            terminated = self.current_step >= self.max_steps or env.is_crashed()
-            reward = -1.0 if env.is_crashed() else 0.0  # Example reward
+            self.action_space = spaces.Discrete(len(self.task.actions_list))
+
+    def setup_options(self, options:List[Any]=None):
+        """
+        Enables the corresponding agents to choose from both actions and options
+        """
+        self.option_index = len(self.task.actions_list)
+        self.program_stack = [basic_actions(i) for i in range(self.option_index)] + options # TODO: test this basic actions and replace it with something more general
+        self.action_space = gym.spaces.Discrete(len(self.program_stack))
+        self.option_sizes = [3 for _ in range(len(options))]    # TODO: change this to a more general way
+
+    def step(self, action:int):
+        assert self.action_space.contains(action), "Invalid action"
+        truncated = False
+        def process_action(action:int):
+            nonlocal truncated
+            action_name = self.task.actions_list[action]
+            self.task.run_action(action_name)
+            env = self.task
+
+            self.current_step += 1
+
+            # Get the reward and check if the episode is terminated
+            if self.task_name != 'base':
+                terminated, reward = self.task_specific.get_reward(self.task)
+            else:
+                terminated = self.current_step >= self.max_steps or env.is_crashed()
+                reward = -1.0 if env.is_crashed() else 0.0  # Example reward
 
 
-        if self.current_step >= self.max_steps:
-            terminated = True
+            if self.current_step >= self.max_steps:
+                terminated = True
 
-        observation = self._get_observation()
-        info = {}
+            observation = self._get_observation()
+            info = {}
 
-        return observation, reward, terminated, info
+            return observation, reward, terminated, info
+        
+        # helper function for executing options
+        def choose_action(env, model, greedy=False, verbose=False):
+            _epsilon = 0.3
+            _is_recurrent = False
+            if random.random() < _epsilon:
+                actions = env.get_actions()
+                a = actions[random.randint(0, len(actions) - 1)]
+            else:
+                x_tensor = torch.tensor(env.get_observation(), dtype=torch.float32).view(1, -1)
+                if _is_recurrent:
+                    prob_actions, _h = model(x_tensor, _h)
+                else:
+                    prob_actions = model(x_tensor)
+                    # print("prob_actions: ", prob_actions)
+                if greedy:
+                    print("prob_actions: ", prob_actions)
+                    a = torch.argmax(prob_actions).item()
+                else:
+                    print("prob_actions: ", prob_actions)
+                    a = torch.multinomial(prob_actions, 1).item()
+            return a
+    
+        def check_stopping(env, model_y2, verbose=False):
+            """
+            This method checks the stopping condition using model_y2.
+            Returns True if the agent should stop, otherwise False.
+            """
+            x_tensor = torch.tensor(env.get_observation(), dtype=torch.float32).view(1, -1)
+            stopping_prob = model_y2(x_tensor).item()  # model_y2 outputs a probability
+            if verbose:
+                print(f"-- Stopping probability: {stopping_prob}")
+            return stopping_prob <= 0.5
+
+        # Execute the option
+        # TODO: reward should be revised
+        if self.option_index and action >= self.option_index:
+            reward_sum = 0
+            option = self.program_stack[action]
+            verbose = True
+            if verbose: print("-- Option: ", option.sequence, "-- index: ", action)
+            sequence_ended = False  # Flag to indicate the end of a sequence
+            terminated, truncated = False, False
+
+            if verbose: print('-- Beginning Option')
+
+            current_length = 0
+            max_length = 20
+            while not sequence_ended and not terminated and not truncated:
+
+                # Choose action using model_y1
+                a = choose_action(self.task, option.model_y1, greedy=False, verbose=verbose)
+
+                if verbose: 
+                    # print(self.task, a, "\n")
+                    print("-- opt action: ", a)
+
+                # Check stopping condition using model_y2
+                if check_stopping(self.task, option.model_y2, verbose=verbose):
+                    if verbose: print("-- Stopping the current sequence based on model_y2.")
+                    sequence_ended = True  # End the current sequence, but continue the outer loop
+                    
+                # Apply the chosen action
+                obs, reward, terminated, truncated, _ = process_action(a)
+                reward_sum += reward
+
+                current_length += 1
+                if current_length >= max_length:
+                    sequence_ended = True
+
+            return obs, reward_sum, terminated, truncated, {}
+        else:
+            return process_action(action)
 
     def reset(self):
         self.current_step = 0
