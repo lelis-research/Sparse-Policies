@@ -76,7 +76,6 @@ class KarelGymEnv(gym.Env):
         }
 
         if self.task_name == 'top_off':
-            env_args['seed'] = self.config.get('seed')
             task_class = TopOffSparse if self.config['sparse_reward'] else TopOff
             task_specific = task_class(
                 env_args=env_args,
@@ -86,7 +85,6 @@ class KarelGymEnv(gym.Env):
             task = task_specific.generate_initial_environment(env_args)
 
         elif self.task_name == 'stair_climber':
-            # env_args['seed'] = self.config.get('seed')
             task_class = StairClimberSparse if self.config['sparse_reward'] else StairClimber
             task_specific = task_class(
                 env_args=env_args,
