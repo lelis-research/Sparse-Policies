@@ -25,7 +25,7 @@ class Args:
 
     # Algorithm specific arguments
     env_id: str = "MiniGrid-FourRooms-v0"
-    """the id of the environment; choices fro [MiniGrid-SimpleCrossingS9N1-v0, ComboGrid, MiniGrid-FourRooms-v0]"""
+    """the id of the environment; choices fro [MiniGrid-SimpleCrossingS9N1-v0, ComboGrid, MiniGrid-FourRooms-v0, Karel_]"""
     total_timesteps: int = 1_500_000
     """total timesteps of the experiments"""
     # learning_rate: Union[float, List] = (0.005, 0.001, 0.0005, 0.0001, 0.00005) # ComboGrid
@@ -105,3 +105,10 @@ class Args:
     """the hidden size of the networks of the options"""
     options_game_width: int = 3
     """game width of the games the options are trained on"""
+
+    # KArel env args
+    max_steps: int = 100  # Maximum steps per episode
+    karel_task: str = "program"  # Task can be 'program', 'harvester', 'stairClimber', etc.
+    task_definition: str = "program"  # Can be 'program' or other definitions
+    reward_diff: bool = False
+    final_reward_scale: bool = True

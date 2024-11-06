@@ -29,7 +29,7 @@ class KarelGymEnv(gym.Env):
             'env_width': 8,
             'max_steps': 100,
             'sparse_reward': False,
-            # 'seed': None,
+            'seed': None,
             'crash_penalty': -1.0,
             'initial_state': None
         }
@@ -42,7 +42,7 @@ class KarelGymEnv(gym.Env):
         self._handle_initial_state()
 
         # Set random seed
-        # self.seed(self.config['seed'])
+        self.seed(self.config['seed'])
 
         if self.config['task_name'] not in self.SUPPORTED_TASKS:
             raise ValueError(f"Task {self.config['task_name']} not supported. "
@@ -57,7 +57,7 @@ class KarelGymEnv(gym.Env):
 
         # Initialize the task
         self.task_name = self.config['task_name']
-        self.task = self._initialize_task()
+        self.task, self.task_specific = self._initialize_task()
 
         self._set_action_observation_spaces()
 
@@ -73,32 +73,37 @@ class KarelGymEnv(gym.Env):
             'crashable': True,
             'leaps_behaviour': False,
             'max_calls': self.max_steps,
-            # 'seed': self.config.get('seed')
         }
 
-
         if self.task_name == 'top_off':
+            env_args['seed'] = self.config.get('seed')
             task_class = TopOffSparse if self.config['sparse_reward'] else TopOff
-            task = task_class(
+            task_specific = task_class(
                 env_args=env_args,
+                seed=self.config.get('seed'),
                 # crash_penalty=self.crash_penalty
             )
-            task = task.generate_initial_environment(env_args)
+            task = task_specific.generate_initial_environment(env_args)
+
         elif self.task_name == 'stair_climber':
+            # env_args['seed'] = self.config.get('seed')
             task_class = StairClimberSparse if self.config['sparse_reward'] else StairClimber
-            task = task_class(
+            task_specific = task_class(
                 env_args=env_args,
+                seed=self.config.get('seed'),
                 # crash_penalty=self.crash_penalty
             )
-            task = task.generate_initial_environment(env_args)
+            task = task_specific.generate_initial_environment(env_args)
+
         elif self.task_name == 'base':
             # we need to pass the initial state to the base task if we want a custom initial state
             env_args['initial_state'] = self.config.get('initial_state')
             task = KarelEnvironment(**env_args)
+            task_specific = task
         else:
             raise ValueError(f"Unknown task: {self.task_name}")
 
-        return task
+        return task, task_specific
 
     def _set_action_observation_spaces(self):
         self.action_space = spaces.Discrete(len(self.task.actions_list))
@@ -119,14 +124,11 @@ class KarelGymEnv(gym.Env):
         self.current_step += 1
 
         # Get the reward and check if the episode is terminated
-        if hasattr(self.task, 'get_reward'):
-            terminated, reward = self.task.get_reward(env)
-            print("---- get_reward -----", reward)
+        if self.task_name != 'base':
+            terminated, reward = self.task_specific.get_reward(self.task)
         else:
-            # For 'base' task, define a default reward function
             terminated = self.current_step >= self.max_steps or env.is_crashed()
             reward = -1.0 if env.is_crashed() else 0.0  # Example reward
-            print("---- not here -----", reward)
 
 
         if self.current_step >= self.max_steps:
@@ -139,13 +141,7 @@ class KarelGymEnv(gym.Env):
 
     def reset(self):
         self.current_step = 0
-
-        # Reset the task
-        if hasattr(self.task, 'reset_environment'):
-            self.task.reset_environment()
-        else:
-            # For 'base' task, re-initialize the task
-            self.task = self._initialize_task()
+        self.task, self.task_specific = self._initialize_task()
 
         # Get the initial observation
         observation = self._get_observation()
@@ -211,16 +207,18 @@ if __name__ == "__main__":
         'env_height': env_height,
         'env_width': env_width,
         'max_steps': 10,
+        'sparse_reward': False,
         'crash_penalty': -1.0,
+        'seed': 42,
         'initial_state': initial_state
     }
 
     env = make_karel_env(env_config=env_config)()
-    obs = env.reset()
-    print("size of observation:", obs.shape)
-    # print("Initial observation:", obs)
+    init_obs = env.reset()
+    print("size of observation:", init_obs.shape)
+    # print("Initial observation:", init_obs)
     env.render()
-    env.task.state2image(obs, root_dir=project_root + '/environment/').show()
+    env.task.state2image(init_obs, root_dir=project_root + '/environment/').show()
 
     action_names = env.task.actions_list
     action_mapping = {name: idx for idx, name in enumerate(action_names)}
@@ -245,6 +243,8 @@ if __name__ == "__main__":
     print("Total Reward:", total_reward)
 
 
-
-
-
+    print("--- reseting ...")
+    reset_obs = env.reset()
+    env.render()
+    env.task.state2image(obs, root_dir=project_root + '/environment/').show()
+    print("init obs == reset obs:", np.all(init_obs == reset_obs))

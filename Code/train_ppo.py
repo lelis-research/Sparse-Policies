@@ -10,6 +10,7 @@ from scripts.args import Args
 from utils import *
 from torch.utils.tensorboard import SummaryWriter
 from environment.combogrid_gym import make_env, make_env_combo_four_goals
+from code.karel_env_leaps.karel_gym_leaps import make_karel_env
 from environment.minigrid import make_env_simple_crossing, make_env_four_rooms
 from train_ppo_agent import train_ppo
 
@@ -141,6 +142,21 @@ def main(args):
                         f'-h{args.hidden_size}-sd{seed}_MODEL.pt'
         envs = gym.vector.SyncVectorEnv( 
             [make_env_four_rooms(view_size=game_width, seed=seed) for _ in range(args.num_envs)])
+    
+    elif "Karel" in args.env_id:
+        model_file_name = f'binary/PPO-{args.env_id}-gw{args.game_width}-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}_MODEL.pt'
+        env_config = {
+            'width': args.game_width,
+            'height': args.game_width,
+            'max_steps': args.max_steps,
+            'task': args.karel_task,  # New argument to specify the task
+            'task_definition': args.task_definition,
+            'reward_diff': args.reward_diff,
+            'final_reward_scale': args.final_reward_scale
+        }
+        envs = gym.vector.SyncVectorEnv(
+            [make_karel_env(config=env_config) for _ in range(args.num_envs)]
+        )
     else:
         raise NotImplementedError
     
@@ -148,17 +164,6 @@ def main(args):
     average_return = train_ppo(envs, args, model_file_name, device, writer, logger=logger, seed=seed)
 
 
-# if __name__ == "__main__":
-#     args = tyro.cli(Args)
-#     lrs = args.learning_rate
-#     clip_coef = args.clip_coef
-#     ent_coef = args.ent_coef
-#     for i in range(len(args.seeds)):
-#         args.seed = args.seeds[i]
-#         args.ent_coef = ent_coef[i]
-#         args.clip_coef = clip_coef[i]
-#         args.learning_rate = lrs[i]
-#         main(args)
 
 # Normal Run
 if __name__ == "__main__":
