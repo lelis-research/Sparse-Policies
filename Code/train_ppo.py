@@ -161,7 +161,7 @@ def main(args):
             # 'final_reward_scale': args.final_reward_scale
         }
         envs = gym.vector.SyncVectorEnv(
-            [make_karel_env(config=env_config) for _ in range(args.num_envs)]
+            [make_karel_env(env_config=env_config) for _ in range(args.num_envs)]
         )
     else:
         raise NotImplementedError

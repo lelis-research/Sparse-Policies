@@ -108,7 +108,7 @@ class Args:
 
     # Karel env args
     task_name: str = "stair_climber"  # Task can be 'base', 'harvester', 'stairClimber', etc.
-    env_height: int = 10
+    game_height: int = 10
     max_steps: int = 100  # Maximum steps per episode
     sparse_reward: bool = False
     crash_penalty: float = -1.0

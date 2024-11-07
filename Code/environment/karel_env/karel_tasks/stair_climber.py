@@ -71,9 +71,11 @@ class StairClimber(BaseTask):
         
         if [karel_pos[0], karel_pos[1]] not in self.valid_positions:
             reward = self.crash_penalty
+            print("** not valid position")
             terminated = True
             
         if karel_pos[0] == self.marker_position[0] and karel_pos[1] == self.marker_position[1]:
+            print("** marker position")
             terminated = True
         
         self.previous_distance = current_distance
