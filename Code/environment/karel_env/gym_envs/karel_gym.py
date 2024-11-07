@@ -105,10 +105,12 @@ class KarelGymEnv(gym.Env):
         return task, task_specific
 
     def _set_action_observation_spaces(self, options: Optional[list] = None):
+        num_features = self.task.state_shape[0]
+        observation_shape = (4 * num_features,)  # Since shape should be (4, num_features)
         self.observation_space = gym.spaces.Box(
             low=0,
             high=1,
-            shape=self.task.state_shape,
+            shape=observation_shape,
             dtype=np.float32
         )
 
@@ -129,26 +131,29 @@ class KarelGymEnv(gym.Env):
         self.option_sizes = [3 for _ in range(len(options))]    # TODO: change this to a more general way
 
     def step(self, action:int):
+        print("---- action index:", action)
+        self.render()
         assert self.action_space.contains(action), "Invalid action"
         truncated = False
         def process_action(action:int):
             nonlocal truncated
             action_name = self.task.actions_list[action]
             self.task.run_action(action_name)
-            env = self.task
 
             self.current_step += 1
 
             # Get the reward and check if the episode is terminated
             if self.task_name != 'base':
                 terminated, reward = self.task_specific.get_reward(self.task)
-            else:
-                terminated = self.current_step >= self.max_steps or env.is_crashed()
-                reward = -1.0 if env.is_crashed() else 0.0  # Example reward
-
+                if self.task.is_crashed():
+                    print("--- crashed ")
+                    reward = self.crash_penalty
+                    terminated = True
 
             if self.current_step >= self.max_steps:
                 terminated = True
+
+            if terminated: print("-- Episode Done!!")
 
             return self._get_reduced_observation(), reward, terminated, truncated, {}
                 
@@ -229,11 +234,10 @@ class KarelGymEnv(gym.Env):
     def reset(self, seed=0, options=None):
         self.current_step = 0
         self.task, self.task_specific = self._initialize_task()
-        return self._get_reduced_observation, {}
+        return self._get_reduced_observation(), {}
 
     def render(self, mode='human'):
         if mode == 'human':
-            print("rendering ... \n")
             print(self.task.to_string(), "\n")
         elif mode == 'ansi':
             return self.task.to_string()
@@ -304,7 +308,7 @@ class KarelGymEnv(gym.Env):
             right_cell_features
         ], axis=0)  # Shape: (4, num_features)
 
-        return reduced_observation
+        return reduced_observation.flatten()
 
     def _handle_initial_state(self):
         initial_state = self.config.get('initial_state')
@@ -384,8 +388,6 @@ if __name__ == "__main__":
             break
     print("Total Reward:", total_reward)
 
-
-    print("--- reseting ...")
     reset_obs = env.reset()
     env.render()
-    print("init obs == reset obs:", np.all(init_obs == reset_obs))
+    # print("init obs == reset obs:", np.all(init_obs == reset_obs))
