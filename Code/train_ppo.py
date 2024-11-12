@@ -145,7 +145,7 @@ def main(args):
 
    
     elif "Karel" in args.env_id:
-        model_file_name = f'binary/PPO-{args.env_id}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}_MODEL.pt'
+        model_file_name = f'binary/PPO-{args.env_id}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}_{args.ppo_type}_MODEL.pt'
         problem = args.env_id[len("Karel_"):]
         env_config = {
             'task_name': problem,

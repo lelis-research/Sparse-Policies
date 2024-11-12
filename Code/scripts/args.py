@@ -107,13 +107,26 @@ class Args:
     """game width of the games the options are trained on"""
 
     # Karel env args
-    task_name: str = "stair_climber"  # Task can be 'base', 'harvester', 'stairClimber', etc.
+    task_name: str = "stair_climber" 
+    """Task can be 'base', 'harvester', 'stairClimber', etc."""
     game_height: int = 10
-    max_steps: int = 100  # Maximum steps per episode
+    """Height of the gridworld"""
+    max_steps: int = 100 
+    """Maximum steps per episode"""
     sparse_reward: bool = False
+    """If toggled, the reward is 0 for all steps except the last step"""
     crash_penalty: float = -1.0
+    """Penalty for crashing """
     karel_seed: int = 3
+    """Seed for the Karel environment, so we can recreate the exact same environment, othereise initial states will be different"""
 
     # I don't know about these two
     reward_diff: bool = False
     final_reward_scale: bool = True
+
+    ppo_type: str = "original"
+    """the type of PPO actor and critic netowrks. Choices: [original, lstm, gru]"""
+    value_learning_rate: float = 5e-4
+    """the learning rate of the optimizer for value network"""
+    weight_decay: float = 0
+    "weight decay for l2 regularization"
