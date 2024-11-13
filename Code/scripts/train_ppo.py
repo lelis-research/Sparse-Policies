@@ -43,6 +43,13 @@ def main(args):
             monitor_gym=True,
             save_code=True,
         )
+
+        # Update args with values from wandb.config
+        args.learning_rate = wandb.config.learning_rate
+        args.clip_coef = wandb.config.clip_coef
+        args.ent_coef = wandb.config.ent_coef
+        args.value_learning_rate = wandb.config.value_learning_rate
+
     writer = SummaryWriter(f"outputs/tensorboard/runs/{run_name}")
     writer.add_text(
         "hyperparameters",
@@ -184,11 +191,4 @@ if __name__ == "__main__":
             main(args)
     else:
         main(args)
-
-
-# if __name__ == "__main__":
-#     args = tyro.cli(Args)
-#     for s in args.seeds:
-#         args.seed = s
-#         main(args)
     
