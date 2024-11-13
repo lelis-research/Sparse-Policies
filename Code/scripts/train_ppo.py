@@ -12,9 +12,10 @@ import pickle
 import gymnasium as gym
 from args import Args
 from utils import *
+from typing import Callable
 from torch.utils.tensorboard import SummaryWriter
 from environment.combogrid_gym import make_env, make_env_combo_four_goals
-from environment.karel_env.gym_envs.karel_gym import make_karel_env
+from environment.karel_env.gym_envs.karel_gym import make_karel_env, make_env_with_seed
 # from environment.minigrid import make_env_simple_crossing, make_env_four_rooms
 from train_ppo_agent import train_ppo
 
@@ -158,22 +159,46 @@ def main(args):
     elif "Karel" in args.env_id:
         model_file_name = f'binary/PPO-{args.env_id}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}_{args.ppo_type}_MODEL.pt'
         problem = args.env_id[len("Karel_"):]
-        env_config = {
-            'task_name': problem,
-            'env_height': args.game_height,
-            'env_width': args.game_width,
-            'max_steps': args.max_steps,
-            'sparse_reward': args.sparse_reward,
-            'crash_penalty': args.crash_penalty,
-            'seed': args.karel_seed,
-            'initial_state': None,
+
+        args.num_envs = 10
+        seeds = [i for i in range(args.num_envs)]
+
+        def make_env_with_seed(seed: int) -> Callable:
+            def _init():
+                env_config = {
+                    'task_name': problem,
+                    'env_height': args.game_height,
+                    'env_width': args.game_width,
+                    'max_steps': args.max_steps,
+                    'sparse_reward': args.sparse_reward,
+                    'crash_penalty': args.crash_penalty,
+                    'seed': seed,  # Each env gets its own seed
+                    'initial_state': None,
+                }
+                env = make_karel_env(env_config=env_config)
+                return env
+            return _init
+        
+        env_fns = [make_env_with_seed(seed) for seed in seeds]
+        envs = gym.vector.SyncVectorEnv(env_fns)
+
+        # env_config = {
+        #     'task_name': problem,
+        #     'env_height': args.game_height,
+        #     'env_width': args.game_width,
+        #     'max_steps': args.max_steps,
+        #     'sparse_reward': args.sparse_reward,
+        #     'crash_penalty': args.crash_penalty,
+        #     'seed': args.karel_seed,
+        #     'initial_state': None,
 
             # 'reward_diff': args.reward_diff,
             # 'final_reward_scale': args.final_reward_scale
-        }
-        envs = gym.vector.SyncVectorEnv(
-            [make_karel_env(env_config=env_config) for _ in range(args.num_envs)]
-        )
+        # }
+        # envs = gym.vector.SyncVectorEnv(
+        #     [make_karel_env(env_config=env_config) for _ in range(args.num_envs)]
+        # )
+
     else:
         raise NotImplementedError
     
