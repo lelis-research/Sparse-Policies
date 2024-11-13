@@ -132,7 +132,7 @@ class KarelGymEnv(gym.Env):
 
     def step(self, action:int):
         print("---- action index:", action)
-        self.render()
+        # self.render()
         assert self.action_space.contains(action), "Invalid action"
         truncated = False
         def process_action(action:int):

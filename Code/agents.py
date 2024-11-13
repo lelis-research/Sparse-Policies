@@ -7,6 +7,7 @@ from models.model import CustomRNN, CustomRelu
 from environment.combogrid_gym import ComboGym
 from gymnasium.vector import SyncVectorEnv
 from environment.minigrid import MiniGridWrap
+from environment.karel_env.gym_envs.karel_gym import KarelGymEnv
 from torch.distributions.categorical import Categorical
 from typing import Union
 
@@ -218,10 +219,14 @@ class PPOAgent(nn.Module):
         elif isinstance(envs, SyncVectorEnv):
             observation_space_size = envs.observation_space.shape[1]
             action_space_size = envs.action_space[0].n.item()
+        elif isinstance(envs, KarelGymEnv):
+            observation_space_size = envs.observation_space.shape[0]
+            print("Wrong size: ", envs.get_observation().shape)
+            action_space_size = envs.action_space.n
         else:
             raise NotImplementedError
 
-        print(observation_space_size, action_space_size)
+        print("obs size: ", observation_space_size, ", act size: ", action_space_size)
         self.critic = nn.Sequential(
             layer_init(nn.Linear(observation_space_size, 64)),
             nn.Tanh(),
