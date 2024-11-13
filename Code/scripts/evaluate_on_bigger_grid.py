@@ -140,5 +140,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print(vars(args))
 
-    model_file_name = f'binary/PPO-Karel_{args.task_name}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{args.model_seed}_{args.ppo_type}_MODEL.pt'
+    model_file_name = f'binary/PPO-Karel_{args.task_name}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{args.model_seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}_{args.ppo_type}_MODEL.pt'
     evaluate_model_on_large_grid(model_file_name, args)
