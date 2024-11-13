@@ -1,4 +1,8 @@
 import os
+import sys
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, project_root)
+
 import random
 import time
 import torch
@@ -6,7 +10,7 @@ import tyro
 import numpy as np
 import pickle
 import gymnasium as gym
-from scripts.args import Args
+from args import Args
 from utils import *
 from torch.utils.tensorboard import SummaryWriter
 from environment.combogrid_gym import make_env, make_env_combo_four_goals
