@@ -68,12 +68,41 @@ sweep_config3 = {
         },
         'value_learning_rate': {  
             'values': [5e-3, 5e-2, 5e-1]  
+        },
+    }
+}
+
+sweep_config4 = {
+    'method': 'grid', 
+    'metric': {
+        'name': 'charts/episodic_return',
+        'goal': 'maximize'
+    },
+    'parameters': {
+        'learning_rate': {
+            'values': [1e-5, 1e-4, 1e-3]  
+        },
+        'clip_coef': {
+            'values': [0.05, 0.1, 0.2] 
+        },
+        'ent_coef': {
+            'values': [0.005, 0.01, 0.02]  
+        },
+        'value_learning_rate': {  
+            'values': [5e-3, 5e-2, 5e-1]  
+        },
+        'hidden_size': {
+            'values': [64]
+        },
+        'karel_seed': {
+            'values': [0]
         }
     }
 }
 
 
-sweep_id = wandb.sweep(sweep_config3, project='sweep ppo gru')
+
+sweep_id = wandb.sweep(sweep_config4, project='sweep ppo gru - feature extractor - h64 - sd0')
 
 def sweep_main():
     args = tyro.cli(Args)
