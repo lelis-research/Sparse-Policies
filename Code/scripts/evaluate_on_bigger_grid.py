@@ -21,7 +21,7 @@ def evaluate_model_on_large_grid(model_path, args):
         'max_steps': args.max_steps,
         'sparse_reward': args.sparse_reward,
         'crash_penalty': args.crash_penalty,
-        'seed': 42,  # Not equal to "karel_seed"
+        'seed': args.karel_seed,
         'initial_state': None
     }
 
@@ -44,7 +44,7 @@ def evaluate_model_on_large_grid(model_path, args):
     if args.ppo_type == "original":
         agent = PPOAgent(envs, hidden_size=args.hidden_size).to(device)
     elif args.ppo_type == "gru":
-        agent = GruAgent(envs, h_size=args.hidden_size).to(device)
+        agent = GruAgent(envs, h_size=args.hidden_size, feature_extractor=args.feature_extractor).to(device)
 
     agent.load_state_dict(torch.load(model_path, map_location=device))
     print(f"Model loaded from {model_path}")
@@ -101,8 +101,8 @@ def evaluate_model_on_large_grid(model_path, args):
                 # Update the done tensor for the next step
                 done_tensor = torch.tensor(terminated | truncated, dtype=torch.bool).to(device)
 
-                # envs.envs[0].render()
-                envs.envs[0].task.state2image(envs.envs[0].get_observation(), root_dir=project_root+'/environment/').show()
+                envs.envs[0].render()
+                # envs.envs[0].task.state2image(envs.envs[0].get_observation(), root_dir=project_root+'/environment/').show()
 
         print(f"Episode {episode + 1}: Total Reward = {episode_reward}")
         total_rewards.append(episode_reward)
@@ -132,6 +132,9 @@ if __name__ == "__main__":
     parser.add_argument('--learning_rate', default=0.005, type=float)
     parser.add_argument('--clip_coef', default=0.01, type=float)
     parser.add_argument('--ent_coef', default=0.01, type=float)
+    parser.add_argument('--feature_extractor', action='store_true')
+    parser.add_argument('--value_learning_rate', default=0.005, type=float)
+
 
     parser.add_argument('--model_seed', default=0, type=int)
     parser.add_argument('--log_path', default="logs/", type=str)
@@ -140,5 +143,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print(vars(args))
 
-    model_file_name = f'binary/PPO-Karel_{args.task_name}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{args.model_seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}_{args.ppo_type}_MODEL.pt'
+    model_file_name = f'binary/PPO-Karel_{args.task_name}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{args.model_seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}_vlr{args.value_learning_rate}_{args.ppo_type}_MODEL.pt'
     evaluate_model_on_large_grid(model_file_name, args)
