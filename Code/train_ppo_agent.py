@@ -33,11 +33,10 @@ def train_ppo(envs: gym.vector.SyncVectorEnv, args, model_file_name, device, wri
     elif args.ppo_type == "gru":
         from agents import GruAgent
         # TODO: feature exctractor?
-        agent = GruAgent(envs, h_size=hidden_size).to(device)
+        agent = GruAgent(envs, h_size=hidden_size, feature_extractor=True).to(device)
     else:
         raise NotImplementedError
 
-    # TODO: check for change
 
     if args.ppo_type == "original":
         optimizer = optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-5)
