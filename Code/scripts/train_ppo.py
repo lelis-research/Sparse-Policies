@@ -29,7 +29,7 @@ def main(args):
     run_time = int(time.time())
     
     # run_name = f"{args.env_id}__{args.total_timesteps}__{args.learning_rate}__{args.seed}__{run_time}_{args.exp_name}"
-    run_name = f"{args.env_id}__wandb__{args.total_timesteps}__{args.seed}__{run_time}_{args.exp_name}"
+    run_name = f"{args.env_id}__{args.total_timesteps}__{args.seed}__{run_time}_{args.exp_name}"
 
 
     logger = get_logger('ppo_trainer_logger_' + str(args.seed) + "_" + run_name, args.log_level, args.log_path)
@@ -161,7 +161,7 @@ def main(args):
 
    
     elif "Karel" in args.env_id:
-        model_file_name = f'binary/PPO-{args.env_id}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}_vlr{args.value_learning_rate}_{args.ppo_type}_MODEL.pt'
+        model_file_name = f'binary/PPO-{args.env_id}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}_vlr{args.value_learning_rate}_{args.ppo_type}_MODEL_{run_time}.pt'
         problem = args.env_id[len("Karel_"):]
 
         ## Method 4

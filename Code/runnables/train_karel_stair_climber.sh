@@ -6,15 +6,12 @@
 #SBATCH --account=def-lelis
 #SBATCH --mail-user=arajabpo@ualberta.ca
 #SBATCH --mail-type=ALL
-#SBATCH --array=0-5
+#SBATCH --array=0-4
 
 
-source /home/iprnb/venvs/neural-policy-decomposition/bin/activate
-source /home/amirrj/projects/def-lelis/amirrj/Sparse-Policies/Sparse-Policies/venv/bin/activate
-module load python/3.11
+source ~/Sparse-Policies/venv/bin/activate
 
-python3.11  /home/iprnb/projects/def-lelis/iprnb/neural-policy-decomposition/agent_recurrent.py --rnn_type "gru" --hidden_size 64 --l1_lambda 0.0001 --problem "BL-TR"
-python3.11  /home/amirrj/projects/def-lelis/amirrj/Sparse-Policies/Sparse-Policies/code/scripts/train_ppo.py \
+python  ~/Sparse-Policies/Code/scripts/train_ppo.py \
 --env_id Karel_stair_climber \
 --seed $SLURM_ARRAY_TASK_ID \
 --game_width 12 \
