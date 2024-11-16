@@ -17,3 +17,4 @@ __pycache__/
 *.pyc
 *.out
 *.log
+job_logs/
