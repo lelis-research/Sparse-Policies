@@ -7,11 +7,13 @@ Thoughts.txt
 /old_binary/
 /wandb/
 /ppo_logs/
-/outputs/
-/binary/
+outputs/
+binary/
 /.vscode/
 /old_options_uniq_seq/
 /old_options_uniq_seq_prob/
 /venv/
 __pycache__/
 *.pyc
+*.out
+*.log
