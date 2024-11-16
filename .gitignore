@@ -13,3 +13,5 @@ Thoughts.txt
 /old_options_uniq_seq/
 /old_options_uniq_seq_prob/
 /venv/
+__pycache__/
+*.pyc
