@@ -143,7 +143,8 @@ def plot_all_experiments_together(data, metric_name, plot_individual_runs=False,
     plt.title(f'{metric_name} Across Experiments')
     plt.legend()
     plt.tight_layout()
-    plt.show()
+    # plt.show()
+    plt.savefig('output_plot.png')
 
 def plot_all_experiments_together_plotly(data, metric_name, plot_individual_runs=False, smoothing_window=1):
     """Plots individual runs and averages for all experiments on the same plot using Plotly."""
@@ -215,13 +216,12 @@ def plot_all_experiments_together_plotly(data, metric_name, plot_individual_runs
         legend_title='Experiments and Seeds',
     )
 
-    fig.show()
+    # fig.show()
+    fig.write_html('output_plot.html')
 
 if __name__ == '__main__':
-    # Directory where your TensorBoard logs are stored
-    log_dir = 'outputs/tensorboard/runs'  # Update this path as needed
+    log_dir = 'Code/runnables/outputs/tensorboard/runs'
 
-    # The metric you want to plot
     tag = 'charts/episodic_return'
     metric_name = 'Episodic Return'
 
@@ -233,54 +233,58 @@ if __name__ == '__main__':
 
     # List of experiments to plot
     experiments = [
+        # {
+        #     'pattern': 'ComboGrid_TL-BR__150000__0.005__*__*_levin_loss_options_ppo_not_greedy',
+        #     'name': 'ComboGrid TL-BR PPO w/ options'
+        # },
+        # {
+        #     'pattern': 'ComboGrid_TR-BL__150000__0.005__*__*_levin_loss_options_ppo_not_greedy',
+        #     'name': 'ComboGrid TR-BL PPO w/ options'
+        # },
+        # {
+        #     'pattern': 'ComboGrid_BR-TL__150000__0.005__*__*_levin_loss_options_ppo_not_greedy',
+        #     'name': 'ComboGrid BR-TL PPO w/ options'
+        # },
+        # {
+        #     'pattern': 'ComboGrid_BL-TR__150000__0.005__*__*_levin_loss_options_ppo_not_greedy',
+        #     'name': 'ComboGrid BL-TR PPO w/ options'
+        # },
+        # {
+        #     'pattern': 'ComboGrid_TL-BR__150000__0.005__*__*_base_ppo_reward+2',
+        #     'name': 'ComboGrid TL-BR PPO'
+        # },
+        # {
+        #     'pattern': 'ComboGrid_TR-BL__150000__0.005__*__*_base_ppo_reward+2',
+        #     'name': 'ComboGrid TR-BL PPO'
+        # },
+        # {
+        #     'pattern': 'ComboGrid_BR-TL__150000__0.005__*__*_base_ppo_reward+2',
+        #     'name': 'ComboGrid BR-TL PPO'
+        # },
+        # {
+        #     'pattern': 'ComboGrid_BL-TR__150000__0.005__*__*_base_ppo_reward+2',
+        #     'name': 'ComboGrid BL-TR PPO'
+        # },
+        # {
+        #     'pattern': 'ComboGrid_TL-BR__150000__0.005__*__*_best_options_l1_0001_lr_001',
+        #     'name': 'ComboGrid TL-BR PPO w/ options best'
+        # },
+        # {
+        #     'pattern': 'ComboGrid_TR-BL__150000__0.005__*__*_best_options_l1_0001_lr_001',
+        #     'name': 'ComboGrid TR-BL PPO w/ options best'
+        # },
+        # {
+        #     'pattern': 'ComboGrid_BR-TL__150000__0.005__*__*_best_options_l1_0001_lr_001',
+        #     'name': 'ComboGrid BR-TL PPO w/ options best'
+        # },
+        # {
+        #     'pattern': 'ComboGrid_BL-TR__150000__0.005__*__*_best_options_l1_0001_lr_001',
+        #     'name': 'ComboGrid BL-TR PPO w/ options best'
+        # },
         {
-            'pattern': 'ComboGrid_TL-BR__150000__0.005__*__*_levin_loss_options_ppo_not_greedy',
-            'name': 'ComboGrid TL-BR PPO w/ options'
-        },
-        {
-            'pattern': 'ComboGrid_TR-BL__150000__0.005__*__*_levin_loss_options_ppo_not_greedy',
-            'name': 'ComboGrid TR-BL PPO w/ options'
-        },
-        {
-            'pattern': 'ComboGrid_BR-TL__150000__0.005__*__*_levin_loss_options_ppo_not_greedy',
-            'name': 'ComboGrid BR-TL PPO w/ options'
-        },
-        {
-            'pattern': 'ComboGrid_BL-TR__150000__0.005__*__*_levin_loss_options_ppo_not_greedy',
-            'name': 'ComboGrid BL-TR PPO w/ options'
-        },
-        {
-            'pattern': 'ComboGrid_TL-BR__150000__0.005__*__*_base_ppo_reward+2',
-            'name': 'ComboGrid TL-BR PPO'
-        },
-        {
-            'pattern': 'ComboGrid_TR-BL__150000__0.005__*__*_base_ppo_reward+2',
-            'name': 'ComboGrid TR-BL PPO'
-        },
-        {
-            'pattern': 'ComboGrid_BR-TL__150000__0.005__*__*_base_ppo_reward+2',
-            'name': 'ComboGrid BR-TL PPO'
-        },
-        {
-            'pattern': 'ComboGrid_BL-TR__150000__0.005__*__*_base_ppo_reward+2',
-            'name': 'ComboGrid BL-TR PPO'
-        },
-        {
-            'pattern': 'ComboGrid_TL-BR__150000__0.005__*__*_best_options_l1_0001_lr_001',
-            'name': 'ComboGrid TL-BR PPO w/ options best'
-        },
-        {
-            'pattern': 'ComboGrid_TR-BL__150000__0.005__*__*_best_options_l1_0001_lr_001',
-            'name': 'ComboGrid TR-BL PPO w/ options best'
-        },
-        {
-            'pattern': 'ComboGrid_BR-TL__150000__0.005__*__*_best_options_l1_0001_lr_001',
-            'name': 'ComboGrid BR-TL PPO w/ options best'
-        },
-        {
-            'pattern': 'ComboGrid_BL-TR__150000__0.005__*__*_best_options_l1_0001_lr_001',
-            'name': 'ComboGrid BL-TR PPO w/ options best'
-        },
+            'pattern': 'Karel_stair_climber__10000000__*__*_stairClimber_PPO_GRU_sparse_h64_lr0.001_clip0.2_ent0.05_vlr0.05_ks0',
+            'name': 'Karel_stair_climber__10m__PPO_GRU_sparse_h64_lr0.001_clip0.2_ent0.05_vlr0.05_ks0 over 10 runs'
+        }
     ] 
 
     all_data = []

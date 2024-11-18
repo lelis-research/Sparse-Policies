@@ -12,3 +12,5 @@ typing_extensions==4.12.2
 tyro==0.8.5
 wandb==0.17.5
 minigrid
+seaborn
+plotly
