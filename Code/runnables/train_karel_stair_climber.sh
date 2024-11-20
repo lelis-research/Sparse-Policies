@@ -31,4 +31,4 @@ python  ~/Sparse-Policies/Code/scripts/train_ppo.py \
 --l1_lambda 0.0001 \
 --value_learning_rate 0.05 \
 --weight_decay 0.0 \
---exp_name stairClimber_PPO_GRU_sparse_h100_lr0.001_clip0.2_ent0.1_vlr0.05_ks0_noFE_maxsteps100_numsteps_300
+--exp_name stairClimber_PPO_GRU_sparse_h100_lr0.001_clip0.2_ent0.1_vlr0.05_ks0_noFE_bugMaxstepsResolved
