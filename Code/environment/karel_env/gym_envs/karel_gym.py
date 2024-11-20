@@ -73,7 +73,6 @@ class KarelGymEnv(gym.Env):
             'env_width': self.env_width,
             'crashable': True,
             'leaps_behaviour': False,
-            'max_calls': self.max_steps,
         }
 
         if self.task_name == 'top_off':
@@ -310,6 +309,15 @@ class KarelGymEnv(gym.Env):
 
         return reduced_observation.flatten()
 
+    def get_observation_dsl(self) -> np.ndarray:
+        # print("-- -- bool feature frontIsClear: ", self.task.get_bool_feature("frontIsClear"))
+        # print("-- -- bool feature leftIsClear: ", self.task.get_bool_feature("leftIsClear"))
+        # print("-- -- bool feature rightIsClear: ", self.task.get_bool_feature("rightIsClear"))
+        # print("-- -- bool feature markersPresent: ", self.task.get_bool_feature("markersPresent"))
+        pass
+
+
+
     def _handle_initial_state(self):
         initial_state = self.config.get('initial_state')
         if initial_state is not None:
@@ -356,8 +364,8 @@ if __name__ == "__main__":
         'task_name': 'stair_climber',
         'env_height': env_height,
         'env_width': env_width,
-        'max_steps': 10,
-        'sparse_reward': False,
+        'max_steps': 20,
+        'sparse_reward': True,
         'crash_penalty': -1.0,
         'seed': 3,
         'initial_state': initial_state
@@ -366,11 +374,12 @@ if __name__ == "__main__":
     env = make_karel_env(env_config=env_config)()
     init_obs = env.reset()
     env.render()
+    env.get_observation_dsl()
     env.task.state2image(env.get_observation(), root_dir=project_root + '/environment/').show()
 
     action_names = env.task.actions_list
     action_mapping = {name: idx for idx, name in enumerate(action_names)}
-    action_sequence = ['turnLeft', 'move', 'turnRight', 'move', 'turnLeft', 'move', 'turnRight', 'move'] # for stairclimber 6*6
+    action_sequence = ['turnLeft', 'move', 'move', 'turnRight', 'move', 'turnLeft', 'move', 'turnRight', 'move'] # for stairclimber 6*6
     actions = [action_mapping[name] for name in action_sequence]
 
     done = False
@@ -382,6 +391,7 @@ if __name__ == "__main__":
         print("-- Reward:", reward)
         total_reward += reward
         env.render()
+        env.get_observation_dsl()
         env.task.state2image(env.get_observation(), root_dir=project_root + '/environment/').show()
         if done:
             print("Episode done")
