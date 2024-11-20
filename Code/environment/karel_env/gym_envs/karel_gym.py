@@ -104,8 +104,8 @@ class KarelGymEnv(gym.Env):
         return task, task_specific
 
     def _set_action_observation_spaces(self, options: Optional[list] = None):
-        num_features = self.task.state_shape[0]
-        observation_shape = (4 * num_features,)  # Since shape should be (4, num_features)
+        # num_features = self.task.state_shape[0]
+        observation_shape = self._get_observation_dsl().shape        
         self.observation_space = gym.spaces.Box(
             low=0,
             high=1,
