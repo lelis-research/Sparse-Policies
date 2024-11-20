@@ -33,7 +33,7 @@ def train_ppo(envs: gym.vector.SyncVectorEnv, args, model_file_name, device, wri
     elif args.ppo_type == "gru":
         from agents import GruAgent
         # TODO: feature exctractor?
-        agent = GruAgent(envs, h_size=hidden_size, feature_extractor=True).to(device)
+        agent = GruAgent(envs, h_size=hidden_size, feature_extractor=False).to(device)
     else:
         raise NotImplementedError
 

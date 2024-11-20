@@ -6,7 +6,7 @@
 #SBATCH --account=def-lelis
 #SBATCH --mail-user=arajabpo@ualberta.ca
 #SBATCH --mail-type=ALL
-#SBATCH --array=0-9
+#SBATCH --array=0-4
 
 
 source ~/Sparse-Policies/venv/bin/activate
@@ -21,14 +21,14 @@ python  ~/Sparse-Policies/Code/scripts/train_ppo.py \
 --sparse_reward \
 --crash_penalty -1.0 \
 --karel_seed 0 \
---hidden_size 64 \
+--hidden_size 100 \
 --total_timesteps 10_000_000 \
---num_envs 8 \
+--num_envs 12 \
 --learning_rate 0.001 \
 --clip_coef 0.2 \
---ent_coef 0.05 \
+--ent_coef 0.1 \
 --ppo_type gru \
 --l1_lambda 0.0001 \
 --value_learning_rate 0.05 \
 --weight_decay 0.0 \
---exp_name stairClimber_PPO_GRU_sparse_h64_lr0.001_clip0.2_ent0.05_vlr0.05_ks0_noFE
+--exp_name stairClimber_PPO_GRU_sparse_h100_lr0.001_clip0.2_ent0.1_vlr0.05_ks0_noFE_maxsteps100_numsteps_300
