@@ -154,7 +154,7 @@ class KarelGymEnv(gym.Env):
 
             if terminated: print("-- Episode Done!!")
 
-            return self._get_reduced_observation(), reward, terminated, truncated, {}
+            return self._get_observation_dsl(), reward, terminated, truncated, {}
                 
         # helper function for executing options
         def choose_action(env, model, greedy=False, verbose=False):
@@ -233,7 +233,7 @@ class KarelGymEnv(gym.Env):
     def reset(self, seed=0, options=None):
         self.current_step = 0
         self.task, self.task_specific = self._initialize_task()
-        return self._get_reduced_observation(), {}
+        return self._get_observation_dsl(), {}
 
     def render(self, mode='human'):
         if mode == 'human':
@@ -309,14 +309,17 @@ class KarelGymEnv(gym.Env):
 
         return reduced_observation.flatten()
 
-    def get_observation_dsl(self) -> np.ndarray:
-        # print("-- -- bool feature frontIsClear: ", self.task.get_bool_feature("frontIsClear"))
-        # print("-- -- bool feature leftIsClear: ", self.task.get_bool_feature("leftIsClear"))
-        # print("-- -- bool feature rightIsClear: ", self.task.get_bool_feature("rightIsClear"))
-        # print("-- -- bool feature markersPresent: ", self.task.get_bool_feature("markersPresent"))
-        pass
-
-
+    def _get_observation_dsl(self) -> np.ndarray:
+        """
+        Returns an observation that a DSL agent would see but for our RL agent
+        """
+        dsl_obs = np.array([
+            self.task.get_bool_feature("frontIsClear"),
+            self.task.get_bool_feature("leftIsClear"),
+            self.task.get_bool_feature("rightIsClear"),
+            self.task.get_bool_feature("markersPresent")
+        ], dtype=float)
+        return dsl_obs
 
     def _handle_initial_state(self):
         initial_state = self.config.get('initial_state')
@@ -374,7 +377,7 @@ if __name__ == "__main__":
     env = make_karel_env(env_config=env_config)()
     init_obs = env.reset()
     env.render()
-    env.get_observation_dsl()
+    # env.get_observation_dsl()
     env.task.state2image(env.get_observation(), root_dir=project_root + '/environment/').show()
 
     action_names = env.task.actions_list
@@ -391,7 +394,7 @@ if __name__ == "__main__":
         print("-- Reward:", reward)
         total_reward += reward
         env.render()
-        env.get_observation_dsl()
+        # env.get_observation_dsl()
         env.task.state2image(env.get_observation(), root_dir=project_root + '/environment/').show()
         if done:
             print("Episode done")
