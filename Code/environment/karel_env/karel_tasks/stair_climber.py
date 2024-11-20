@@ -97,5 +97,6 @@ class StairClimberSparse(StairClimber):
         elif [karel_pos[0], karel_pos[1]] not in self.valid_positions:
             reward = self.crash_penalty
             terminated = True
+            print("** not valid position")
         
         return terminated, reward
