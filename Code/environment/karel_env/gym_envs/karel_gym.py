@@ -151,6 +151,7 @@ class KarelGymEnv(gym.Env):
 
             if self.current_step >= self.max_steps:
                 terminated = True
+                # reward = self.crash_penalty
 
             if terminated: print("-- Episode Done!!")
 
@@ -232,6 +233,10 @@ class KarelGymEnv(gym.Env):
 
     def reset(self, seed=0, options=None):
         self.current_step = 0
+        # predefined_seeds = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        # selected_seed = random.choice(predefined_seeds)
+        # self.config['seed'] = selected_seed
+        # self.seed(selected_seed)
         self.task, self.task_specific = self._initialize_task()
         return self._get_observation_dsl(), {}
 

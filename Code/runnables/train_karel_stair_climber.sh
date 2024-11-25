@@ -26,9 +26,9 @@ python  ~/Sparse-Policies/Code/scripts/train_ppo.py \
 --num_envs 12 \
 --learning_rate 0.001 \
 --clip_coef 0.2 \
---ent_coef 0.1 \
---ppo_type gru \
---l1_lambda 0.0001 \
+--ent_coef 0.2 \
+--ppo_type original \
+--l1_lambda 0.0 \
 --value_learning_rate 0.05 \
 --weight_decay 0.0 \
---exp_name stairClimber_PPO_GRU_sparse_h100_lr0.001_clip0.2_ent0.1_vlr0.05_ks0_noFE_bugMaxstepsResolved
+--exp_name stairClimber_PPO_Original_Sparse_h100_lr0_clip0.2_ent0.2_DSLobs_ks0
