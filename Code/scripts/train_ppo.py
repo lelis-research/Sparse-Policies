@@ -111,6 +111,9 @@ def main(args):
         "num_envs": args.num_envs,
         "ent_coef": args.ent_coef,
         "clip_coef": args.clip_coef,
+        'sparse_reward': args.sparse_reward,
+        'reward_diff': args.reward_diff,
+        'reward_scale': args.reward_scale,
     }
 
     buffer = "\nParameters:"
@@ -238,7 +241,7 @@ def main(args):
             'initial_state': None,
 
             'reward_diff': args.reward_diff,
-            'final_reward_scale': args.final_reward_scale
+            'final_reward_scale': args.reward_scale
         }
         envs = gym.vector.SyncVectorEnv(
             [make_karel_env(env_config=env_config) for _ in range(args.num_envs)]

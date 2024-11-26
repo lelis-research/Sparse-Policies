@@ -55,6 +55,8 @@ class KarelGymEnv(gym.Env):
         self.max_steps = self.config['max_steps']
         self.current_step = 0
         self.crash_penalty = self.config['crash_penalty']
+        self.reward_diff = self.config['reward_diff'] if 'reward_diff' in self.config else False
+        self.rescale_reward = self.config['reward_scale'] if 'reward_scale' in self.config else True
 
         # Initialize the task
         self.task_name = self.config['task_name']
@@ -89,7 +91,9 @@ class KarelGymEnv(gym.Env):
             task_specific = task_class(
                 env_args=env_args,
                 seed=self.config.get('seed'),
-                # crash_penalty=self.crash_penalty
+                # crash_penalty=self.crash_penalty,
+                reward_diff=self.reward_diff,
+                rescale_reward=self.rescale_reward
             )
             task = task_specific.generate_initial_environment(env_args)
 
@@ -131,7 +135,6 @@ class KarelGymEnv(gym.Env):
 
     def step(self, action:int):
         print("---- action index:", action)
-        # self.render()
         assert self.action_space.contains(action), "Invalid action"
         truncated = False
         def process_action(action:int):
@@ -144,14 +147,13 @@ class KarelGymEnv(gym.Env):
             # Get the reward and check if the episode is terminated
             if self.task_name != 'base':
                 terminated, reward = self.task_specific.get_reward(self.task)
-                if self.task.is_crashed():
-                    print("--- crashed ")
-                    reward = self.crash_penalty
-                    terminated = True
+                # if self.task.is_crashed():
+                #     print("--- crashed ")
+                #     reward = self.crash_penalty
+                #     terminated = True
 
             if self.current_step >= self.max_steps:
                 terminated = True
-                # reward = self.crash_penalty
 
             if terminated: print("-- Episode Done!!")
 
@@ -373,7 +375,7 @@ if __name__ == "__main__":
         'env_height': env_height,
         'env_width': env_width,
         'max_steps': 20,
-        'sparse_reward': True,
+        'sparse_reward': False,
         'crash_penalty': -1.0,
         'seed': 3,
         'initial_state': initial_state
@@ -383,7 +385,7 @@ if __name__ == "__main__":
     init_obs = env.reset()
     env.render()
     # env.get_observation_dsl()
-    env.task.state2image(env.get_observation(), root_dir=project_root + '/environment/').show()
+    # env.task.state2image(env.get_observation(), root_dir=project_root + '/environment/').show()
 
     action_names = env.task.actions_list
     action_mapping = {name: idx for idx, name in enumerate(action_names)}
@@ -400,7 +402,7 @@ if __name__ == "__main__":
         total_reward += reward
         env.render()
         # env.get_observation_dsl()
-        env.task.state2image(env.get_observation(), root_dir=project_root + '/environment/').show()
+        # env.task.state2image(env.get_observation(), root_dir=project_root + '/environment/').show()
         if done:
             print("Episode done")
             break

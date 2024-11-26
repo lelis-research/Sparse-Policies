@@ -120,9 +120,8 @@ class Args:
     karel_seed: int = 3
     """Seed for the Karel environment, so we can recreate the exact same environment, othereise initial states will be different"""
 
-    # I don't know about these two
     reward_diff: bool = False
-    final_reward_scale: bool = True
+    reward_scale: bool = True
 
     ppo_type: str = "original"
     """the type of PPO actor and critic netowrks. Choices: [original, lstm, gru]"""
