@@ -30,7 +30,7 @@ STATE_TABLE = {
 
 class KarelEnvironment(BaseEnvironment):
 
-    def __init__(self, env_height=8, env_width=8, crashable=True, leaps_behaviour=False,
+    def __init__(self, env_height=8, env_width=8, crashable=False, leaps_behaviour=False,
                  max_calls=MAX_API_CALLS, initial_state: Union[np.ndarray, None] = None):
         self.crashable = crashable
         self.leaps_behaviour = leaps_behaviour

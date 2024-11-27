@@ -73,7 +73,7 @@ class KarelGymEnv(gym.Env):
         env_args = {
             'env_height': self.env_height,
             'env_width': self.env_width,
-            'crashable': True,
+            'crashable': False,
             'leaps_behaviour': False,
         }
 
@@ -235,10 +235,10 @@ class KarelGymEnv(gym.Env):
 
     def reset(self, seed=0, options=None):
         self.current_step = 0
-        # predefined_seeds = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-        # selected_seed = random.choice(predefined_seeds)
-        # self.config['seed'] = selected_seed
-        # self.seed(selected_seed)
+        predefined_seeds = list(range(10))
+        selected_seed = random.choice(predefined_seeds)
+        self.config['seed'] = selected_seed
+        self.seed(selected_seed)
         self.task, self.task_specific = self._initialize_task()
         return self._get_observation_dsl(), {}
 
@@ -343,7 +343,7 @@ class KarelGymEnv(gym.Env):
             self.config['env_height'] = env_height
             self.config['env_width'] = env_width
         else:
-            print("---- Using default env_height and env_width ----")
+            print("---- Using env_height and env_width from input ----")
             self.env_height = self.config['env_height']
             self.env_width = self.config['env_width']
 
@@ -389,7 +389,7 @@ if __name__ == "__main__":
 
     action_names = env.task.actions_list
     action_mapping = {name: idx for idx, name in enumerate(action_names)}
-    action_sequence = ['turnLeft', 'move', 'move', 'turnRight', 'move', 'turnLeft', 'move', 'turnRight', 'move'] # for stairclimber 6*6
+    action_sequence = ['move', 'turnLeft', 'move', 'move', 'turnRight', 'move', 'turnLeft', 'move', 'turnRight', 'move'] # for stairclimber 6*6
     actions = [action_mapping[name] for name in action_sequence]
 
     done = False
