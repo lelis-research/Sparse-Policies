@@ -258,7 +258,10 @@ def train_ppo(envs: gym.vector.SyncVectorEnv, args, model_file_name, device, wri
                         mb_advantages = (mb_advantages - mb_advantages.mean()) / (mb_advantages.std() + 1e-8)
 
                     #L1 loss
-                    l1_loss = _l1_norm(model=agent.gru, lambda_l1=args.l1_lambda)
+                    if args.ppo_type == 'gru':
+                        l1_loss = _l1_norm(model=agent.gru, lambda_l1=args.l1_lambda)
+                    elif args.ppo_type == 'lstm':
+                        l1_loss = _l1_norm(model=agent.lstm, lambda_l1=args.l1_lambda)
 
                     # Policy loss
                     pg_loss1 = -mb_advantages * ratio

@@ -207,6 +207,14 @@ def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
     return layer
 
 
+def weights_init_xavier(layer):
+    if isinstance(layer, torch.nn.Linear):
+        torch.nn.init.xavier_uniform_(layer.weight)
+        if layer.bias is not None:
+            torch.nn.init.zeros_(layer.bias)
+    return layer
+
+
 class PPOAgent(nn.Module):
     def __init__(self, envs, hidden_size=6):
         super().__init__()
@@ -379,10 +387,6 @@ class STEQuantize(torch.autograd.Function):
     def backward(ctx, grad_output):
         return grad_output 
 
-def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
-    torch.nn.init.orthogonal_(layer.weight, std)
-    torch.nn.init.constant_(layer.bias, bias_const)
-    return layer
 
 #TO DO: UPDATE LSTM STRUCTURE TO BE ABLE TO ENALBE/DISABLE FEATURE EXTRACTOR AND INPUT_TO_ACTOR
 class LstmAgent(nn.Module):
@@ -498,19 +502,26 @@ class GruAgent(nn.Module):
             )
         else:
             self.actor = nn.Sequential(
-                layer_init(nn.Linear(h_size, 64)),
+                weights_init_xavier(nn.Linear(h_size, 64)),
+                # layer_init(nn.Linear(h_size, 64)),
+
                 nn.Tanh(),
-                layer_init(nn.Linear(64, 64)),
+                weights_init_xavier(nn.Linear(64, 64)),
+                # layer_init(nn.Linear(64, 64)),
                 nn.Tanh(),
-                layer_init(nn.Linear(64, envs.single_action_space.n)),
+                weights_init_xavier(nn.Linear(64, envs.single_action_space.n)),
+                # layer_init(nn.Linear(64, envs.single_action_space.n)),
             )
 
             self.critic = nn.Sequential(
-                layer_init(nn.Linear(h_size , 64)),
+                weights_init_xavier(nn.Linear(h_size , 64)),
+                # layer_init(nn.Linear(h_size , 64)),
                 nn.Tanh(),
-                layer_init(nn.Linear(64, 64)),
+                weights_init_xavier(nn.Linear(64, 64)),
+                # layer_init(nn.Linear(64, 64)),
                 nn.Tanh(),
-                layer_init(nn.Linear(64, 1)),
+                weights_init_xavier(nn.Linear(64, 1)),
+                # layer_init(nn.Linear(64, 1)),
             )
 
     def get_states(self, x, gru_state, done):
@@ -527,7 +538,9 @@ class GruAgent(nn.Module):
             # quantized_hidden = STEQuantize.apply(h) # no need to quantize hidden state
             new_hidden += [h]
         new_hidden = torch.flatten(torch.cat(new_hidden), 0, 1)
-        return new_hidden, STEQuantize.apply(gru_state)
+        # return new_hidden, STEQuantize.apply(gru_state)
+        return new_hidden, gru_state
+
 
     def get_value(self, x, gru_state, done):
         if self.input_to_actor:
@@ -547,6 +560,7 @@ class GruAgent(nn.Module):
             concatenated = hidden
         logits = self.actor(concatenated)
         probs = Categorical(logits=logits)
+        # print("action probs: ", probs.probs[:7])
         if action is None:
             if self.greedy:
                 action = torch.tensor([torch.argmax(logits[i]).item() for i in range(len(logits))])
