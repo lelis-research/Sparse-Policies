@@ -394,11 +394,14 @@ class LstmAgent(nn.Module):
         super().__init__()
 
         self.network = nn.Sequential(
-            layer_init(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 64)),
+            # layer_init(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 64)),
+            weights_init_xavier(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 64)),
             nn.Tanh(),
-            layer_init(nn.Linear(64, 64)),
+            # layer_init(nn.Linear(64, 64)),
+            weights_init_xavier(nn.Linear(64, 64)),
             nn.Tanh(),
-            layer_init(nn.Linear(64, 512)),
+            # layer_init(nn.Linear(64, 512)),
+            weights_init_xavier(nn.Linear(64, 512)),
         )
         self.lstm = nn.LSTM(512, h_size)
         for name, param in self.lstm.named_parameters():
@@ -409,19 +412,25 @@ class LstmAgent(nn.Module):
         # self.actor = layer_init(nn.Linear(128 + envs.single_observation_space.shape[0], envs.single_action_space.n), std=0.01)
         # self.critic = layer_init(nn.Linear(128 + envs.single_observation_space.shape[0], 1), std=1)
         self.actor = nn.Sequential(
-            layer_init(nn.Linear(h_size + envs.single_observation_space.shape[0], 64)),
+            # layer_init(nn.Linear(h_size + envs.single_observation_space.shape[0], 64)),
+            weights_init_xavier(nn.Linear(h_size + envs.single_observation_space.shape[0], 64)),
             nn.Tanh(),
-            layer_init(nn.Linear(64, 64)),
+            # layer_init(nn.Linear(64, 64)),
+            weights_init_xavier(nn.Linear(64, 64)),
             nn.Tanh(),
-            layer_init(nn.Linear(64, envs.single_action_space.n)),
+            # layer_init(nn.Linear(64, envs.single_action_space.n)),
+            weights_init_xavier(nn.Linear(64, envs.single_action_space.n)),
         )
 
         self.critic = nn.Sequential(
-            layer_init(nn.Linear(h_size + envs.single_observation_space.shape[0], 64)),
+            # layer_init(nn.Linear(h_size + envs.single_observation_space.shape[0], 64)),
+            weights_init_xavier(nn.Linear(h_size + envs.single_observation_space.shape[0], 64)),
             nn.Tanh(),
-            layer_init(nn.Linear(64, 64)),
+            # layer_init(nn.Linear(64, 64)),
+            weights_init_xavier(nn.Linear(64, 64)),
             nn.Tanh(),
-            layer_init(nn.Linear(64, 1)),
+            # layer_init(nn.Linear(64, 1)),
+            weights_init_xavier(nn.Linear(64, 1)),
         )
 
     def get_states(self, x, lstm_state, done):
