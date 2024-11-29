@@ -10,6 +10,8 @@
 
 
 source ~/Sparse-Policies/venv/bin/activate
+module load flexiblas
+export FLEXIBLAS=imkl
 
 python  ~/Sparse-Policies/Code/scripts/train_ppo.py \
 --env_id Karel_stair_climber \

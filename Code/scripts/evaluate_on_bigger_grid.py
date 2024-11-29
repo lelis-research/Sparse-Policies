@@ -44,7 +44,7 @@ def evaluate_model_on_large_grid(model_path, args):
     if args.ppo_type == "original":
         agent = PPOAgent(envs, hidden_size=args.hidden_size).to(device)
     elif args.ppo_type == "gru":
-        agent = GruAgent(envs, h_size=args.hidden_size, feature_extractor=args.feature_extractor).to(device)
+        agent = GruAgent(envs, h_size=args.hidden_size, feature_extractor=args.feature_extractor, greedy=True).to(device)
 
     agent.load_state_dict(torch.load(model_path, map_location=device))
     print(f"Model loaded from {model_path}")
@@ -134,6 +134,7 @@ if __name__ == "__main__":
     parser.add_argument('--ent_coef', default=0.01, type=float)
     parser.add_argument('--feature_extractor', action='store_true')
     parser.add_argument('--value_learning_rate', default=0.005, type=float)
+    parser.add_argument('--time', type=int)
 
 
     parser.add_argument('--model_seed', default=0, type=int)
@@ -143,5 +144,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print(vars(args))
 
-    model_file_name = f'binary/PPO-Karel_{args.task_name}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{args.model_seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}_vlr{args.value_learning_rate}_{args.ppo_type}_MODEL.pt'
+    model_file_name = f'binary/PPO-Karel_{args.task_name}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{args.model_seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}_vlr{args.value_learning_rate}_{args.ppo_type}_MODEL_{args.time}.pt'
     evaluate_model_on_large_grid(model_file_name, args)
