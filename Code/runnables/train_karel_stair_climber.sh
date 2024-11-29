@@ -2,7 +2,7 @@
 #SBATCH --cpus-per-task=6   # maximum CPU cores per GPU request: 6 on Cedar, 16 on Graham.
 #SBATCH --mem=6G        # memory per node
 #SBATCH --time=2-00:00      # time (DD-HH:MM)
-#SBATCH --output=job_logs/%N-%j.out  # %N for node name, %j for jobID
+#SBATCH --output=job_logs/lstm/%N-%j.out  # %N for node name, %j for jobID
 #SBATCH --account=def-lelis
 #SBATCH --mail-user=arajabpo@ualberta.ca
 #SBATCH --mail-type=ALL
@@ -16,19 +16,19 @@ python  ~/Sparse-Policies/Code/scripts/train_ppo.py \
 --seed $SLURM_ARRAY_TASK_ID \
 --game_width 12 \
 --game_height 12 \
---max_steps 100 \
+--max_steps 50 \
 --num_steps 300 \
 --sparse_reward \
 --crash_penalty -1.0 \
 --karel_seed 0 \
---hidden_size 100 \
+--hidden_size 32 \
 --total_timesteps 10_000_000 \
---num_envs 12 \
---learning_rate 0.001 \
---clip_coef 0.2 \
+--num_envs 4 \
+--learning_rate 0.0001 \
+--clip_coef 0.1 \
 --ent_coef 0.2 \
---ppo_type original \
+--ppo_type lstm \
 --l1_lambda 0.0 \
 --value_learning_rate 0.05 \
 --weight_decay 0.0 \
---exp_name stairClimber_PPO_Original_Sparse_h100_lr0_clip0.2_ent0.2_DSLobs_ks0
+--exp_name stairClimber_PPO_LSTM_Sparse_h32_lr0.001_clip0.1_ent0.2_10seeds
