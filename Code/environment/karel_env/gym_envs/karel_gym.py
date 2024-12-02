@@ -57,7 +57,7 @@ class KarelGymEnv(gym.Env):
         # self.crash_penalty = self.config['crash_penalty']
         self.reward_diff = self.config['reward_diff'] if 'reward_diff' in self.config else False
         self.rescale_reward = self.config['reward_scale'] if 'reward_scale' in self.config else True
-        self.multi_initial_confs = self.config['multi_initial_confs']
+        self.multi_initial_confs = self.config['multi_initial_confs'] if 'multi_initial_confs' in self.config else False
 
         # Initialize the task
         self.task_name = self.config['task_name']
