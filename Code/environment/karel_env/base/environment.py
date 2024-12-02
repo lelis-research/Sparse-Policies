@@ -8,7 +8,7 @@ class BaseEnvironment(ABC):
     
     def __init__(self, actions: dict[str, Callable], bool_features: dict[str, Callable],
                  int_features: dict[str, Callable], state_shape: tuple[int, ...],
-                 initial_state: Union[Any, None] = None, max_calls: int = 10000):
+                 initial_state: Union[Any, None] = None, max_calls: int = float('inf')):
         self.actions = actions
         self.actions_list = list(actions.keys())
         self.bool_features = bool_features
@@ -33,24 +33,28 @@ class BaseEnvironment(ABC):
     def get_bool_feature(self, feature: str):
         self.num_calls += 1
         if self.num_calls > self.max_calls:
+            print("------Max calls reached------")
             self.crashed = True
         return self.bool_features[feature]()
 
     def get_int_feature(self, feature: str):
         self.num_calls += 1
         if self.num_calls > self.max_calls:
+            print("------Max calls reached------")
             self.crashed = True
         return self.int_features[feature]()
 
     def run_action(self, action: str):
         self.num_calls += 1
         if self.num_calls > self.max_calls:
+            print("------Max calls reached------")
             self.crashed = True
         self.actions[action]()
         
     def run_action_index(self, action_index: int):
         self.num_calls += 1
         if self.num_calls > self.max_calls:
+            print("------Max calls reached------")
             self.crashed = True
         self.actions_list[action_index]()
 
