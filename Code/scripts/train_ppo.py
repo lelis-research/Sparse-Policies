@@ -114,6 +114,8 @@ def main(args):
         'sparse_reward': args.sparse_reward,
         'reward_diff': args.reward_diff,
         'reward_scale': args.reward_scale,
+        'multi_initial_confs': args.multi_initial_confs,
+        'karel_initial_seed': args.karel_seed,
     }
 
     buffer = "\nParameters:"
@@ -241,7 +243,8 @@ def main(args):
             'initial_state': None,
 
             'reward_diff': args.reward_diff,
-            'final_reward_scale': args.reward_scale
+            'final_reward_scale': args.reward_scale,
+            'multi_initial_confs': args.multi_initial_confs
         }
         envs = gym.vector.SyncVectorEnv(
             [make_karel_env(env_config=env_config) for _ in range(args.num_envs)]

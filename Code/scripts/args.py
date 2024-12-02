@@ -119,6 +119,8 @@ class Args:
     """Penalty for crashing """
     karel_seed: int = 3
     """Seed for the Karel environment, so we can recreate the exact same environment, othereise initial states will be different"""
+    multi_initial_confs: bool = False
+    """If toggled, the initial state of the environment will be between 10 different random configurations"""
 
     reward_diff: bool = False
     reward_scale: bool = True

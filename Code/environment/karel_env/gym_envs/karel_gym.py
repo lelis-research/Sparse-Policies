@@ -54,9 +54,10 @@ class KarelGymEnv(gym.Env):
         self.env_width = self.config['env_width']
         self.max_steps = self.config['max_steps']
         self.current_step = 0
-        self.crash_penalty = self.config['crash_penalty']
+        # self.crash_penalty = self.config['crash_penalty']
         self.reward_diff = self.config['reward_diff'] if 'reward_diff' in self.config else False
         self.rescale_reward = self.config['reward_scale'] if 'reward_scale' in self.config else True
+        self.multi_initial_confs = self.config['multi_initial_confs']
 
         # Initialize the task
         self.task_name = self.config['task_name']
@@ -91,7 +92,6 @@ class KarelGymEnv(gym.Env):
             task_specific = task_class(
                 env_args=env_args,
                 seed=self.config.get('seed'),
-                # crash_penalty=self.crash_penalty,
                 reward_diff=self.reward_diff,
                 rescale_reward=self.rescale_reward
             )
@@ -235,10 +235,14 @@ class KarelGymEnv(gym.Env):
 
     def reset(self, seed=0, options=None):
         self.current_step = 0
-        predefined_seeds = list(range(10))
-        selected_seed = random.choice(predefined_seeds)
-        self.config['seed'] = selected_seed
-        self.seed(selected_seed)
+        if self.multi_initial_confs:   # choose between 10 random initial setups
+            # print("---- Using 10 different initial configurations ----")
+            selected_seed = random.choice(list(range(10)))
+            self.config['seed'] = selected_seed
+            self.seed(selected_seed)
+        #     print("---- Seed:", self.config['seed'])
+        # else:
+        #     print(f"---- Using the same initial configuration {self.config['seed']}----")
         self.task, self.task_specific = self._initialize_task()
         return self._get_observation_dsl(), {}
 
@@ -362,8 +366,8 @@ def make_karel_env(env_config: Optional[dict] = None) -> Callable:
 if __name__ == "__main__":
 
     num_features = 16
-    env_height = 6
-    env_width = 6
+    env_height = 12
+    env_width = 12
 
     # A custom initial state for the base task
     initial_state = np.zeros((num_features, env_height, env_width), dtype=bool)
@@ -376,16 +380,17 @@ if __name__ == "__main__":
         'env_width': env_width,
         'max_steps': 20,
         'sparse_reward': False,
-        'crash_penalty': -1.0,
+        # 'crash_penalty': -1.0,
         'seed': 3,
-        'initial_state': initial_state
+        'initial_state': initial_state,
+        'multi_initial_confs': True
     }
 
     env = make_karel_env(env_config=env_config)()
     init_obs = env.reset()
     env.render()
     # env.get_observation_dsl()
-    # env.task.state2image(env.get_observation(), root_dir=project_root + '/environment/').show()
+    env.task.state2image(env.get_observation(), root_dir=project_root + '/environment/').show()
 
     action_names = env.task.actions_list
     action_mapping = {name: idx for idx, name in enumerate(action_names)}
