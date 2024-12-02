@@ -436,13 +436,21 @@ class LstmAgent(nn.Module):
     def get_states(self, x, lstm_state, done):
         hidden = self.network(x)
 
+        # print(done.shape)
+        # print(lstm_state[0].shape)
+        # print(x.shape)
+        # print()
         # LSTM logic
         batch_size = lstm_state[0].shape[1]
+        # print('batch size: ', batch_size)
+        # print('len lstm: ', len(lstm_state))
+        # print('shape of a state: ', lstm_state[0].shape)
         hidden = hidden.reshape((-1, batch_size, self.lstm.input_size))
         done = done.reshape((-1, batch_size))
         new_hidden = []
         for h, d in zip(hidden, done):
             # print('d: ', d)
+            # print('state: ', lstm_state)
             h, lstm_state = self.lstm(
                 h.unsqueeze(0),
                 (
@@ -473,15 +481,14 @@ class GruAgent(nn.Module):
         super().__init__()
         self.input_to_actor = False
         self.greedy = greedy
+        self._feature_extractor = feature_extractor
         if feature_extractor:
             self.network = nn.Sequential(
-                layer_init(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 64)),
+                layer_init(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 32)),
                 nn.Tanh(),
-                layer_init(nn.Linear(64, 64)),
-                nn.Tanh(),
-                layer_init(nn.Linear(64, 512)),
+                layer_init(nn.Linear(32, 32)),
             )
-            self.gru = nn.GRU(512, h_size, 1)
+            self.gru = nn.GRU(32, h_size, 1)
         else:
             self.network = IdentityLayer()
             self.gru = nn.GRU(envs.single_observation_space.shape[0], h_size, 1)
@@ -533,11 +540,16 @@ class GruAgent(nn.Module):
                 # layer_init(nn.Linear(64, 1)),
             )
 
+    def get_l1_norm(self):
+        l1_norm = sum(p.abs().sum() for name, p in self.network.named_parameters() if "bias" not in name)
+        return l1_norm
+
     def get_states(self, x, gru_state, done):
         hidden = self.network(x)
 
         # LSTM logic
         batch_size = gru_state.shape[1]
+        # print('batch size: ', batch_size)
         hidden = hidden.reshape((-1, batch_size, self.gru.input_size))
         done = done.reshape((-1, batch_size))
         new_hidden = []
@@ -546,9 +558,14 @@ class GruAgent(nn.Module):
             h, gru_state = self.gru(h.unsqueeze(0), (1.0 - d).view(1, -1, 1) * gru_state)
             # quantized_hidden = STEQuantize.apply(h) # no need to quantize hidden state
             new_hidden += [h]
+            # new_state += [gru_state]
         new_hidden = torch.flatten(torch.cat(new_hidden), 0, 1)
+        # new_state = torch.flatten(torch.cat(new_state), 0, 1)
         # return new_hidden, STEQuantize.apply(gru_state)
+        # print(len(new_hidden), len(new_state), new_hidden[0].shape, new_state[0].shape)
+        # print(new_state)
         return new_hidden, gru_state
+        # return new_hidden, new_state
 
 
     def get_value(self, x, gru_state, done):
