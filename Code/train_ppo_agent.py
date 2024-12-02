@@ -24,6 +24,9 @@ def train_ppo(envs: gym.vector.SyncVectorEnv, args, model_file_name, device, wri
     if not seed:
         seed = args.seed
 
+    # call rnder() on one of the karel_gym env 
+    envs.envs[0].render()
+
     if args.ppo_type == "original":
         from agents import PPOAgent
         agent = PPOAgent(envs, hidden_size=hidden_size).to(device)
