@@ -139,13 +139,15 @@ class StairClimber(BaseTask):
                 print("** Agent reached the goal!!!!")
                 done = True
 
-        print("reward: ", reward)
+        # print("reward dense: ", reward)
 
         reward = float(done) if self.sparse_reward else reward
 
         # Adjust reward for sparse or non-sparse version
         if self.sparse_reward:
-            reward = reward if done and not self.done else 0.0
+            # reward = reward if done and not self.done else 0.0
+            reward = 0.0 if done and not self.done else -1.0
+            print("reward sparse: ", reward)
 
         self.done = self.done or done
         return done, reward
