@@ -2,7 +2,7 @@
 #SBATCH --cpus-per-task=6   # maximum CPU cores per GPU request: 6 on Cedar, 16 on Graham.
 #SBATCH --mem=6G        # memory per node
 #SBATCH --time=2-00:00      # time (DD-HH:MM)
-#SBATCH --output=job_logs/lstm/%N-%j.out  # %N for node name, %j for jobID
+#SBATCH --output=job_logs/new_reward/%N-%j.out  # %N for node name, %j for jobID
 #SBATCH --account=def-lelis
 #SBATCH --mail-user=arajabpo@ualberta.ca
 #SBATCH --mail-type=ALL
@@ -10,6 +10,7 @@
 
 
 source ~/Sparse-Policies/venv/bin/activate
+
 module load flexiblas
 export FLEXIBLAS=imkl
 
@@ -21,16 +22,15 @@ python  ~/Sparse-Policies/Code/scripts/train_ppo.py \
 --max_steps 50 \
 --num_steps 300 \
 --sparse_reward \
---crash_penalty -1.0 \
 --karel_seed 0 \
---hidden_size 32 \
+--hidden_size 100 \
 --total_timesteps 10_000_000 \
 --num_envs 4 \
 --learning_rate 0.0001 \
 --clip_coef 0.1 \
 --ent_coef 0.2 \
---ppo_type lstm \
+--ppo_type gru \
 --l1_lambda 0.0 \
 --value_learning_rate 0.05 \
 --weight_decay 0.0 \
---exp_name stairClimber_PPO_LSTM_Sparse_h32_lr0.001_clip0.1_ent0.2_10seeds
+--exp_name stairClimber_PPO_GRU_Sparse_h100_lr0.0001_clip0.1_ent0.2_newReward_ks0
