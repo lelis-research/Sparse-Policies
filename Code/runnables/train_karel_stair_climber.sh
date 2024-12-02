@@ -22,7 +22,7 @@ python  ~/Sparse-Policies/Code/scripts/train_ppo.py \
 --max_steps 50 \
 --num_steps 300 \
 --sparse_reward \
---karel_seed 0 \
+--karel_seed 3 \
 --hidden_size 100 \
 --total_timesteps 10_000_000 \
 --num_envs 4 \
@@ -33,4 +33,4 @@ python  ~/Sparse-Policies/Code/scripts/train_ppo.py \
 --l1_lambda 0.0 \
 --value_learning_rate 0.05 \
 --weight_decay 0.0 \
---exp_name stairClimber_PPO_GRU_Sparse_h100_lr0.0001_clip0.1_ent0.2_newReward_ks0
+--exp_name stairClimber_PPO_GRU_Sparse_h100_lr0.0001_clip0.1_ent0.2_newReward_ks3_oneStep
