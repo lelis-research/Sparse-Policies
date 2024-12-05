@@ -1,5 +1,6 @@
 import os
 import sys
+
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, project_root)
 
@@ -18,6 +19,7 @@ from environment.combogrid_gym import make_env, make_env_combo_four_goals
 from environment.karel_env.gym_envs.karel_gym import make_karel_env
 # from environment.minigrid import make_env_simple_crossing, make_env_four_rooms
 from train_ppo_agent import train_ppo
+from train_ppo_agent_positive import train_ppo_positive
 
 
 @timing_decorator
@@ -254,7 +256,8 @@ def main(args):
         raise NotImplementedError
     
         
-    average_return = train_ppo(envs, args, model_file_name, device, writer, logger=logger, seed=seed)
+    # average_return = train_ppo(envs, args, model_file_name, device, writer, logger=logger, seed=seed)
+    average_return = train_ppo_positive(envs, args, model_file_name, device, writer, logger=logger, seed=seed)
 
 
 
