@@ -7,7 +7,7 @@ import gymnasium as gym
 import os
 
 from scripts.args import Args
-from train_ppo_agent import train_ppo
+from code.training.train_ppo_agent import train_ppo
 from train_ppo import get_logger 
 from environment.combogrid_gym import make_env
 from environment.minigrid import make_env_simple_crossing, make_env_four_rooms

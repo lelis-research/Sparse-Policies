@@ -18,8 +18,8 @@ from torch.utils.tensorboard import SummaryWriter
 from environment.combogrid_gym import make_env, make_env_combo_four_goals
 from environment.karel_env.gym_envs.karel_gym import make_karel_env
 # from environment.minigrid import make_env_simple_crossing, make_env_four_rooms
-from train_ppo_agent import train_ppo
-from train_ppo_agent_positive import train_ppo_positive
+from training.train_ppo_agent import train_ppo
+from training.train_ppo_agent_positive import train_ppo_positive
 
 
 @timing_decorator
