@@ -25,7 +25,7 @@ class Args:
 
     # Algorithm specific arguments
     env_id: str = "MiniGrid-FourRooms-v0"
-    """the id of the environment; choices fro [MiniGrid-SimpleCrossingS9N1-v0, ComboGrid, MiniGrid-FourRooms-v0]"""
+    """the id of the environment; choices fro [MiniGrid-SimpleCrossingS9N1-v0, ComboGrid, MiniGrid-FourRooms-v0, Karel_]"""
     total_timesteps: int = 1_500_000
     """total timesteps of the experiments"""
     # learning_rate: Union[float, List] = (0.005, 0.001, 0.0005, 0.0001, 0.00005) # ComboGrid
@@ -105,3 +105,29 @@ class Args:
     """the hidden size of the networks of the options"""
     options_game_width: int = 3
     """game width of the games the options are trained on"""
+
+    # Karel env args
+    task_name: str = "stair_climber" 
+    """Task can be 'base', 'harvester', 'stairClimber', etc."""
+    game_height: int = 10
+    """Height of the gridworld"""
+    max_steps: int = 100 
+    """Maximum steps per episode"""
+    sparse_reward: bool = False
+    """If toggled, the reward is 0 for all steps except the last step"""
+    crash_penalty: float = -1.0
+    """Penalty for crashing """
+    karel_seed: int = 3
+    """Seed for the Karel environment, so we can recreate the exact same environment, othereise initial states will be different"""
+    multi_initial_confs: bool = False
+    """If toggled, the initial state of the environment will be between 10 different random configurations"""
+
+    reward_diff: bool = False
+    reward_scale: bool = True
+
+    ppo_type: str = "original"
+    """the type of PPO actor and critic netowrks. Choices: [original, lstm, gru]"""
+    value_learning_rate: float = 5e-4
+    """the learning rate of the optimizer for value network"""
+    weight_decay: float = 0
+    "weight decay for l2 regularization"
