@@ -37,7 +37,7 @@ def evaluate_model_on_large_grid(model_path, args):
 
     envs.reset()
     envs.envs[0].render()
-    envs.envs[0].task.state2image(envs.envs[0].get_observation(), root_dir=project_root+'/environment/').show()
+    # envs.envs[0].task.state2image(envs.envs[0].get_observation(), root_dir=project_root+'/environment/').show()
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -87,6 +87,8 @@ def evaluate_model_on_large_grid(model_path, args):
             while not done:
                 obs_tensor = torch.tensor(obs, dtype=torch.float32).to(device)
 
+                envs.envs[0].render()
+
                 with torch.no_grad():
                     action, _, _, _, rnn_state = agent.get_action_and_value(obs_tensor, rnn_state, done_tensor.float())
                     action = action.cpu().numpy()
@@ -101,9 +103,7 @@ def evaluate_model_on_large_grid(model_path, args):
                 # Update the done tensor for the next step
                 done_tensor = torch.tensor(terminated | truncated, dtype=torch.bool).to(device)
 
-                envs.envs[0].render()
                 # envs.envs[0].task.state2image(envs.envs[0].get_observation(), root_dir=project_root+'/environment/').show()
-
         print(f"Episode {episode + 1}: Total Reward = {episode_reward}")
         total_rewards.append(episode_reward)
 

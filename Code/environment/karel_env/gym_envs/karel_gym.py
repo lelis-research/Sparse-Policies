@@ -134,30 +134,32 @@ class KarelGymEnv(gym.Env):
         self.option_sizes = [3 for _ in range(len(options))]    # TODO: change this to a more general way
 
     def step(self, action:int):
-        print("---- action index:", action)
+        # print("---- action index:", action)
         assert self.action_space.contains(action), "Invalid action"
         truncated = False
-        def process_action(action:int):
-            nonlocal truncated
-            action_name = self.task.actions_list[action]
-            self.task.run_action(action_name)
+        # def process_action(action:int):
+        #     nonlocal truncated
+        action_name = self.task.actions_list[action]
+        self.task.run_action(action_name)
 
-            self.current_step += 1
+        self.current_step += 1
 
-            # Get the reward and check if the episode is terminated
-            if self.task_name != 'base':
-                terminated, reward = self.task_specific.get_reward(self.task)
-                # if self.task.is_crashed():
-                #     print("--- crashed ")
-                #     reward = self.crash_penalty
-                #     terminated = True
+        # Get the reward and check if the episode is terminated
+        if self.task_name != 'base':
+            terminated, reward = self.task_specific.get_reward(self.task)
+            # if self.task.is_crashed():
+            #     print("--- crashed ")
+            #     reward = self.crash_penalty
+            #     terminated = True
 
-            if self.current_step >= self.max_steps:
-                terminated = True
+        if self.current_step >= self.max_steps:
+            truncated = True
 
-            if terminated: print("-- Episode Done!!")
+        # if terminated: print("-- Episode Done!!")
+        # if truncated or terminated:
+        #     self.reset()
 
-            return self._get_observation_dsl(), reward, terminated, truncated, {}
+        return self._get_observation_dsl(), reward, terminated, truncated, {}
                 
         # helper function for executing options
         def choose_action(env, model, greedy=False, verbose=False):
@@ -237,9 +239,13 @@ class KarelGymEnv(gym.Env):
         self.current_step = 0
         predefined_seeds = list(range(10))
         selected_seed = random.choice(predefined_seeds)
+        # selected_seed = 7
         self.config['seed'] = selected_seed
         self.seed(selected_seed)
         self.task, self.task_specific = self._initialize_task()
+        # print(selected_seed)
+        # print(self._get_observation_dsl())
+        # self.render()
         return self._get_observation_dsl(), {}
 
     def render(self, mode='human'):

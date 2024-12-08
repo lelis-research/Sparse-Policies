@@ -540,6 +540,7 @@ class GruAgent(nn.Module):
                 # layer_init(nn.Linear(64, 1)),
             )
 
+            
     def get_l1_norm(self):
         l1_norm = sum(p.abs().sum() for name, p in self.network.named_parameters() if "bias" not in name)
         return l1_norm

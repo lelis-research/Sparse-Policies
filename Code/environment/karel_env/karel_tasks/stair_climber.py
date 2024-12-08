@@ -117,17 +117,17 @@ class StairClimber(BaseTask):
 
             if [agent_pos[0], agent_pos[1]] not in self.valid_positions:
                 reward = -1.0
-                print("** not valid position")
+                # print("** not valid position")
                 # done = True
 
             if current_distance == 0:
                 # Agent has reached the marker position
-                print("** Agent reached the goal!!!!")
+                # print("** Agent reached the goal!!!!")
                 done = True
         else:
             if [agent_pos[0], agent_pos[1]] not in self.valid_positions:
                 reward = self.prev_pos_reward - 1.0
-                print("** not valid position")
+                # print("** not valid position")
                 # done = True
             else:
                 reward = current_distance - self.prev_pos_reward
@@ -139,13 +139,16 @@ class StairClimber(BaseTask):
                 print("** Agent reached the goal!!!!")
                 done = True
 
-        print("reward: ", reward)
+        # print("reward: ", reward)
 
         reward = float(done) if self.sparse_reward else reward
 
         # Adjust reward for sparse or non-sparse version
         if self.sparse_reward:
-            reward = reward if done and not self.done else 0.0
+            # reward = reward if done and not self.done else 0.0
+            reward = 0.0 if done and not self.done else -1.0
+
+        # print(reward, done)
 
         self.done = self.done or done
         return done, reward
