@@ -143,6 +143,7 @@ class KarelGymEnv(gym.Env):
             self.task.run_action(action_name)
 
             self.current_step += 1
+            print("-- Step:", self.current_step)
 
             # Get the reward and check if the episode is terminated
             if self.task_name != 'base':
@@ -153,9 +154,9 @@ class KarelGymEnv(gym.Env):
                 #     terminated = True
 
             if self.current_step >= self.max_steps:
-                terminated = True
+                truncated = True
 
-            if terminated: print("-- Episode Done!!")
+            if terminated or truncated: print("-- Episode Done!!")
 
             return self._get_observation_dsl(), reward, terminated, truncated, {}
                 

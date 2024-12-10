@@ -35,7 +35,6 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
         agent = LstmAgent(envs, h_size=hidden_size).to(device)
     elif args.ppo_type == "gru":
         from agents import GruAgent
-        # TODO: feature exctractor?
         agent = GruAgent(envs, h_size=hidden_size, feature_extractor=True).to(device)
     else:
         raise NotImplementedError
@@ -59,6 +58,7 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
 
     # TRY NOT TO MODIFY: start the game
     global_step = 0
+    positive_step = 0
     start_time = time.time()
     next_obs, _ = envs.reset(seed=seed)
 
@@ -73,9 +73,11 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
     elif args.ppo_type == 'gru':
         next_rnn_state = torch.zeros(agent.gru.num_layers, args.num_envs, agent.gru.hidden_size).to(device)
 
-    total_episodic_return = []  # for optuna
+    # total_episodic_return = []  # for optuna
 
-    for iteration in range(1, args.num_iterations + 1):
+    # for iteration in range(1, args.num_iterations + 1):
+    while global_step < args.total_timesteps:
+        iteration = args.num_iterations
 
         obs = []
         actions = []
@@ -91,7 +93,8 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
 
         # Annealing the rate if instructed to do so.
         if args.anneal_lr:
-            frac = 1.0 - (iteration - 1.0) / args.num_iterations
+            # frac = 1.0 - (iteration - 1.0) / args.num_iterations
+            frac = 1.0 - (global_step - 1.0) / args.total_timesteps
             if args.ppo_type == "original":
                 lrnow = frac * args.learning_rate
                 optimizer.param_groups[0]["lr"] = lrnow
@@ -105,9 +108,10 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
                         param_group['lr'] = lr_other
 
         positive_example = False
-        number_samples = None
+        number_samples = 0
 
         for step in range(0, args.num_steps):
+            print('############################ Step:', step)
             # obs[step] = next_obs
             # dones[step] = next_done
             obs.append(next_obs)
@@ -131,6 +135,7 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
 
             # TRY NOT TO MODIFY: execute the game and log data.
             next_obs, reward, terminations, truncations, infos = envs.step(action.cpu().numpy())
+            print("next obs:", next_obs, "reward:", reward, "terminations:", terminations, "truncations:", truncations)
             # next_done = np.logical_or(terminations, truncations)
             next_done = terminations
             # rewards[step] = torch.tensor(reward).to(device).view(-1)
@@ -138,21 +143,31 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
             next_obs, next_done = torch.Tensor(next_obs).to(device), torch.Tensor(next_done).to(device)
             
             if next_done == 1.0:
+                print('######################################################## Positive example ########################################################')
                 positive_example = True
                 number_samples = len(obs)
+                print('Number of samples:', number_samples)
                 break
+        
+        if positive_example:
+        # Only count these steps towards total training steps
+            # global_step += number_samples
+            positive_step += number_samples
 
         global_step += len(obs)
 
         if "final_info" in infos:
             for info in infos["final_info"]:
                 if info and "episode" in info:
-                    logger.info(f"global_step={global_step}, episodic_return={info['episode']['r']}, episodic_length={info['episode']['l']}")
+                    logger.info(f"global_step={global_step}, episodic_return={info['episode']['r']}, episodic_length={info['episode']['l']}, pos_step={positive_step}")
                     writer.add_scalar("charts/episodic_return", info["episode"]["r"], global_step)
                     writer.add_scalar("charts/episodic_length", info["episode"]["l"], global_step)
-                    total_episodic_return.append(info['episode']['r'])
+                    # total_episodic_return.append(info['episode']['r'])
 
         if not positive_example:
+            # continue with only 20% chance
+            # if np.random.rand() > 0.2:
+            # print("** negative example **")
             continue
 
         print('Training positive')
@@ -361,10 +376,12 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
 
 
     # Compute the average episodic return
-    if total_episodic_return:
-        avg_return = sum(total_episodic_return) / len(total_episodic_return)
-    else:
-        avg_return = 0.0
+    # if total_episodic_return:
+    #     avg_return = sum(total_episodic_return) / len(total_episodic_return)
+    # else:
+    #     avg_return = 0.0
+
+    print(f"Positive steps: {positive_step}")
 
     envs.close()
     writer.close()
@@ -372,5 +389,5 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
     torch.save(agent.state_dict(), model_file_name)
     logger.info(f"Saved on {model_file_name}")
 
-    return avg_return
+    return 0
 
