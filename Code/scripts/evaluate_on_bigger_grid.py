@@ -11,6 +11,8 @@ import gymnasium as gym
 from environment.karel_env.gym_envs.karel_gym import KarelGymEnv, make_karel_env
 from agents import PPOAgent, GruAgent
 
+import imageio
+
 
 def evaluate_model_on_large_grid(model_path, args):
     # Configuration for the large grid environment
@@ -52,12 +54,18 @@ def evaluate_model_on_large_grid(model_path, args):
 
     MAX_STEPS = 1000
 
+    video_dir = os.path.join(project_root, "videos")
+    os.makedirs(video_dir, exist_ok=True)
+
     total_rewards = []
     for episode in range(args.num_episode):
         obs, _ = envs.reset(seed=episode)
         done = False
         episode_reward = 0
         step = 0
+        
+        # A list to store frames (images) for this episode
+        frames = []
 
         if args.ppo_type == "original":
             while not done:
@@ -104,8 +112,18 @@ def evaluate_model_on_large_grid(model_path, args):
                 envs.envs[0].render()
                 # envs.envs[0].task.state2image(envs.envs[0].get_observation(), root_dir=project_root+'/environment/').show()
 
+                # Capture frame
+                img = envs.envs[0].task.state2image(envs.envs[0].get_observation(), root_dir=project_root+'/environment/')
+                frames.append(np.array(img))
+
         print(f"Episode {episode + 1}: Total Reward = {episode_reward}")
         total_rewards.append(episode_reward)
+
+        # Save the video for this episode
+        if args.record_video:
+            video_path = os.path.join(video_dir, f"trajectory_W{args.game_width_eval}_{args.time}.mp4")
+            imageio.mimsave(video_path, frames, fps=10, format='ffmpeg')
+            print(f"Saved video for episode at {video_path}")
 
     average_reward = np.mean(total_rewards)
     print(f"\nAverage Reward over {args.num_episode} episodes: {average_reward}")
@@ -140,6 +158,7 @@ if __name__ == "__main__":
     parser.add_argument('--model_seed', default=0, type=int)
     parser.add_argument('--log_path', default="logs/", type=str)
     parser.add_argument('--num_episode', default=1, type=int)
+    parser.add_argument('--record_video', action='store_true')
 
     args = parser.parse_args()
     print(vars(args))
