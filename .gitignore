@@ -18,4 +18,5 @@ __pycache__/
 *.out
 *.log
 job_logs/
-/videos/
+videos/
+*.mp4
