@@ -484,8 +484,10 @@ class GruAgent(nn.Module):
         self._feature_extractor = feature_extractor
         if feature_extractor:
             self.network = nn.Sequential(
+                # weights_init_xavier(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 32)),
                 layer_init(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 32)),
                 nn.Tanh(),
+                # weights_init_xavier(nn.Linear(32, 32)),
                 layer_init(nn.Linear(32, 32)),
             )
             self.gru = nn.GRU(32, h_size, 1)

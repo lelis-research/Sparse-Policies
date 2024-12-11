@@ -381,6 +381,8 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
     # else:
     #     avg_return = 0.0
 
+    print("args:", args)
+
     print(f"Positive steps: {positive_step}")
 
     envs.close()
