@@ -10,6 +10,7 @@ from environment.minigrid import MiniGridWrap
 from environment.karel_env.gym_envs.karel_gym import KarelGymEnv
 from torch.distributions.categorical import Categorical
 from typing import Union
+import math
 
 device = torch.device("cuda" if torch.cuda.is_available()  else "cpu")
 
@@ -210,6 +211,66 @@ def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
 def weights_init_xavier(layer):
     if isinstance(layer, torch.nn.Linear):
         torch.nn.init.xavier_uniform_(layer.weight)
+        if layer.bias is not None:
+            torch.nn.init.zeros_(layer.bias)
+    return layer
+
+
+"""
+Sparse initialization for neural network weights from the paper: 
+Deep Reinforcement Learning Without Experience Replay, Target Networks, or Batch Updates
+https://openreview.net/pdf?id=yqQJGTDGXN
+"""
+def sparse_init(tensor, sparsity, init_type='uniform'):
+    if tensor.ndimension() == 2:
+        fan_out, fan_in = tensor.shape
+        num_zeros = int(math.ceil(sparsity * fan_in))
+        with torch.no_grad():
+            if init_type == 'uniform':
+                tensor.uniform_(-math.sqrt(1.0 / fan_in), math.sqrt(1.0 / fan_in))
+            elif init_type == 'normal':
+                tensor.normal_(0, math.sqrt(1.0 / fan_in))
+            else:
+                raise ValueError("Unknown initialization type")
+
+            for col_idx in range(fan_out):
+                row_indices = torch.randperm(fan_in)
+                zero_indices = row_indices[:num_zeros]
+                tensor[col_idx, zero_indices] = 0
+        return tensor
+
+    elif tensor.ndimension() == 4:
+        # This handles convolutional layers if needed
+        channels_out, channels_in, h, w = tensor.shape
+        fan_in, fan_out = channels_in * h * w, channels_out * h * w
+        num_zeros = int(math.ceil(sparsity * fan_in))
+        with torch.no_grad():
+            if init_type == 'uniform':
+                tensor.uniform_(-math.sqrt(1.0 / fan_in), math.sqrt(1.0 / fan_in))
+            elif init_type == 'normal':
+                tensor.normal_(0, math.sqrt(1.0 / fan_in))
+            else:
+                raise ValueError("Unknown initialization type")
+
+            for out_channel_idx in range(channels_out):
+                indices = torch.randperm(fan_in)
+                zero_indices = indices[:num_zeros]
+                # Flatten the channel and set zeros
+                tensor[out_channel_idx].view(-1)[zero_indices] = 0
+        return tensor
+    else:
+        raise ValueError("Only tensors with 2 or 4 dimensions are supported for sparse_init")
+
+
+def sparse_init_layer(layer, sparsity=0.9, init_type='uniform'):
+    """
+    Initialize the given layer with a specified sparsity level.
+    Works similarly to layer_init and weights_init_xavier,
+    returning the layer after initialization.
+    """
+    if isinstance(layer, (nn.Linear, nn.Conv2d)):
+        # Apply sparse initialization to layer weights
+        sparse_init(layer.weight, sparsity, init_type=init_type)
         if layer.bias is not None:
             torch.nn.init.zeros_(layer.bias)
     return layer
@@ -485,10 +546,12 @@ class GruAgent(nn.Module):
         if feature_extractor:
             self.network = nn.Sequential(
                 # weights_init_xavier(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 32)),
-                layer_init(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 32)),
+                sparse_init_layer(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 32)),
+                # layer_init(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 32)),
                 nn.Tanh(),
                 # weights_init_xavier(nn.Linear(32, 32)),
-                layer_init(nn.Linear(32, 32)),
+                sparse_init_layer(nn.Linear(32, 32)),
+                # layer_init(nn.Linear(32, 32)),
             )
             self.gru = nn.GRU(32, h_size, 1)
         else:
@@ -520,25 +583,31 @@ class GruAgent(nn.Module):
             )
         else:
             self.actor = nn.Sequential(
-                weights_init_xavier(nn.Linear(h_size, 64)),
+                # weights_init_xavier(nn.Linear(h_size, 64)),
+                sparse_init_layer(nn.Linear(h_size, 64)),
                 # layer_init(nn.Linear(h_size, 64)),
 
                 nn.Tanh(),
-                weights_init_xavier(nn.Linear(64, 64)),
+                # weights_init_xavier(nn.Linear(64, 64)),
+                sparse_init_layer(nn.Linear(64, 64)),
                 # layer_init(nn.Linear(64, 64)),
                 nn.Tanh(),
-                weights_init_xavier(nn.Linear(64, envs.single_action_space.n)),
+                # weights_init_xavier(nn.Linear(64, envs.single_action_space.n)),
+                sparse_init_layer(nn.Linear(64, envs.single_action_space.n)),
                 # layer_init(nn.Linear(64, envs.single_action_space.n)),
             )
 
             self.critic = nn.Sequential(
-                weights_init_xavier(nn.Linear(h_size , 64)),
+                # weights_init_xavier(nn.Linear(h_size , 64)),
+                sparse_init_layer(nn.Linear(h_size , 64)),
                 # layer_init(nn.Linear(h_size , 64)),
                 nn.Tanh(),
-                weights_init_xavier(nn.Linear(64, 64)),
+                # weights_init_xavier(nn.Linear(64, 64)),
+                sparse_init_layer(nn.Linear(64, 64)),
                 # layer_init(nn.Linear(64, 64)),
                 nn.Tanh(),
-                weights_init_xavier(nn.Linear(64, 1)),
+                # weights_init_xavier(nn.Linear(64, 1)),
+                sparse_init_layer(nn.Linear(64, 1)),
                 # layer_init(nn.Linear(64, 1)),
             )
 
@@ -586,6 +655,9 @@ class GruAgent(nn.Module):
         else: 
             hidden, gru_state = self.get_states(x, gru_state, done)
             concatenated = hidden
+            # print("-------- done: ", done)
+            # print("-------- concatenated shape: ", concatenated.shape)
+            # print("-------- concatenated: ", concatenated)
         logits = self.actor(concatenated)
         probs = Categorical(logits=logits)
         # print("action probs: ", probs.probs[:7])
