@@ -121,7 +121,7 @@ def evaluate_model_on_large_grid(model_path, args):
 
         # Save the video for this episode
         if args.record_video:
-            video_path = os.path.join(video_dir, f"trajectory_W{args.game_width_eval}_{args.time}.mp4")
+            video_path = os.path.join(video_dir, f"trajectory_{args.task_name}_W{args.game_width_eval}_{args.time}.mp4")
             imageio.mimsave(video_path, frames, fps=10, format='ffmpeg')
             print(f"Saved video for episode at {video_path}")
 

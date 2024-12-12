@@ -1,7 +1,7 @@
 import numpy as np
 
-from prog_policies.base import BaseTask
-from prog_policies.karel import KarelEnvironment
+from environment.karel_env.base import BaseTask
+from environment.karel_env.karel import KarelEnvironment
 
 
 class Maze(BaseTask):
@@ -90,12 +90,15 @@ class MazeSparse(Maze):
     
     def get_reward(self, env: KarelEnvironment):
         terminated = False
-        reward = 0.
+        # reward = 0.
+        reward = -1.0
 
         karel_pos = env.get_hero_pos()
         
         if karel_pos[0] == self.marker_position[0] and karel_pos[1] == self.marker_position[1]:
             terminated = True
-            reward = 1.
+            # reward = 1.
+            reward = 0.
+            print("** Agent reached the goal!!!!")
         
         return terminated, reward

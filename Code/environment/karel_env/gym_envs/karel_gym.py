@@ -12,6 +12,8 @@ import random
 from environment.karel_env.karel.environment import KarelEnvironment, basic_actions
 from environment.karel_env.karel_tasks.top_off import TopOff, TopOffSparse
 from environment.karel_env.karel_tasks.stair_climber import StairClimber, StairClimberSparse
+from environment.karel_env.karel_tasks.maze import Maze, MazeSparse
+
 
 class KarelGymEnv(gym.Env):
     """
@@ -19,7 +21,8 @@ class KarelGymEnv(gym.Env):
     """
     metadata = {'render.modes': ['human', 'ansi']}
     SUPPORTED_TASKS = ['base', 'top_off', 'top_off_sparse', 
-                      'stair_climber', 'stair_climber_sparse']
+                      'stair_climber', 'stair_climber_sparse',
+                      'maze', 'maze_sparse']
 
     def __init__(self, env_config: Optional[dict] = None, options: Optional[list] = None):
         super(KarelGymEnv, self).__init__()
@@ -97,6 +100,14 @@ class KarelGymEnv(gym.Env):
             )
             task = task_specific.generate_initial_environment(env_args)
 
+        elif self.task_name == 'maze':
+            task_class = MazeSparse if self.config['sparse_reward'] else Maze
+            task_specific = task_class(
+                env_args=env_args,
+                seed=self.config.get('seed'),
+            )
+            task = task_specific.generate_initial_environment(env_args)
+
         elif self.task_name == 'base':
             # we need to pass the initial state to the base task if we want a custom initial state
             env_args['initial_state'] = self.config.get('initial_state')
@@ -148,10 +159,6 @@ class KarelGymEnv(gym.Env):
             # Get the reward and check if the episode is terminated
             if self.task_name != 'base':
                 terminated, reward = self.task_specific.get_reward(self.task)
-                # if self.task.is_crashed():
-                #     print("--- crashed ")
-                #     reward = self.crash_penalty
-                #     terminated = True
 
             if self.current_step >= self.max_steps:
                 truncated = True
@@ -194,7 +201,6 @@ class KarelGymEnv(gym.Env):
             return stopping_prob <= 0.5
 
         # Execute the option
-        # TODO: reward should be revised
         if self.option_index and action >= self.option_index:
             print("--- Outside process action")
             reward_sum = 0
@@ -237,7 +243,6 @@ class KarelGymEnv(gym.Env):
     def reset(self, seed=0, options=None):
         self.current_step = 0
         if self.multi_initial_confs:   # choose between 10 random initial setups
-            # print("---- Using 10 different initial configurations ----")
             selected_seed = random.choice(list(range(10)))
             self.config['seed'] = selected_seed
             self.seed(selected_seed)
@@ -367,8 +372,8 @@ def make_karel_env(env_config: Optional[dict] = None) -> Callable:
 if __name__ == "__main__":
 
     num_features = 16
-    env_height = 12
-    env_width = 12
+    env_height = 8
+    env_width = 8
 
     # A custom initial state for the base task
     initial_state = np.zeros((num_features, env_height, env_width), dtype=bool)
@@ -376,40 +381,37 @@ if __name__ == "__main__":
     initial_state[4, 1, 2] = True  # Wall at (1, 2)
 
     env_config = {
-        'task_name': 'stair_climber',
+        'task_name': 'maze',
         'env_height': env_height,
         'env_width': env_width,
-        'max_steps': 20,
-        'sparse_reward': False,
-        # 'crash_penalty': -1.0,
-        'seed': 3,
+        'max_steps': 1,
+        'sparse_reward': True,
+        'seed': 1,
         'initial_state': initial_state,
-        'multi_initial_confs': True
+        'multi_initial_confs': False
     }
 
     env = make_karel_env(env_config=env_config)()
     init_obs = env.reset()
     env.render()
-    # env.get_observation_dsl()
     env.task.state2image(env.get_observation(), root_dir=project_root + '/environment/').show()
 
     action_names = env.task.actions_list
     action_mapping = {name: idx for idx, name in enumerate(action_names)}
-    action_sequence = ['move', 'turnLeft', 'move', 'move', 'turnRight', 'move', 'turnLeft', 'move', 'turnRight', 'move'] # for stairclimber 6*6
+    # action_sequence = ['move', 'turnLeft', 'move', 'move', 'turnRight', 'move', 'turnLeft', 'move', 'turnRight', 'move'] # for stairclimber 6*6
+    action_sequence = ['turnLeft', 'move', 'move', 'turnRight', 'move', 'move', 'turnLeft', 'move', 'turnRight', 'move'] # for stairclimber 6*6
     actions = [action_mapping[name] for name in action_sequence]
 
     done = False
     total_reward = 0
     for action in actions:
-        print("-- Action:", action_names[action])
+        print("--- Action:", action_names[action])
         obs, reward, done, truncated,info = env.step(action)
-        # print("-- Observation:", obs)
-        print("-- Reward:", reward)
+        print("--- Reward:", reward)
         total_reward += reward
         env.render()
-        # env.get_observation_dsl()
         # env.task.state2image(env.get_observation(), root_dir=project_root + '/environment/').show()
-        if done:
+        if done or truncated:
             print("Episode done")
             break
     print("Total Reward:", total_reward)

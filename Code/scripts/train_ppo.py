@@ -171,6 +171,25 @@ def main(args):
         model_file_name = f'binary/PPO-{args.env_id}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}_vlr{args.value_learning_rate}_{args.ppo_type}_MODEL_{run_time}.pt'
         problem = args.env_id[len("Karel_"):]
 
+        ## Method 1
+        env_config = {
+            'task_name': problem,
+            'env_height': args.game_height,
+            'env_width': args.game_width,
+            'max_steps': args.max_steps,
+            'sparse_reward': args.sparse_reward,
+            'crash_penalty': args.crash_penalty,
+            'seed': args.karel_seed,
+            'initial_state': None,
+
+            # 'reward_diff': args.reward_diff,
+            # 'final_reward_scale': args.reward_scale,
+            'multi_initial_confs': args.multi_initial_confs
+        }
+        envs = gym.vector.SyncVectorEnv(
+            [make_karel_env(env_config=env_config) for _ in range(args.num_envs)]
+        )
+
         ## Method 4
         # args.num_envs = 10
         # seeds = [i for i in range(args.num_envs)]
@@ -233,24 +252,6 @@ def main(args):
         # env_fns = [make_env_with_seed(seed) for seed in seeds]
         # envs = gym.vector.SyncVectorEnv(env_fns)
 
-        ## Method 1
-        env_config = {
-            'task_name': problem,
-            'env_height': args.game_height,
-            'env_width': args.game_width,
-            'max_steps': args.max_steps,
-            'sparse_reward': args.sparse_reward,
-            'crash_penalty': args.crash_penalty,
-            'seed': args.karel_seed,
-            'initial_state': None,
-
-            'reward_diff': args.reward_diff,
-            'final_reward_scale': args.reward_scale,
-            'multi_initial_confs': args.multi_initial_confs
-        }
-        envs = gym.vector.SyncVectorEnv(
-            [make_karel_env(env_config=env_config) for _ in range(args.num_envs)]
-        )
 
     else:
         raise NotImplementedError
