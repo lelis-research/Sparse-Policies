@@ -111,7 +111,7 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
         number_samples = 0
 
         for step in range(0, args.num_steps):
-            print('############################ Step:', step)
+            # print('############################ Step:', step)
             # obs[step] = next_obs
             # dones[step] = next_done
             obs.append(next_obs)
@@ -290,6 +290,8 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
                     # print(mbenvinds)
                     # print()
                     if args.ppo_type == 'gru':
+                        # print('GRU epoch: ', epoch)
+                        # print('mb_inds:', mb_inds, 'b_obs:', b_obs[mb_inds], 'initial_rnn_state:', initial_rnn_state[:, mbenvinds], 'b_dones:', b_dones[mb_inds], 'b_actions:', b_actions.long()[mb_inds])
                         _, newlogprob, entropy, newvalue, _ = agent.get_action_and_value(
                             b_obs[mb_inds],
                             initial_rnn_state[:, mbenvinds],
@@ -388,8 +390,12 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
     envs.close()
     writer.close()
     os.makedirs(os.path.dirname(model_file_name), exist_ok=True)
-    torch.save(agent.state_dict(), model_file_name)
-    logger.info(f"Saved on {model_file_name}")
+    logger.info(f"Experiment: {args.exp_name}")
+    if "test" not in args.exp_name:
+        torch.save(agent.state_dict(), model_file_name)
+        logger.info(f"Saved on {model_file_name}")
+    else:
+        print("Test mode, not saving model")
 
     return 0
 
