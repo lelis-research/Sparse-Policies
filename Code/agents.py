@@ -546,13 +546,22 @@ class GruAgent(nn.Module):
         if feature_extractor:
             self.network = nn.Sequential(
                 # weights_init_xavier(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 32)),
-                sparse_init_layer(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 32)),
-                # layer_init(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 32)),
+                # sparse_init_layer(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 32), sparsity=0.5),
+                layer_init(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 32)),
                 nn.Tanh(),
                 # weights_init_xavier(nn.Linear(32, 32)),
-                sparse_init_layer(nn.Linear(32, 32)),
-                # layer_init(nn.Linear(32, 32)),
+                # sparse_init_layer(nn.Linear(32, 32)),
+                layer_init(nn.Linear(32, 32)),
             )
+
+            # Print feature extractor weights
+            # print("Feature Extractor Weights After Initialization:")
+            # for idx, layer in enumerate(self.network):
+            #     if isinstance(layer, nn.Linear):  # Only print Linear layers
+            #         print(f"Layer {idx}:")
+            #         print("Weight:\n", layer.weight.data)
+            #         print("Bias:\n", layer.bias.data if layer.bias is not None else "No bias")
+
             self.gru = nn.GRU(32, h_size, 1)
         else:
             self.network = IdentityLayer()
@@ -563,8 +572,7 @@ class GruAgent(nn.Module):
                 nn.init.constant_(param, 0)
             elif "weight" in name:
                 nn.init.orthogonal_(param, 1.0)
-        # self.actor = layer_init(nn.Linear(128 + envs.single_observation_space.shape[0], envs.single_action_space.n), std=0.01)
-        # self.critic = layer_init(nn.Linear(128 + envs.single_observation_space.shape[0], 1), std=1)
+
         if self.input_to_actor:
             self.actor = nn.Sequential(
                 layer_init(nn.Linear(h_size + envs.single_observation_space.shape[0], 64)),
@@ -584,31 +592,37 @@ class GruAgent(nn.Module):
         else:
             self.actor = nn.Sequential(
                 # weights_init_xavier(nn.Linear(h_size, 64)),
-                sparse_init_layer(nn.Linear(h_size, 64)),
+                sparse_init_layer(nn.Linear(h_size, 64), sparsity=0.5),
                 # layer_init(nn.Linear(h_size, 64)),
 
                 nn.Tanh(),
                 # weights_init_xavier(nn.Linear(64, 64)),
-                sparse_init_layer(nn.Linear(64, 64)),
+                sparse_init_layer(nn.Linear(64, 64), sparsity=0.5),
                 # layer_init(nn.Linear(64, 64)),
                 nn.Tanh(),
                 # weights_init_xavier(nn.Linear(64, envs.single_action_space.n)),
-                sparse_init_layer(nn.Linear(64, envs.single_action_space.n)),
+                sparse_init_layer(nn.Linear(64, envs.single_action_space.n), sparsity=0.5),
                 # layer_init(nn.Linear(64, envs.single_action_space.n)),
             )
 
+            # for idx, layer in enumerate(self.actor):
+            #     if isinstance(layer, nn.Linear):  # Only print Linear layers
+            #         print(f"Layer {idx}:")
+            #         print("Weight:\n", layer.weight.data)
+            #         print("Bias:\n", layer.bias.data if layer.bias is not None else "No bias")
+
             self.critic = nn.Sequential(
                 # weights_init_xavier(nn.Linear(h_size , 64)),
-                sparse_init_layer(nn.Linear(h_size , 64)),
-                # layer_init(nn.Linear(h_size , 64)),
+                # sparse_init_layer(nn.Linear(h_size , 64)),
+                layer_init(nn.Linear(h_size , 64)),
                 nn.Tanh(),
                 # weights_init_xavier(nn.Linear(64, 64)),
-                sparse_init_layer(nn.Linear(64, 64)),
-                # layer_init(nn.Linear(64, 64)),
+                # sparse_init_layer(nn.Linear(64, 64)),
+                layer_init(nn.Linear(64, 64)),
                 nn.Tanh(),
                 # weights_init_xavier(nn.Linear(64, 1)),
-                sparse_init_layer(nn.Linear(64, 1)),
-                # layer_init(nn.Linear(64, 1)),
+                # sparse_init_layer(nn.Linear(64, 1)),
+                layer_init(nn.Linear(64, 1)),
             )
 
     def get_l1_norm(self):
