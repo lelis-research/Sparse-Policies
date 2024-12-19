@@ -56,6 +56,7 @@ def main(args):
         args.value_learning_rate = wandb.config.value_learning_rate
         args.hidden_size = wandb.config.hidden_size
         args.karel_seed = wandb.config.karel_seed
+        args.l1_lambda = wandb.config.l1_lambda
 
     writer = SummaryWriter(f"outputs/tensorboard/runs/{run_name}")
     writer.add_text(
