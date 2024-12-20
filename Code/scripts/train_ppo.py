@@ -47,6 +47,7 @@ def main(args):
             name=run_name,
             monitor_gym=True,
             save_code=True,
+            mode="offline"
         )
 
         # Update args with values from wandb.config

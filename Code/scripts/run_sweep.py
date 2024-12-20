@@ -108,13 +108,13 @@ sweep_config5 = {
     },
     'parameters': {
         'learning_rate': {
-            'values': [1e-5, 1e-4, 1e-3]  
-        },
-        'clip_coef': {
-            'values': [0.05, 0.1, 0.2] 
-        },
-        'ent_coef': {
-            'values': [0.1, 0.2, 0.25]  
+        #     'values': [1e-5, 1e-4, 1e-3]  
+        # },
+        # 'clip_coef': {
+        #     'values': [0.05, 0.1, 0.2] 
+        # },
+        # 'ent_coef': {
+        #     'values': [0.1, 0.2, 0.25]  
         },
         'l1_lambda': {
             'values': [0.00001, 0.0001, 0.001, 0.005]  
@@ -122,7 +122,7 @@ sweep_config5 = {
     }
 }
 
-sweep_id = wandb.sweep(sweep_config5, project='sweep ppo gru - noSparseInit, xavierInit, L1')
+sweep_id = wandb.sweep(sweep_config5, project='sweep ppo gru - noSparseInit, xavierInit, L1', controller='local')
 
 def sweep_main():
     args = tyro.cli(Args)
