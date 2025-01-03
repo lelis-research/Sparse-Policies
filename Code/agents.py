@@ -630,7 +630,15 @@ class GruAgent(nn.Module):
         return l1_norm
 
     def get_states(self, x, gru_state, done):
+        # print("------- x shape: ", x.shape)
+        # print("------- x : ", x)
+        # for idx, layer in enumerate(self.network):
+        #     if isinstance(layer, nn.Linear):
+        #         print(f"Layer {idx} Weights (before training):", layer.weight)
+        #         print(f"Layer {idx} Bias (before training):", layer.bias)
+
         hidden = self.network(x)
+        # print("------- hidden before reshape:", hidden)
 
         # LSTM logic
         batch_size = gru_state.shape[1]
@@ -638,13 +646,16 @@ class GruAgent(nn.Module):
         hidden = hidden.reshape((-1, batch_size, self.gru.input_size))
         done = done.reshape((-1, batch_size))
         new_hidden = []
+        # print("--Before loop state \n hidden: ", hidden, "\n done: ", done)
         for h, d in zip(hidden, done):
             # print('d: ', d)
             h, gru_state = self.gru(h.unsqueeze(0), (1.0 - d).view(1, -1, 1) * gru_state)
             # quantized_hidden = STEQuantize.apply(h) # no need to quantize hidden state
             new_hidden += [h]
             # new_state += [gru_state]
+        # print("--- before flatten - new hidden: ", new_hidden)
         new_hidden = torch.flatten(torch.cat(new_hidden), 0, 1)
+        # print("--- after flatten - new hidden: ", new_hidden)
         # new_state = torch.flatten(torch.cat(new_state), 0, 1)
         # return new_hidden, STEQuantize.apply(gru_state)
         # print(len(new_hidden), len(new_state), new_hidden[0].shape, new_state[0].shape)
@@ -667,6 +678,9 @@ class GruAgent(nn.Module):
             hidden, gru_state = self.get_states(x, gru_state, done)
             concatenated = torch.cat((hidden, x), dim=1)
         else: 
+            # print("Inside gru \n x: ", x)
+            # print("gru_state: ", gru_state)
+            # print("done: ", done)
             hidden, gru_state = self.get_states(x, gru_state, done)
             concatenated = hidden
             # print("-------- done: ", done)
