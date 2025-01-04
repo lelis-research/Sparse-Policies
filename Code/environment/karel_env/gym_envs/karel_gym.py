@@ -41,7 +41,7 @@ class KarelGymEnv(gym.Env):
         if env_config is not None:
             default_config.update(env_config)
         self.config = default_config
-        print("--- Config:", self.config)
+        # print("--- Config:", self.config)
 
         self._handle_initial_state()
 
@@ -145,7 +145,7 @@ class KarelGymEnv(gym.Env):
         self.option_sizes = [3 for _ in range(len(options))]    # TODO: change this to a more general way
 
     def step(self, action:int):
-        print("---- action index:", action)
+        # print("---- action index:", action)
         assert self.action_space.contains(action), "Invalid action"
         truncated = False
         def process_action(action:int):
@@ -163,7 +163,7 @@ class KarelGymEnv(gym.Env):
             if self.current_step >= self.max_steps:
                 truncated = True
 
-            if terminated or truncated: print("-- Episode Done!!")
+            # if terminated or truncated: print("-- Episode Done!!")
 
             return self._get_observation_dsl(), reward, terminated, truncated, {}
                 
@@ -353,7 +353,7 @@ class KarelGymEnv(gym.Env):
             self.config['env_height'] = env_height
             self.config['env_width'] = env_width
         else:
-            print("---- Using env_height and env_width from input ----")
+            # print("---- Using env_height and env_width from input ----")
             self.env_height = self.config['env_height']
             self.env_width = self.config['env_width']
 

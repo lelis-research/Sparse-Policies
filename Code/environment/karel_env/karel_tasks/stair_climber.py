@@ -117,7 +117,7 @@ class StairClimber(BaseTask):
 
             if [agent_pos[0], agent_pos[1]] not in self.valid_positions:
                 reward = -1.0
-                print("** not valid position")
+                # print("** not valid position")
                 # done = True
 
             if current_distance == 0:
@@ -127,7 +127,7 @@ class StairClimber(BaseTask):
         else:
             if [agent_pos[0], agent_pos[1]] not in self.valid_positions:
                 reward = self.prev_pos_reward - 1.0
-                print("** not valid position")
+                # print("** not valid position")
                 # done = True
             else:
                 reward = current_distance - self.prev_pos_reward
