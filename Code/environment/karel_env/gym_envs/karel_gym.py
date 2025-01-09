@@ -61,6 +61,7 @@ class KarelGymEnv(gym.Env):
         self.reward_diff = self.config['reward_diff'] if 'reward_diff' in self.config else False
         self.rescale_reward = self.config['reward_scale'] if 'reward_scale' in self.config else True
         self.multi_initial_confs = self.config['multi_initial_confs'] if 'multi_initial_confs' in self.config else False
+        self.last_action = -1.0
 
         # Initialize the task
         self.task_name = self.config['task_name']
@@ -147,6 +148,7 @@ class KarelGymEnv(gym.Env):
     def step(self, action:int):
         # print("---- action index:", action)
         assert self.action_space.contains(action), "Invalid action"
+        self.last_action = action
         truncated = False
         def process_action(action:int):
             nonlocal truncated
@@ -330,12 +332,16 @@ class KarelGymEnv(gym.Env):
         """
         Returns an observation that a DSL agent would see but for our RL agent
         """
+        # print("--- last action in OBS:", self.last_action)
         dsl_obs = np.array([
             self.task.get_bool_feature("frontIsClear"),
             self.task.get_bool_feature("leftIsClear"),
             self.task.get_bool_feature("rightIsClear"),
-            self.task.get_bool_feature("markersPresent")
+            self.task.get_bool_feature("markersPresent"),
+            self.last_action
         ], dtype=float)
+        # print("obs: ", dsl_obs)
+
         return dsl_obs
 
     def _handle_initial_state(self):
@@ -384,7 +390,7 @@ if __name__ == "__main__":
         'task_name': 'maze',
         'env_height': env_height,
         'env_width': env_width,
-        'max_steps': 1,
+        'max_steps': 10,
         'sparse_reward': True,
         'seed': 1,
         'initial_state': initial_state,
