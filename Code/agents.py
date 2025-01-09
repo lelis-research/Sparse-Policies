@@ -277,7 +277,7 @@ def sparse_init_layer(layer, sparsity=0.9, init_type='uniform'):
 
 
 class PPOAgent(nn.Module):
-    def __init__(self, envs, hidden_size=6):
+    def __init__(self, envs, hidden_size=6, feature_extractor=False, greedy=False):
         super().__init__()
         if isinstance(envs, ComboGym):
             observation_space_size = envs.get_observation_space()
@@ -294,8 +294,22 @@ class PPOAgent(nn.Module):
             action_space_size = envs.action_space.n
         else:
             raise NotImplementedError
-
+        
+        self.greedy = greedy
+        
         print("obs size: ", observation_space_size, ", act size: ", action_space_size)
+        print("single obs size: ", envs.single_observation_space.shape)
+        if feature_extractor:
+            self.network = nn.Sequential(
+                # weights_init_xavier(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 32)),
+                # sparse_init_layer(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 32), sparsity=0.5),
+                layer_init(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 32)),
+                nn.Tanh(),
+                # weights_init_xavier(nn.Linear(32, 32)),
+                # sparse_init_layer(nn.Linear(32, 32)),
+                layer_init(nn.Linear(32, 32)),
+            )
+
         self.critic = nn.Sequential(
             layer_init(nn.Linear(observation_space_size, 64)),
             nn.Tanh(),
@@ -317,7 +331,10 @@ class PPOAgent(nn.Module):
         logits = self.actor(x)
         probs = Categorical(logits=logits)
         if action is None:
-            action = probs.sample()
+            if self.greedy:
+                action = torch.tensor([torch.argmax(logits[i]).item() for i in range(len(logits))])
+            else:
+                action = probs.sample()
         return action, probs.log_prob(action), probs.entropy(), self.critic(x), logits
     
     def to_option(self, mask, option_size):

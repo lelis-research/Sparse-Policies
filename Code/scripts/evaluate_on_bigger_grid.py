@@ -44,7 +44,7 @@ def evaluate_model_on_large_grid(model_path, args):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     if args.ppo_type == "original":
-        agent = PPOAgent(envs, hidden_size=args.hidden_size).to(device)
+        agent = PPOAgent(envs, hidden_size=args.hidden_size, feature_extractor=args.feature_extractor, greedy=True).to(device)
     elif args.ppo_type == "gru":
         agent = GruAgent(envs, h_size=args.hidden_size, feature_extractor=args.feature_extractor, greedy=True).to(device)
 
