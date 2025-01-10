@@ -3,9 +3,9 @@ from environment.karel_env.base import BaseTask
 
 from .stair_climber import StairClimber, StairClimberSparse
 from .maze import Maze, MazeSparse
-# from .four_corners import FourCorners, FourCornersSparse
+from .four_corners import FourCorners, FourCornersSparse
 from .top_off import TopOff, TopOffSparse
-# from .harvester import Harvester, HarvesterSparse
+from .harvester import Harvester, HarvesterSparse
 # from .clean_house import CleanHouse, CleanHouseSparse
 # from .door_key import DoorKey
 # from .one_stroke import OneStroke

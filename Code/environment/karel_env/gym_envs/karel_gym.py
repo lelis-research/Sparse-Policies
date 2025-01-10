@@ -10,9 +10,11 @@ import torch
 import random
 
 from environment.karel_env.karel.environment import KarelEnvironment, basic_actions
-from environment.karel_env.karel_tasks.top_off import TopOff, TopOffSparse
 from environment.karel_env.karel_tasks.stair_climber import StairClimber, StairClimberSparse
 from environment.karel_env.karel_tasks.maze import Maze, MazeSparse
+from environment.karel_env.karel_tasks.four_corners import FourCorners, FourCornersSparse
+from environment.karel_env.karel_tasks.top_off import TopOff, TopOffSparse
+from environment.karel_env.karel_tasks.harvester import Harvester, HarvesterSparse
 
 
 class KarelGymEnv(gym.Env):
@@ -22,7 +24,10 @@ class KarelGymEnv(gym.Env):
     metadata = {'render.modes': ['human', 'ansi']}
     SUPPORTED_TASKS = ['base', 'top_off', 'top_off_sparse', 
                       'stair_climber', 'stair_climber_sparse',
-                      'maze', 'maze_sparse']
+                      'maze', 'maze_sparse',
+                      'four_corner', 'four_corner_sparse',
+                      'top_off', 'top_off_sparse',
+                      'harvester', 'harvester_sparse']
 
     def __init__(self, env_config: Optional[dict] = None, options: Optional[list] = None):
         super(KarelGymEnv, self).__init__()

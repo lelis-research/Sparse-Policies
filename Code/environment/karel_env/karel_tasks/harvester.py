@@ -1,7 +1,7 @@
 import numpy as np
 
-from prog_policies.base import BaseTask
-from prog_policies.karel import KarelEnvironment
+from environment.karel_env.base import BaseTask
+from environment.karel_env.karel import KarelEnvironment
 
 
 class Harvester(BaseTask):
@@ -58,16 +58,20 @@ class HarvesterSparse(Harvester):
     
     def get_reward(self, env: KarelEnvironment):
         terminated = False
-        reward = 0.
+        # reward = 0.
+        reward = -1.0
 
         num_markers = env.markers_grid.sum()
         
         if num_markers > self.previous_number_of_markers:
-            reward = self.crash_penalty
+            # NOT POSITIVE EXAMPLE
+            # reward = self.crash_penalty
+            reward = -1.0
             terminated = True
         
         elif num_markers == 0:
-            reward = 1.
+            # reward = 1.
+            reward = 0.0
             terminated = True
         
         return terminated, reward

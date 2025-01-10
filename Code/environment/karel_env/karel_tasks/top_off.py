@@ -71,7 +71,8 @@ class TopOffSparse(TopOff):
     def get_reward(self, env: KarelEnvironment):
         terminated = False
         num_correct_markers = 0
-        reward = 0.
+        # reward = 0.
+        reward = -1.0
 
         for marker in self.markers:
             if env.markers_grid[marker[0], marker[1]] == 2:
@@ -81,11 +82,14 @@ class TopOffSparse(TopOff):
         
         num_markers = env.markers_grid.sum()
         if num_markers > num_correct_markers + len(self.markers):
+            # NOT POSITIVE EXAMPLE
             terminated = True
-            reward = self.crash_penalty
+            # reward = self.crash_penalty
+            reward = -1.0
         
         if num_correct_markers == len(self.markers):
             terminated = True
             reward = 1.
+            reward = 0.0
         
         return terminated, reward

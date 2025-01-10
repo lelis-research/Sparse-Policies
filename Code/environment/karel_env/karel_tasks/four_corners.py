@@ -1,7 +1,7 @@
 import numpy as np
 
-from prog_policies.base import BaseTask
-from prog_policies.karel import KarelEnvironment
+from environment.karel_env.base import BaseTask
+from environment.karel_env.karel import KarelEnvironment
 
 
 class FourCorners(BaseTask):
@@ -66,7 +66,8 @@ class FourCornersSparse(FourCorners):
     
     def get_reward(self, env: KarelEnvironment):
         terminated = False
-        reward = 0.
+        # reward = 0.
+        reward = -1.0
 
         num_placed_markers = env.markers_grid.sum()
         num_correct_markers = 0
@@ -76,11 +77,15 @@ class FourCornersSparse(FourCorners):
                 num_correct_markers += 1
 
         if num_placed_markers > num_correct_markers:
+            # NOT POSITIVE EXAMPLE
             terminated = True
-            reward = self.crash_penalty
+            # reward = self.crash_penalty
+            reward = -1.0
         
         elif num_correct_markers == len(self.goal_markers):
             terminated = True
-            reward = 1.
+            # reward = 1.
+            reward = 0.
+            print("** Agent reached the goal!!!!")
         
         return terminated, reward
