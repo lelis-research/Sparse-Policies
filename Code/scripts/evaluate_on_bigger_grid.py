@@ -39,7 +39,7 @@ def evaluate_model_on_large_grid(model_path, args):
 
     envs.reset()
     envs.envs[0].render()
-    envs.envs[0].task.state2image(envs.envs[0].get_observation(), root_dir=project_root+'/environment/').show()
+    # envs.envs[0].task.state2image(envs.envs[0].get_observation(), root_dir=project_root+'/environment/').show()
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 

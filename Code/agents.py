@@ -314,6 +314,9 @@ class PPOAgent(nn.Module):
             layer_init(nn.Linear(observation_space_size, hidden_size)),
             # sparse_init_layer(nn.Linear(observation_space_size, hidden_size), sparsity=0.5),
             nn.Tanh(),
+            layer_init(nn.Linear(hidden_size, hidden_size)),
+            # sparse_init_layer(nn.Linear(hidden_size, hidden_size), sparsity=0.5),
+            nn.Tanh(),
             layer_init(nn.Linear(hidden_size, action_space_size), std=0.01),
             # sparse_init_layer(nn.Linear(hidden_size, action_space_size), sparsity=0.5),
         )
