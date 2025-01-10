@@ -82,8 +82,12 @@ def evaluate_model_on_large_grid(model_path, args):
                 if step > MAX_STEPS:
                     done = True
 
-                # envs.envs[0].render()
-                envs.envs[0].task.state2image(envs.envs[0].get_observation(), root_dir=project_root+'/environment/').show()
+                envs.envs[0].render()
+                # envs.envs[0].task.state2image(envs.envs[0].get_observation(), root_dir=project_root+'/environment/').show()
+                
+                # Capture frame
+                img = envs.envs[0].task.state2image(envs.envs[0].get_observation(), root_dir=project_root+'/environment/')
+                frames.append(np.array(img))
 
         elif args.ppo_type == "gru":
             # Initialize hidden state(s)
@@ -116,7 +120,7 @@ def evaluate_model_on_large_grid(model_path, args):
                 img = envs.envs[0].task.state2image(envs.envs[0].get_observation(), root_dir=project_root+'/environment/')
                 frames.append(np.array(img))
 
-        print(f"Episode {episode + 1}: Total Reward = {episode_reward}")
+        print(f"Total Reward = {episode_reward}")
         total_rewards.append(episode_reward)
 
         # Save the video for this episode
@@ -124,9 +128,6 @@ def evaluate_model_on_large_grid(model_path, args):
             video_path = os.path.join(video_dir, f"trajectory_{args.task_name}_W{args.game_width_eval}_{args.time}_ks{args.karel_seed}.mp4")
             imageio.mimsave(video_path, frames, fps=10, format='ffmpeg')
             print(f"Saved video for episode at {video_path}")
-
-    average_reward = np.mean(total_rewards)
-    print(f"\nAverage Reward over {args.num_episode} episodes: {average_reward}")
 
     envs.close()
 
@@ -151,7 +152,7 @@ if __name__ == "__main__":
     parser.add_argument('--clip_coef', default=0.01, type=float)
     parser.add_argument('--ent_coef', default=0.01, type=float)
     parser.add_argument('--feature_extractor', action='store_true')
-    parser.add_argument('--value_learning_rate', default=0.005, type=float)
+    parser.add_argument('--value_learning_rate', default=0.0, type=float)
     parser.add_argument('--time', type=int)
 
 

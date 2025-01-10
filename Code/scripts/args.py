@@ -127,7 +127,7 @@ class Args:
 
     ppo_type: str = "original"
     """the type of PPO actor and critic netowrks. Choices: [original, lstm, gru]"""
-    value_learning_rate: float = 5e-4
+    value_learning_rate: float = 0
     """the learning rate of the optimizer for value network"""
     weight_decay: float = 0
     "weight decay for l2 regularization"
