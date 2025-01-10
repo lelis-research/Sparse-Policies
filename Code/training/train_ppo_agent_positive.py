@@ -29,7 +29,7 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
 
     if args.ppo_type == "original":
         from agents import PPOAgent
-        agent = PPOAgent(envs, hidden_size=hidden_size).to(device)
+        agent = PPOAgent(envs, hidden_size=hidden_size, feature_extractor=True).to(device)
     elif args.ppo_type == "lstm":
         from agents import LstmAgent
         agent = LstmAgent(envs, h_size=hidden_size).to(device)
@@ -73,7 +73,6 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
     elif args.ppo_type == 'gru':
         next_rnn_state = torch.zeros(agent.gru.num_layers, args.num_envs, agent.gru.hidden_size).to(device)
 
-    # total_episodic_return = []  # for optuna
 
     # for iteration in range(1, args.num_iterations + 1):
     while global_step < args.total_timesteps:
@@ -162,7 +161,6 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
                     logger.info(f"global_step={global_step}, episodic_return={info['episode']['r']}, episodic_length={info['episode']['l']}, pos_step={positive_step}")
                     writer.add_scalar("charts/episodic_return", info["episode"]["r"], global_step)
                     writer.add_scalar("charts/episodic_length", info["episode"]["l"], global_step)
-                    # total_episodic_return.append(info['episode']['r'])
 
         if not positive_example:
             # continue with only 20% chance
@@ -214,13 +212,22 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
 
         # Optimizing the policy and value network
         if args.ppo_type == "original":
-            b_inds = np.arange(args.batch_size)
+            # b_inds = np.arange(args.batch_size)
+            assert args.num_envs % args.num_minibatches == 0
+            envsperbatch = args.num_envs // args.num_minibatches
+            envinds = np.arange(args.num_envs)
+            flatinds = np.arange(number_samples).reshape(number_samples, args.num_envs)
             clipfracs = []
             for epoch in range(args.update_epochs):
-                np.random.shuffle(b_inds)
-                for start in range(0, args.batch_size, args.minibatch_size):
-                    end = start + args.minibatch_size
-                    mb_inds = b_inds[start:end]
+                # np.random.shuffle(b_inds)
+                # for start in range(0, args.batch_size, args.minibatch_size):
+                #     end = start + args.minibatch_size
+                #     mb_inds = b_inds[start:end]
+                np.random.shuffle(envinds)
+                for start in range(0, args.num_envs, envsperbatch):
+                    end = start + envsperbatch
+                    mbenvinds = envinds[start:end]
+                    mb_inds = flatinds[:, mbenvinds].ravel()  # be really careful about the index
 
                     _, newlogprob, entropy, newvalue, _ = agent.get_action_and_value(b_obs[mb_inds], b_actions.long()[mb_inds])
                     logratio = newlogprob - b_logprobs[mb_inds]
@@ -234,7 +241,11 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
 
                     mb_advantages = b_advantages[mb_inds]
                     if args.norm_adv:
-                        mb_advantages = (mb_advantages - mb_advantages.mean()) / (mb_advantages.std() + 1e-8)
+                        if len(mb_advantages) > 1:
+                            std = mb_advantages.std()
+                            mb_advantages = (mb_advantages - mb_advantages.mean()) / (std + 1e-8)
+                        else:
+                            logger.info("Skipping normalization for single-element mb_advantages.")
 
                     # Policy loss
                     pg_loss1 = -mb_advantages * ratio
@@ -258,6 +269,11 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
 
                     entropy_loss = entropy.mean()
 
+                    # TODO: check
+                    l1_reg = torch.tensor(0.).to(device)
+                    for param in agent.actor.parameters():
+                        l1_reg += torch.norm(param, 1)
+
                     loss = pg_loss - args.ent_coef * entropy_loss + v_loss * args.vf_coef + l1_lambda * l1_reg
 
                     optimizer.zero_grad()
@@ -279,18 +295,9 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
                 for start in range(0, args.num_envs, envsperbatch):
                     end = start + envsperbatch
                     mbenvinds = envinds[start:end]
-                    # print(envinds)
-                    # print(mbenvinds)
                     mb_inds = flatinds[:, mbenvinds].ravel()  # be really careful about the index
-                    # print(mb_inds)
-                    # print()
 
-                    # print(initial_rnn_state.shape)
-                    # print(initial_rnn_state[:, mbenvinds],)
-                    # print(mbenvinds)
-                    # print()
                     if args.ppo_type == 'gru':
-                        # print('GRU epoch: ', epoch)
                         # print('mb_inds:', mb_inds, 'b_obs:', b_obs[mb_inds], 'initial_rnn_state:', initial_rnn_state[:, mbenvinds], 'b_dones:', b_dones[mb_inds], 'b_actions:', b_actions.long()[mb_inds])
                         _, newlogprob, entropy, newvalue, _ = agent.get_action_and_value(
                             b_obs[mb_inds],
@@ -316,17 +323,12 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
                         clipfracs += [((ratio - 1.0).abs() > args.clip_coef).float().mean().item()]
 
                     mb_advantages = b_advantages[mb_inds]
-                    # print("**--- mb_advantages: ", mb_advantages)
-                    # print("**--- mb_advantages mean: ", mb_advantages.mean())
-                    # print("**--- mb_advantages std: ", mb_advantages.std())
-
                     if args.norm_adv:
                         if len(mb_advantages) > 1:
                             std = mb_advantages.std()
                             mb_advantages = (mb_advantages - mb_advantages.mean()) / (std + 1e-8)
                         else:
                             logger.info("Skipping normalization for single-element mb_advantages.")
-                    # print("**--- mb_advantages: ", mb_advantages)
 
                     #L1 loss
                     if args.ppo_type == 'gru':
@@ -334,15 +336,10 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
                     elif args.ppo_type == 'lstm':
                         l1_loss = _l1_norm(model=agent.lstm, lambda_l1=args.l1_lambda)
 
-                    # print("**--- l1 loss: ", l1_loss)
-
                     # Policy loss
                     pg_loss1 = -mb_advantages * ratio
                     pg_loss2 = -mb_advantages * torch.clamp(ratio, 1 - args.clip_coef, 1 + args.clip_coef)
                     pg_loss = torch.max(pg_loss1, pg_loss2).mean() + l1_lambda * l1_loss
-                    # print("**--- pg loss1: ", pg_loss1)
-                    # print("**--- pg loss2: ", pg_loss2)
-                    # print("**--- pg loss: ", pg_loss)
 
                     # Value loss
                     newvalue = newvalue.view(-1)
@@ -358,21 +355,13 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
                         v_loss = 0.5 * v_loss_max.mean()
                     else:
                         v_loss = 0.5 * ((newvalue - b_returns[mb_inds]) ** 2).mean()
-                    
-                    # print("**--- v loss: ", v_loss)
-
-
+                
                     entropy_loss = entropy.mean()
-                    # print("**--- entropy_loss: ", entropy_loss)
 
                     loss = pg_loss - args.ent_coef * entropy_loss + v_loss * args.vf_coef
 
                     optimizer.zero_grad()
                     loss.backward()
-                    # print(f"**--- Loss value: {loss.item()}")
-                    # for name, param in agent.named_parameters():
-                    #     if param.grad is not None:
-                    #         print(f"Gradient norm for {name}: {param.grad.norm().item()}")
                     nn.utils.clip_grad_norm_(agent.parameters(), args.max_grad_norm)
                     optimizer.step()
 
@@ -393,21 +382,14 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
         writer.add_scalar("losses/clipfrac", np.mean(clipfracs), global_step)
         if args.ppo_type == "original": writer.add_scalar("losses/l1_reg", l1_reg.item(), global_step)
         writer.add_scalar("losses/explained_variance", explained_var, global_step)
-        logger.info(f"SPS: {int(global_step / (time.time() - start_time))}")
+        # logger.info(f"SPS: {int(global_step / (time.time() - start_time))}")
         writer.add_scalar("charts/SPS", int(global_step / (time.time() - start_time)), global_step)
         
         if iteration % 1000 == 0:
             logger_flush(logger)
 
 
-    # Compute the average episodic return
-    # if total_episodic_return:
-    #     avg_return = sum(total_episodic_return) / len(total_episodic_return)
-    # else:
-    #     avg_return = 0.0
-
     print("args:", args)
-
     print(f"Positive steps: {positive_step}")
 
     envs.close()
