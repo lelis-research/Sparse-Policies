@@ -81,6 +81,7 @@ class FourCornersSparse(FourCorners):
             terminated = True
             # reward = self.crash_penalty
             reward = -1.0
+            print("** Agent placed more markers than necessary")
         
         elif num_correct_markers == len(self.goal_markers):
             terminated = True

@@ -114,6 +114,22 @@ class KarelGymEnv(gym.Env):
             )
             task = task_specific.generate_initial_environment(env_args)
 
+        elif self.task_name == 'four_corner':
+            task_class = FourCornersSparse if self.config['sparse_reward'] else FourCorners
+            task_specific = task_class(
+                env_args=env_args,
+                seed=self.config.get('seed'),
+            )
+            task = task_specific.generate_initial_environment(env_args)
+
+        elif self.task_name == 'harvester':
+            task_class = HarvesterSparse if self.config['sparse_reward'] else Harvester
+            task_specific = task_class(
+                env_args=env_args,
+                seed=self.config.get('seed'),
+            )
+            task = task_specific.generate_initial_environment(env_args)
+
         elif self.task_name == 'base':
             # we need to pass the initial state to the base task if we want a custom initial state
             env_args['initial_state'] = self.config.get('initial_state')
@@ -171,6 +187,7 @@ class KarelGymEnv(gym.Env):
                 truncated = True
 
             # if terminated or truncated: print("-- Episode Done!!")
+            # print("truncate:", truncated, "terminated:", terminated)
 
             return self._get_observation_dsl(), reward, terminated, truncated, {}
                 
@@ -337,7 +354,6 @@ class KarelGymEnv(gym.Env):
         """
         Returns an observation that a DSL agent would see but for our RL agent
         """
-        # print("--- last action in OBS:", self.last_action)
         dsl_obs = np.array([
             self.task.get_bool_feature("frontIsClear"),
             self.task.get_bool_feature("leftIsClear"),
@@ -345,7 +361,6 @@ class KarelGymEnv(gym.Env):
             self.task.get_bool_feature("markersPresent"),
             self.last_action
         ], dtype=float)
-        # print("obs: ", dsl_obs)
 
         return dsl_obs
 
@@ -392,10 +407,10 @@ if __name__ == "__main__":
     initial_state[4, 1, 2] = True  # Wall at (1, 2)
 
     env_config = {
-        'task_name': 'maze',
+        'task_name': 'top_off',
         'env_height': env_height,
         'env_width': env_width,
-        'max_steps': 10,
+        'max_steps': 100,
         'sparse_reward': True,
         'seed': 1,
         'initial_state': initial_state,
@@ -410,15 +425,18 @@ if __name__ == "__main__":
     action_names = env.task.actions_list
     action_mapping = {name: idx for idx, name in enumerate(action_names)}
     # action_sequence = ['move', 'turnLeft', 'move', 'move', 'turnRight', 'move', 'turnLeft', 'move', 'turnRight', 'move'] # for stairclimber 6*6
-    action_sequence = ['turnLeft', 'move', 'move', 'turnRight', 'move', 'move', 'turnLeft', 'move', 'turnRight', 'move'] # for stairclimber 6*6
+    # action_sequence = ['move', 'putMarker', 'turnLeft', 'move', 'move', 'move', 'move', 'move', 'putMarker', 'turnLeft', 'move', 'move', 'move', 'move', 'move', 'putMarker', 'turnLeft', 'move', 'move', 'move', 'move', 'move', 'putMarker', 'turnLeft', 'move', 'move', 'move', 'move', 'move'] # for stairclimber 6*6
+    # action_sequence = ['pickMarker', 'move', 'pickMarker', 'turnLeft', 'move', 'pickMarker']
+    action_sequence = ['move', 'move', 'move', 'putMarker', 'move', 'move', 'putMarker']
     actions = [action_mapping[name] for name in action_sequence]
 
     done = False
     total_reward = 0
     for action in actions:
         print("--- Action:", action_names[action])
-        obs, reward, done, truncated,info = env.step(action)
+        obs, reward, done, truncated, info = env.step(action)
         print("--- Reward:", reward)
+        print("--- Done:", done)
         total_reward += reward
         env.render()
         # env.task.state2image(env.get_observation(), root_dir=project_root + '/environment/').show()

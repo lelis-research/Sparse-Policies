@@ -89,7 +89,8 @@ class TopOffSparse(TopOff):
         
         if num_correct_markers == len(self.markers):
             terminated = True
-            reward = 1.
+            # reward = 1.
             reward = 0.0
+            print("** Agent placed all markers correctly")
         
         return terminated, reward
