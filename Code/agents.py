@@ -297,8 +297,8 @@ class PPOAgent(nn.Module):
         
         self.greedy = greedy
         
-        print("obs size: ", observation_space_size, ", act size: ", action_space_size)
-        print("single obs size: ", envs.single_observation_space.shape)
+        # print("obs size: ", observation_space_size, ", act size: ", action_space_size)
+        # print("single obs size: ", envs.single_observation_space.shape)
         if feature_extractor:
             self.network = nn.Sequential(
                 # weights_init_xavier(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 32)),
@@ -310,17 +310,19 @@ class PPOAgent(nn.Module):
                 layer_init(nn.Linear(32, 32)),
             )
 
+        self.actor = nn.Sequential(
+            layer_init(nn.Linear(observation_space_size, hidden_size)),
+            # sparse_init_layer(nn.Linear(observation_space_size, hidden_size), sparsity=0.5),
+            nn.Tanh(),
+            layer_init(nn.Linear(hidden_size, action_space_size), std=0.01),
+            # sparse_init_layer(nn.Linear(hidden_size, action_space_size), sparsity=0.5),
+        )
         self.critic = nn.Sequential(
             layer_init(nn.Linear(observation_space_size, 64)),
             nn.Tanh(),
             layer_init(nn.Linear(64, 64)),
             nn.Tanh(),
             layer_init(nn.Linear(64, 1), std=1.0),
-        )
-        self.actor = nn.Sequential(
-            layer_init(nn.Linear(observation_space_size, hidden_size)),
-            nn.Tanh(),
-            layer_init(nn.Linear(hidden_size, action_space_size), std=0.01),
         )
         self.mask = None
         
