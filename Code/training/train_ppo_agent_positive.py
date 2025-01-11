@@ -247,10 +247,15 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
                         else:
                             logger.info("Skipping normalization for single-element mb_advantages.")
 
+                    # L1 loss
+                    l1_loss = _l1_norm(model=agent.actor, lambda_l1=args.l1_lambda)
+
                     # Policy loss
                     pg_loss1 = -mb_advantages * ratio
                     pg_loss2 = -mb_advantages * torch.clamp(ratio, 1 - args.clip_coef, 1 + args.clip_coef)
-                    pg_loss = torch.max(pg_loss1, pg_loss2).mean()
+                    # pg_loss = torch.max(pg_loss1, pg_loss2).mean()
+                    pg_loss = torch.max(pg_loss1, pg_loss2).mean() + l1_loss
+
 
                     # Value loss
                     newvalue = newvalue.view(-1)
@@ -274,7 +279,9 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
                     for param in agent.actor.parameters():
                         l1_reg += torch.norm(param, 1)
 
-                    loss = pg_loss - args.ent_coef * entropy_loss + v_loss * args.vf_coef + l1_lambda * l1_reg
+                    # loss = pg_loss - args.ent_coef * entropy_loss + v_loss * args.vf_coef + l1_lambda * l1_reg
+                    loss = pg_loss - args.ent_coef * entropy_loss + v_loss * args.vf_coef
+
 
                     optimizer.zero_grad()
                     loss.backward()
