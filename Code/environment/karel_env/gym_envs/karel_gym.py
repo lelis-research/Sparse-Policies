@@ -274,6 +274,7 @@ class KarelGymEnv(gym.Env):
         # else:
         #     print(f"---- Using the same initial configuration {self.config['seed']}----")
         self.task, self.task_specific = self._initialize_task()
+        self.last_action = -1.0
         return self._get_observation_dsl(), {}
 
     def render(self, mode='human'):
@@ -354,13 +355,20 @@ class KarelGymEnv(gym.Env):
         """
         Returns an observation that a DSL agent would see but for our RL agent
         """
+        num_actions = 5  # number of actions
+        one_hot_action = np.zeros(num_actions, dtype=float)
+        
+        if self.last_action is not None and self.last_action != -1: 
+            one_hot_action[int(self.last_action)] = 1.0
+
         dsl_obs = np.array([
             self.task.get_bool_feature("frontIsClear"),
             self.task.get_bool_feature("leftIsClear"),
             self.task.get_bool_feature("rightIsClear"),
             self.task.get_bool_feature("markersPresent"),
-            self.last_action
         ], dtype=float)
+
+        dsl_obs = np.concatenate((dsl_obs, one_hot_action))
 
         return dsl_obs
 
