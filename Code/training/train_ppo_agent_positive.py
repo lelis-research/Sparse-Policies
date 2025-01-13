@@ -248,13 +248,16 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
                             logger.info("Skipping normalization for single-element mb_advantages.")
 
                     # L1 loss
-                    l1_loss = _l1_norm(model=agent.actor, lambda_l1=args.l1_lambda)
+                    # l1_loss = _l1_norm(model=agent.actor, lambda_l1=args.l1_lambda)
+                    l1_loss = agent.get_l1_norm()
 
                     # Policy loss
                     pg_loss1 = -mb_advantages * ratio
                     pg_loss2 = -mb_advantages * torch.clamp(ratio, 1 - args.clip_coef, 1 + args.clip_coef)
                     # pg_loss = torch.max(pg_loss1, pg_loss2).mean()
-                    pg_loss = torch.max(pg_loss1, pg_loss2).mean() + l1_loss
+                    # pg_loss = torch.max(pg_loss1, pg_loss2).mean() + l1_loss
+                    pg_loss = torch.max(pg_loss1, pg_loss2).mean() + l1_loss * l1_lambda
+
 
 
                     # Value loss
