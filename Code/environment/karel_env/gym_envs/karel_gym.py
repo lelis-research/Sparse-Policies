@@ -355,11 +355,18 @@ class KarelGymEnv(gym.Env):
         """
         Returns an observation that a DSL agent would see but for our RL agent
         """
-        num_actions = 5  # number of actions
+        num_actions = 5 + 1 # number of actions + 1
         one_hot_action = np.zeros(num_actions, dtype=float)
         
         if self.last_action is not None and self.last_action != -1: 
-            one_hot_action[int(self.last_action)] = 1.0
+            one_hot_action[int(self.last_action) + 1] = 1.0
+        elif self.last_action == -1:
+            one_hot_action[0] = 1.0
+
+        # num_actions = 5   # number of actions
+        # one_hot_action = np.zeros(num_actions, dtype=float)
+        # if self.last_action is not None and self.last_action != -1: 
+        #     one_hot_action[int(self.last_action)] = 1.0
 
         dsl_obs = np.array([
             self.task.get_bool_feature("frontIsClear"),

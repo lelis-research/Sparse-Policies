@@ -302,11 +302,11 @@ class PPOAgent(nn.Module):
         if feature_extractor:
             self.network = nn.Sequential(
                 # weights_init_xavier(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 32)),
-                sparse_init_layer(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 32), sparsity=0.5),
+                sparse_init_layer(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 100), sparsity=0.9),
                 # layer_init(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 32)),
                 nn.Tanh(),
                 # weights_init_xavier(nn.Linear(32, 32)),
-                sparse_init_layer(nn.Linear(32, 32), sparsity=0.5),
+                sparse_init_layer(nn.Linear(100, 100), sparsity=0.9),
                 # layer_init(nn.Linear(32, 32)),
             )
 
