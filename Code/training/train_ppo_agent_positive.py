@@ -27,15 +27,17 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
     # call rnder() on one of the karel_gym env 
     envs.envs[0].render()
 
+    feature_extractor = True
+
     if args.ppo_type == "original":
         from agents import PPOAgent
-        agent = PPOAgent(envs, hidden_size=hidden_size, feature_extractor=True).to(device)
+        agent = PPOAgent(envs, hidden_size=hidden_size, feature_extractor=feature_extractor).to(device)
     elif args.ppo_type == "lstm":
         from agents import LstmAgent
         agent = LstmAgent(envs, h_size=hidden_size).to(device)
     elif args.ppo_type == "gru":
         from agents import GruAgent
-        agent = GruAgent(envs, h_size=hidden_size, feature_extractor=True).to(device)
+        agent = GruAgent(envs, h_size=hidden_size, feature_extractor=feature_extractor).to(device)
     else:
         raise NotImplementedError
 
@@ -249,7 +251,7 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
 
                     # L1 loss
                     # l1_loss = _l1_norm(model=agent.actor, lambda_l1=args.l1_lambda)
-                    l1_loss = agent.get_l1_norm()
+                    l1_loss = agent.get_l1_norm() if feature_extractor else 0
 
                     # Policy loss
                     pg_loss1 = -mb_advantages * ratio

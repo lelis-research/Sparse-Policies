@@ -295,19 +295,31 @@ class PPOAgent(nn.Module):
         else:
             raise NotImplementedError
         
+        self.feature_extractor = feature_extractor
         self.greedy = greedy
         
         # print("obs size: ", observation_space_size, ", act size: ", action_space_size)
         # print("single obs size: ", envs.single_observation_space.shape)
-        if feature_extractor:
+        if self.feature_extractor:
+            sparsity_level = 0.9
+            hidden1_size = 100
+            hidden2_size = 100
             self.network = nn.Sequential(
                 # weights_init_xavier(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 32)),
-                sparse_init_layer(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 100), sparsity=0.9),
+                sparse_init_layer(nn.Linear(np.array(envs.single_observation_space.shape).prod(), hidden1_size), sparsity=sparsity_level),
                 # layer_init(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 32)),
+                
                 nn.Tanh(),
+                # nn.ReLU(),
                 # weights_init_xavier(nn.Linear(32, 32)),
-                sparse_init_layer(nn.Linear(100, 100), sparsity=0.9),
+                sparse_init_layer(nn.Linear(hidden1_size, observation_space_size), sparsity=sparsity_level),
                 # layer_init(nn.Linear(32, 32)),
+
+                # nn.Tanh(),
+                # # nn.ReLU(),
+                # # weights_init_xavier(nn.Linear(32, 32)),
+                # sparse_init_layer(nn.Linear(hidden2_size, observation_space_size), sparsity=sparsity_level),
+                # # layer_init(nn.Linear(32, 32)),
             )
 
         self.actor = nn.Sequential(
@@ -334,9 +346,13 @@ class PPOAgent(nn.Module):
         return l1_norm
         
     def get_value(self, x):
+        x = self.network(x) if self.feature_extractor else x
         return self.critic(x)
 
     def get_action_and_value(self, x, action=None):
+
+        x = self.network(x) if self.feature_extractor else x
+
         logits = self.actor(x)
         probs = Categorical(logits=logits)
         if action is None:
