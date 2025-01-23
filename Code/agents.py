@@ -301,7 +301,7 @@ class PPOAgent(nn.Module):
         # print("obs size: ", observation_space_size, ", act size: ", action_space_size)
         # print("single obs size: ", envs.single_observation_space.shape)
         if self.feature_extractor:
-            sparsity_level = 0.9
+            sparsity_level = 0.0
             hidden1_size = 100
             hidden2_size = 100
             self.network = nn.Sequential(
@@ -309,8 +309,8 @@ class PPOAgent(nn.Module):
                 sparse_init_layer(nn.Linear(np.array(envs.single_observation_space.shape).prod(), hidden1_size), sparsity=sparsity_level),
                 # layer_init(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 32)),
                 
-                nn.Tanh(),
-                # nn.ReLU(),
+                # nn.Tanh(),
+                nn.ReLU(),
                 # weights_init_xavier(nn.Linear(32, 32)),
                 sparse_init_layer(nn.Linear(hidden1_size, observation_space_size), sparsity=sparsity_level),
                 # layer_init(nn.Linear(32, 32)),
@@ -323,14 +323,14 @@ class PPOAgent(nn.Module):
             )
 
         self.actor = nn.Sequential(
-            layer_init(nn.Linear(observation_space_size, hidden_size)),
-            # sparse_init_layer(nn.Linear(observation_space_size, hidden_size), sparsity=0.5),
+            # layer_init(nn.Linear(observation_space_size, hidden_size)),
+            sparse_init_layer(nn.Linear(observation_space_size, hidden_size), sparsity=0.5),
             nn.Tanh(),
-            layer_init(nn.Linear(hidden_size, hidden_size)),
-            # sparse_init_layer(nn.Linear(hidden_size, hidden_size), sparsity=0.5),
+            # layer_init(nn.Linear(hidden_size, hidden_size)),
+            sparse_init_layer(nn.Linear(hidden_size, hidden_size), sparsity=0.5),
             nn.Tanh(),
-            layer_init(nn.Linear(hidden_size, action_space_size), std=0.01),
-            # sparse_init_layer(nn.Linear(hidden_size, action_space_size), sparsity=0.5),
+            # layer_init(nn.Linear(hidden_size, action_space_size), std=0.01),
+            sparse_init_layer(nn.Linear(hidden_size, action_space_size), sparsity=0.5),
         )
         self.critic = nn.Sequential(
             layer_init(nn.Linear(observation_space_size, 64)),
