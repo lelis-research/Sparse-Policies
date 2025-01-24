@@ -1,65 +1,79 @@
 #!/bin/bash
-#SBATCH --cpus-per-task=1
+#SBATCH --cpus-per-task=6
 #SBATCH --mem=6G
 #SBATCH --time=07-00:00
-#SBATCH --output=job_logs/sweepOrig1/%N-%j.out  # %N for node name, %j for jobID
+#SBATCH --output=job_logs/sweep3_noFE_S0A/%N-%j.out  # %N for node name, %j for jobID
 #SBATCH --account=def-lelis
 #SBATCH --mail-user=arajabpo@ualberta.ca
 #SBATCH --mail-type=ALL
-#SBATCH --array=0-80
+#SBATCH --array=0-215
 
 
-source ~/Sparse-Policies/venv/bin/activate
+source ~/scratch/Sparse-Policies/venv/bin/activate
 
 module load flexiblas
 export FLEXIBLAS=imkl
 
+seeds=(1 2 3)
+learning_rates=(0.001 0.0001)
+clip_coefs=(0.1 0.2)
+ent_coefs=(0.1 0.2 0.4)
+l1_lambdas=(0.0001 0.0005 0.001)
+hiddens=(32 64)
 
-learning_rates=(1e-5 1e-4 1e-3)
-clip_coefs=(0.05 0.1 0.2)
-ent_coefs=(0.1 0.2 0.25)
-l1_lambdas=(0.0001 0.005 0.001)
-
-num_lr=${#learning_rates[@]}       # 3
-num_clip=${#clip_coefs[@]}         # 3
+num_seed=${#seeds[@]}              # 3   
+num_lr=${#learning_rates[@]}       # 2
+num_clip=${#clip_coefs[@]}         # 2
 num_ent=${#ent_coefs[@]}           # 3
 num_l1=${#l1_lambdas[@]}           # 3
+num_hidden=${#hiddens[@]}          # 2
 
-# total combinations = 3 * 3 * 3 * 3 = 81
+# total combinations = 3*2*2*3*3*2 = 216
 idx=$SLURM_ARRAY_TASK_ID
 
-# 1) Get index for L1
+# Get index for hidden size
+h_index=$(( idx % num_hidden ))
+idx=$(( idx / num_hidden ))
+
+# Get index for L1
 l1_index=$(( idx % num_l1 ))            # remainder
 idx=$(( idx / num_l1 ))                 # integer division
 
-# 2) Get index for ent_coef
+# Get index for ent_coef
 ent_index=$(( idx % num_ent ))
 idx=$(( idx / num_ent ))
 
-# 3) Get index for clip_coef
+# Get index for clip_coef
 clip_index=$(( idx % num_clip ))
 idx=$(( idx / num_clip ))
 
-# 4) Get index for learning_rate
+# Get index for learning_rate
 lr_index=$(( idx % num_lr ))
+idx=$(( idx / num_lr ))
+
+# Get index for seed
+sd_index=$(( idx % num_seed ))
+
 
 # Extract the actual values
+SD="${seeds[${sd_index}]}"
 LR="${learning_rates[${lr_index}]}"
 CLIP="${clip_coefs[${clip_index}]}"
 ENT="${ent_coefs[${ent_index}]}"
 L1="${l1_lambdas[${l1_index}]}"
+H="${hiddens[${h_index}]}"
 
 
 # Run the training script
-python ~/Sparse-Policies/Code/scripts/train_ppo.py \
+python ~/scratch/Sparse-Policies/Code/scripts/train_ppo.py \
   --env_id Karel_stair_climber \
-  --seed 0 \
+  --seed "${SD}" \
   --game_width 12 \
   --game_height 12 \
   --max_steps 50 \
-  --num_steps 300 \
+  --num_steps 50 \
   --sparse_reward \
-  --hidden_size 32 \
+  --hidden_size "${H}" \
   --total_timesteps 2_000_000 \
   --num_envs 1 \
   --num_minibatches 1 \
@@ -69,4 +83,4 @@ python ~/Sparse-Policies/Code/scripts/train_ppo.py \
   --l1_lambda "${L1}" \
   --ent_coef "${ENT}" \
   --clip_coef "${CLIP}" \
-  --exp_name "stair_LR${LR}_L1${L1}_ENT${ENT}_CLIP${CLIP}_sweepOrig1"
+  --exp_name "stair_sweep3_noFE_S0A_SD${SD}_LR${LR}_CLIP${CLIP}_ENT${ENT}_L1${L1}_H${H}"
