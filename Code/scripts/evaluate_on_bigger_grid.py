@@ -52,7 +52,7 @@ def evaluate_model_on_large_grid(model_path, args):
     print(f"Model loaded from {model_path}")
     agent.eval()
 
-    MAX_STEPS = 1000
+    MAX_STEPS = 100000
 
     video_dir = os.path.join(project_root, "videos")
     os.makedirs(video_dir, exist_ok=True)
