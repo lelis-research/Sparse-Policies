@@ -7,6 +7,7 @@ import numpy as np
 import torch.nn as nn
 import torch.optim as optim
 from utils import *
+import re
 
 
 def _l1_norm(model, lambda_l1):
@@ -28,6 +29,7 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
     envs.envs[0].render()
 
     feature_extractor = True
+    print("FE is: ", feature_extractor)
 
     if args.ppo_type == "original":
         from agents import PPOAgent
@@ -404,12 +406,16 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
     print("args:", args)
     print(f"Positive steps: {positive_step}")
 
+    pattern = r"^(.*?)_SD"
+    result = re.match(pattern, args.exp_name)
+    model_directory = result.group(1) + "/" + model_file_name
+
     envs.close()
     writer.close()
-    os.makedirs(os.path.dirname(model_file_name), exist_ok=True)
+    os.makedirs(os.path.dirname(model_directory), exist_ok=True)
     logger.info(f"Experiment: {args.exp_name}")
     if "test" not in args.exp_name:
-        torch.save(agent.state_dict(), model_file_name)
+        torch.save(agent.state_dict(), model_directory)
         logger.info(f"Saved on {model_file_name}")
     else:
         print("Test mode, not saving model")
