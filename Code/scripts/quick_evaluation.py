@@ -40,7 +40,7 @@ def evaluate_model_on_large_grid(model_path, args):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     if args.ppo_type == "original":
-        agent = PPOAgent(envs, hidden_size=args.hidden_size).to(device)
+        agent = PPOAgent(envs, hidden_size=args.hidden_size, feature_extractor=args.feature_extractor, greedy=True).to(device)
     elif args.ppo_type == "gru":
         agent = GruAgent(envs, h_size=args.hidden_size, feature_extractor=args.feature_extractor, greedy=True).to(device)
 
@@ -71,7 +71,7 @@ def evaluate_model_on_large_grid(model_path, args):
                 done = True
 
             # envs.envs[0].render()
-            envs.envs[0].task.state2image(envs.envs[0].get_observation(), root_dir=project_root+'/environment/').show()
+            # envs.envs[0].task.state2image(envs.envs[0].get_observation(), root_dir=project_root+'/environment/').show()
 
     elif args.ppo_type == "gru":
         # Initialize hidden state(s)
@@ -157,6 +157,7 @@ if __name__ == "__main__":
 
         model_file_name = f'{args.binaries_path}/PPO-Karel_{args.task_name}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{args.model_seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}_vlr{args.value_learning_rate}_{args.ppo_type}_MODEL_{args.time}.pt'
         print(f"--- Model: {model}")
+        # print(f"--- FE: {args.feature_extractor}")
 
         for ks in args.karel_seeds:
             args.karel_seed = ks
