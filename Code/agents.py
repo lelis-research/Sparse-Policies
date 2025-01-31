@@ -344,6 +344,10 @@ class PPOAgent(nn.Module):
     def get_l1_norm(self):
         l1_norm = sum(p.abs().sum() for name, p in self.network.named_parameters() if "bias" not in name)
         return l1_norm
+    
+    def get_l1_norm_actor(self):
+        l1_norm = sum(p.abs().sum() for name, p in self.actor.named_parameters() if "bias" not in name)
+        return l1_norm
         
     def get_value(self, x):
         x = self.network(x) if self.feature_extractor else x
