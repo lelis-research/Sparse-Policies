@@ -10,7 +10,7 @@ import torch
 import random
 
 from environment.karel_env.karel.environment import KarelEnvironment, basic_actions
-from environment.karel_env.karel_tasks.stair_climber import StairClimber, StairClimberSparse
+from environment.karel_env.karel_tasks.stair_climber import StairClimber, StairClimberSparse, StairClimberSparseAllInit, StairClimberAllInit
 from environment.karel_env.karel_tasks.maze import Maze, MazeSparse
 from environment.karel_env.karel_tasks.four_corners import FourCorners, FourCornersSparse
 from environment.karel_env.karel_tasks.top_off import TopOff, TopOffSparse
@@ -66,6 +66,8 @@ class KarelGymEnv(gym.Env):
         self.reward_diff = self.config['reward_diff'] if 'reward_diff' in self.config else False
         self.rescale_reward = self.config['reward_scale'] if 'reward_scale' in self.config else True
         self.multi_initial_confs = self.config['multi_initial_confs'] if 'multi_initial_confs' in self.config else False
+        self.all_initial_confs = self.config['all_initial_confs'] if 'all_initial_confs' in self.config else False
+        self.all_initial_confs_envs = None
         self.last_action = -1.0
 
         # Initialize the task
@@ -97,13 +99,22 @@ class KarelGymEnv(gym.Env):
             task = task_specific.generate_initial_environment(env_args)
 
         elif self.task_name == 'stair_climber':
-            task_class = StairClimberSparse if self.config['sparse_reward'] else StairClimber
-            task_specific = task_class(
-                env_args=env_args,
-                seed=self.config.get('seed'),
-                reward_diff=self.reward_diff,
-                rescale_reward=self.rescale_reward
-            )
+            if self.all_initial_confs:
+                task_class = StairClimberSparseAllInit if self.config['sparse_reward'] else StairClimberAllInit
+                task_specific = task_class(
+                    env_args=env_args,
+                    reward_diff=self.reward_diff,
+                    rescale_reward=self.rescale_reward
+                )
+                self.all_initial_confs_envs = task_specific.all_initial_confs
+            else:
+                task_class = StairClimberSparse if self.config['sparse_reward'] else StairClimber
+                task_specific = task_class(
+                    env_args=env_args,
+                    seed=self.config.get('seed'),
+                    reward_diff=self.reward_diff,
+                    rescale_reward=self.rescale_reward
+                )
             task = task_specific.generate_initial_environment(env_args)
 
         elif self.task_name == 'maze':
@@ -266,15 +277,29 @@ class KarelGymEnv(gym.Env):
 
     def reset(self, seed=0, options=None):
         self.current_step = 0
+        self.last_action = -1.0
+        
         if self.multi_initial_confs:   # choose between 10 random initial setups
             selected_seed = random.choice(list(range(10)))
             self.config['seed'] = selected_seed
             self.seed(selected_seed)
-        #     print("---- Seed:", self.config['seed'])
-        # else:
-        #     print(f"---- Using the same initial configuration {self.config['seed']}----")
-        self.task, self.task_specific = self._initialize_task()
-        self.last_action = -1.0
+            self.task, self.task_specific = self._initialize_task()
+
+        elif self.all_initial_confs:
+            selected_conf = random.choice(self.all_initial_confs_envs)
+            self.config['initial_state'] = selected_conf.copy()
+            env_args = {
+                'env_height': self.env_height,
+                'env_width': self.env_width,
+                'crashable': False,
+                'leaps_behaviour': False,
+                'initial_state': self.config.get('initial_state')
+            }
+            self.task = self.task_specific.generate_initial_environment(env_args)
+
+        else:
+            self.task, self.task_specific = self._initialize_task()
+
         return self._get_observation_dsl(), {}
 
     def render(self, mode='human'):
@@ -422,14 +447,15 @@ if __name__ == "__main__":
     initial_state[4, 1, 2] = True  # Wall at (1, 2)
 
     env_config = {
-        'task_name': 'top_off',
+        'task_name': 'stair_climber',
         'env_height': env_height,
         'env_width': env_width,
-        'max_steps': 100,
+        'max_steps': 1,
         'sparse_reward': True,
         'seed': 1,
         'initial_state': initial_state,
-        'multi_initial_confs': False
+        'multi_initial_confs': False, 
+        'all_initial_confs': True
     }
 
     env = make_karel_env(env_config=env_config)()
@@ -439,10 +465,10 @@ if __name__ == "__main__":
 
     action_names = env.task.actions_list
     action_mapping = {name: idx for idx, name in enumerate(action_names)}
-    # action_sequence = ['move', 'turnLeft', 'move', 'move', 'turnRight', 'move', 'turnLeft', 'move', 'turnRight', 'move'] # for stairclimber 6*6
+    action_sequence = ['move', 'turnLeft', 'move', 'move', 'turnRight', 'move', 'turnLeft', 'move', 'turnRight', 'move'] # for stairclimber 6*6
     # action_sequence = ['move', 'putMarker', 'turnLeft', 'move', 'move', 'move', 'move', 'move', 'putMarker', 'turnLeft', 'move', 'move', 'move', 'move', 'move', 'putMarker', 'turnLeft', 'move', 'move', 'move', 'move', 'move', 'putMarker', 'turnLeft', 'move', 'move', 'move', 'move', 'move'] # for stairclimber 6*6
     # action_sequence = ['pickMarker', 'move', 'pickMarker', 'turnLeft', 'move', 'pickMarker']
-    action_sequence = ['move', 'move', 'move', 'putMarker', 'move', 'move', 'putMarker']
+    # action_sequence = ['move', 'move', 'move', 'putMarker', 'move', 'move', 'putMarker']
     actions = [action_mapping[name] for name in action_sequence]
 
     done = False
@@ -454,7 +480,7 @@ if __name__ == "__main__":
         print("--- Done:", done)
         total_reward += reward
         env.render()
-        # env.task.state2image(env.get_observation(), root_dir=project_root + '/environment/').show()
+        env.task.state2image(env.get_observation(), root_dir=project_root + '/environment/').show()
         if done or truncated:
             print("Episode done")
             break

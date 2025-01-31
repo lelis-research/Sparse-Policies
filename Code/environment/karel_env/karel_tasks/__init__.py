@@ -1,7 +1,7 @@
 from __future__ import annotations
 from environment.karel_env.base import BaseTask
 
-from .stair_climber import StairClimber, StairClimberSparse
+from .stair_climber import StairClimber, StairClimberSparse, StairClimberAllInit, StairClimberSparseAllInit
 from .maze import Maze, MazeSparse
 from .four_corners import FourCorners, FourCornersSparse
 from .top_off import TopOff, TopOffSparse
