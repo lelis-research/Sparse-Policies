@@ -127,9 +127,13 @@ if __name__ == "__main__":
     args.binaries_path = os.path.join(base_root, "binary", args.binaries_path)
 
     # Regex patterns for extracting values
+    # model_pattern = re.compile(
+    #     r'gw(?P<game_width>\d+)-gh(?P<game_height>\d+)-h(?P<hidden_size>\d+)-lr(?P<learning_rate>[0-9e.-]+)-'
+    #     r'sd(?P<model_seed>\d+)-entcoef(?P<ent_coef>[0-9e.-]+)-clipcoef(?P<clip_coef>[0-9e.-]+)_vlr(?P<value_learning_rate>[0-9e.-]+)'
+    # )
     model_pattern = re.compile(
         r'gw(?P<game_width>\d+)-gh(?P<game_height>\d+)-h(?P<hidden_size>\d+)-lr(?P<learning_rate>[0-9e.-]+)-'
-        r'sd(?P<model_seed>\d+)-entcoef(?P<ent_coef>[0-9e.-]+)-clipcoef(?P<clip_coef>[0-9e.-]+)_vlr(?P<value_learning_rate>[0-9e.-]+)'
+        r'sd(?P<model_seed>\d+)-entcoef(?P<ent_coef>[0-9e.-]+)-clipcoef(?P<clip_coef>[0-9e.-]+)-l1(?P<l1_lambda>[0-9e.-]+)'
     )
 
     for model in os.listdir(args.binaries_path):
@@ -144,9 +148,12 @@ if __name__ == "__main__":
         args.model_seed = int(match.group('model_seed'))
         args.ent_coef = float(match.group('ent_coef'))
         args.clip_coef = float(match.group('clip_coef'))
-        args.value_learning_rate = float(match.group('value_learning_rate'))
-        args.ppo_type = model.split("_")[-3]
-        args.time = int(model.split("_")[-1].split(".")[0])
+        # args.value_learning_rate = float(match.group('value_learning_rate'))
+        args.l1_lambda = float(match.group('l1_lambda'))
+        # args.ppo_type = model.split("_")[-3]
+        # args.time = int(model.split("_")[-1].split(".")[0])
+        args.ppo_type = model.split("-")[-3]
+        args.time = int(model.split("-")[-1].split(".")[0])
 
         # print(f"Extracted Parameters: "
         #       f"Game Width: {args.game_width}, Game Height: {args.game_height}, "
@@ -155,9 +162,9 @@ if __name__ == "__main__":
         #       f"Clip Coef: {args.clip_coef}, Value LR: {args.value_learning_rate} \n")
 
 
-        model_file_name = f'{args.binaries_path}/PPO-Karel_{args.task_name}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{args.model_seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}_vlr{args.value_learning_rate}_{args.ppo_type}_MODEL_{args.time}.pt'
+        # model_file_name = f'{args.binaries_path}/PPO-Karel_{args.task_name}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{args.model_seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}_vlr{args.value_learning_rate}_{args.ppo_type}_MODEL_{args.time}.pt'
+        model_file_name = f'{args.binaries_path}/PPO-Karel_{args.task_name}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{args.model_seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}-l1{args.l1_lambda}-{args.ppo_type}-MODEL-{args.time}.pt'
         print(f"--- Model: {model}")
-        # print(f"--- FE: {args.feature_extractor}")
 
         for ks in args.karel_seeds:
             args.karel_seed = ks
