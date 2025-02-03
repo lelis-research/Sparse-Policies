@@ -234,7 +234,7 @@ class StairClimberAllInit(BaseTask):
                 
                 all_confs.append(conf_state)
 
-        print(f"Generated {len(all_confs)} initial configurations")
+        # print(f"Generated {len(all_confs)} initial configurations")
         return all_confs
 
     def generate_initial_environment(self, env_args):
@@ -242,10 +242,9 @@ class StairClimberAllInit(BaseTask):
             initial_state = env_args['initial_state']
             marker_pos = np.argwhere(initial_state[6, :, :])[0] # Extract marker position from the provided configuration
             self.marker_position = (marker_pos[0], marker_pos[1])
-            return KarelEnvironment(initial_state=initial_state, **env_args)
+            return KarelEnvironment(**env_args)
         else:
-            # Original method if all_initial_confs is not generated
-            return super().generate_initial_environment(env_args)
+            return KarelEnvironment(**env_args)
         
     def reset_environment(self):
         super().reset_environment()
