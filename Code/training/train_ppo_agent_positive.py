@@ -28,12 +28,12 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
     # call rnder() on one of the karel_gym env 
     envs.envs[0].render()
 
-    feature_extractor = True
+    feature_extractor = False if "noFE" in args.exp_name else True
     print("FE is: ", feature_extractor)
 
     if args.ppo_type == "original":
         from agents import PPOAgent
-        agent = PPOAgent(envs, hidden_size=hidden_size, feature_extractor=feature_extractor).to(device)
+        agent = PPOAgent(envs, hidden_size=hidden_size, feature_extractor=feature_extractor, arch_details=args.exp_name).to(device)
     elif args.ppo_type == "lstm":
         from agents import LstmAgent
         agent = LstmAgent(envs, h_size=hidden_size).to(device)
@@ -114,7 +114,6 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
         number_samples = 0
 
         for step in range(0, args.num_steps):
-            # print('############################ Step:', step)
             # obs[step] = next_obs
             # dones[step] = next_done
             obs.append(next_obs)
@@ -151,7 +150,10 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
                 number_samples = len(obs)
                 print('Number of samples:', number_samples)
                 break
-        
+
+        # print('training: Rendering... ')
+        # envs.envs[0].render()
+
         if positive_example:
         # Only count these steps towards total training steps
             # global_step += number_samples
@@ -167,12 +169,8 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
                     writer.add_scalar("charts/episodic_length", info["episode"]["l"], global_step)
 
         if not positive_example:
-            # continue with only 20% chance
-            # if np.random.rand() > 0.2:
-            # print("** negative example **")
             continue
 
-        print('Training positive')
         rewards = torch.cat(rewards)
         values = torch.cat(values)
         # bootstrap value if not done
@@ -254,6 +252,7 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
                     # L1 loss
                     # l1_loss = _l1_norm(model=agent.actor, lambda_l1=args.l1_lambda)
                     l1_loss = agent.get_l1_norm() if feature_extractor else 0
+                    # l1_loss = agent.get_l1_norm_actor()
 
                     # Policy loss
                     pg_loss1 = -mb_advantages * ratio
@@ -406,16 +405,17 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
     print("args:", args)
     print(f"Positive steps: {positive_step}")
 
-    pattern = r"^(.*?)_SD"
-    result = re.match(pattern, args.exp_name)
-    model_directory = result.group(1) + "/" + model_file_name
+    # pattern = r"^(.*?)_SD"
+    # result = re.match(pattern, args.exp_name)
+    # model_directory = result.group(1) + "/" + model_file_name
 
     envs.close()
     writer.close()
-    os.makedirs(os.path.dirname(model_directory), exist_ok=True)
+    # os.makedirs(os.path.dirname(model_directory), exist_ok=True)
     logger.info(f"Experiment: {args.exp_name}")
     if "test" not in args.exp_name:
-        torch.save(agent.state_dict(), model_directory)
+        # torch.save(agent.state_dict(), model_directory)
+        torch.save(agent.state_dict(), model_file_name)
         logger.info(f"Saved on {model_file_name}")
     else:
         print("Test mode, not saving model")

@@ -11,6 +11,7 @@ from environment.karel_env.gym_envs.karel_gym import KarelGymEnv
 from torch.distributions.categorical import Categorical
 from typing import Union
 import math
+import re
 
 device = torch.device("cuda" if torch.cuda.is_available()  else "cpu")
 
@@ -277,7 +278,7 @@ def sparse_init_layer(layer, sparsity=0.9, init_type='uniform'):
 
 
 class PPOAgent(nn.Module):
-    def __init__(self, envs, hidden_size=6, feature_extractor=False, greedy=False):
+    def __init__(self, envs,  hidden_size=6, feature_extractor=False, greedy=False, arch_details=""):
         super().__init__()
         if isinstance(envs, ComboGym):
             observation_space_size = envs.get_observation_space()
@@ -297,40 +298,52 @@ class PPOAgent(nn.Module):
         
         self.feature_extractor = feature_extractor
         self.greedy = greedy
+        FE_hidden_size = 100
+        FE_sparsity_level = 50
+        actor_sparsity_level = 50
+
+        pattern = r'FE(\d+)|SA(\d+)|SF(\d+)'  # S: sparsity level, A: actor, FE: feature extractor
+        matches = re.findall(pattern, arch_details)
+        for match in matches:
+            if match[0]:  # Captures the number after 'FE'
+                FE_hidden_size = int(match[0])
+            if match[1]:  # Captures 'SXXA' for actor sparsity
+                actor_sparsity_level = int(match[1])
+            if match[2]:  # Captures standalone 'SXX' (Feature Extractor sparsity)
+                FE_sparsity_level = int(match[2])
+
+        FE_sparsity_level = float(FE_sparsity_level) / 100
+        actor_sparsity_level = float(actor_sparsity_level) / 100
+        print("FE hidden size: ", FE_hidden_size)
+        print("FE sparsity level: ", FE_sparsity_level)
+        print("Actor sparsity level: ", actor_sparsity_level)
         
         # print("obs size: ", observation_space_size, ", act size: ", action_space_size)
         # print("single obs size: ", envs.single_observation_space.shape)
         if self.feature_extractor:
-            sparsity_level = 0.0
-            hidden1_size = 100
-            hidden2_size = 100
             self.network = nn.Sequential(
                 # weights_init_xavier(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 32)),
-                sparse_init_layer(nn.Linear(np.array(envs.single_observation_space.shape).prod(), hidden1_size), sparsity=sparsity_level),
+                sparse_init_layer(nn.Linear(np.array(envs.single_observation_space.shape).prod(), FE_hidden_size), sparsity=FE_sparsity_level),
                 # layer_init(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 32)),
                 
-                # nn.Tanh(),
-                nn.ReLU(),
+                nn.Tanh(),
                 # weights_init_xavier(nn.Linear(32, 32)),
-                sparse_init_layer(nn.Linear(hidden1_size, observation_space_size), sparsity=sparsity_level),
+                sparse_init_layer(nn.Linear(FE_hidden_size, observation_space_size), sparsity=FE_sparsity_level),
                 # layer_init(nn.Linear(32, 32)),
-
-                # nn.Tanh(),
-                # # nn.ReLU(),
-                # # weights_init_xavier(nn.Linear(32, 32)),
-                # sparse_init_layer(nn.Linear(hidden2_size, observation_space_size), sparsity=sparsity_level),
-                # # layer_init(nn.Linear(32, 32)),
             )
 
         self.actor = nn.Sequential(
             # layer_init(nn.Linear(observation_space_size, hidden_size)),
-            sparse_init_layer(nn.Linear(observation_space_size, hidden_size), sparsity=0.5),
+            weights_init_xavier(nn.Linear(observation_space_size, hidden_size)),
+            # sparse_init_layer(nn.Linear(observation_space_size, hidden_size), sparsity=actor_sparsity_level),
             nn.Tanh(),
             # layer_init(nn.Linear(hidden_size, hidden_size)),
-            sparse_init_layer(nn.Linear(hidden_size, hidden_size), sparsity=0.5),
+            weights_init_xavier(nn.Linear(hidden_size, hidden_size)),
+            # sparse_init_layer(nn.Linear(hidden_size, hidden_size), sparsity=actor_sparsity_level),
             nn.Tanh(),
             # layer_init(nn.Linear(hidden_size, action_space_size), std=0.01),
-            sparse_init_layer(nn.Linear(hidden_size, action_space_size), sparsity=0.5),
+            weights_init_xavier(nn.Linear(hidden_size, action_space_size)),
+            # sparse_init_layer(nn.Linear(hidden_size, action_space_size), sparsity=actor_sparsity_level),
         )
         self.critic = nn.Sequential(
             layer_init(nn.Linear(observation_space_size, 64)),
