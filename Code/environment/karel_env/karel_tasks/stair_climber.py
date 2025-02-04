@@ -242,6 +242,9 @@ class StairClimberAllInit(BaseTask):
             initial_state = env_args['initial_state']
             marker_pos = np.argwhere(initial_state[6, :, :])[0] # Extract marker position from the provided configuration
             self.marker_position = (marker_pos[0], marker_pos[1])
+            
+            self.prev_pos_reward = None
+            self.done = False
             return KarelEnvironment(**env_args)
         else:
             return KarelEnvironment(**env_args)
