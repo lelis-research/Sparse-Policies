@@ -299,8 +299,8 @@ class PPOAgent(nn.Module):
         self.feature_extractor = feature_extractor
         self.greedy = greedy
         FE_hidden_size = 100
-        FE_sparsity_level = 50
-        actor_sparsity_level = 50
+        FE_sparsity_level = 0
+        actor_sparsity_level = 0
 
         pattern = r'FE(\d+)|SA(\d+)|SF(\d+)'  # S: sparsity level, A: actor, FE: feature extractor
         matches = re.findall(pattern, arch_details)
@@ -334,16 +334,16 @@ class PPOAgent(nn.Module):
 
         self.actor = nn.Sequential(
             # layer_init(nn.Linear(observation_space_size, hidden_size)),
-            weights_init_xavier(nn.Linear(observation_space_size, hidden_size)),
-            # sparse_init_layer(nn.Linear(observation_space_size, hidden_size), sparsity=actor_sparsity_level),
+            # weights_init_xavier(nn.Linear(observation_space_size, hidden_size)),
+            sparse_init_layer(nn.Linear(observation_space_size, hidden_size), sparsity=actor_sparsity_level),
             nn.Tanh(),
             # layer_init(nn.Linear(hidden_size, hidden_size)),
-            weights_init_xavier(nn.Linear(hidden_size, hidden_size)),
-            # sparse_init_layer(nn.Linear(hidden_size, hidden_size), sparsity=actor_sparsity_level),
+            # weights_init_xavier(nn.Linear(hidden_size, hidden_size)),
+            sparse_init_layer(nn.Linear(hidden_size, hidden_size), sparsity=actor_sparsity_level),
             nn.Tanh(),
             # layer_init(nn.Linear(hidden_size, action_space_size), std=0.01),
-            weights_init_xavier(nn.Linear(hidden_size, action_space_size)),
-            # sparse_init_layer(nn.Linear(hidden_size, action_space_size), sparsity=actor_sparsity_level),
+            # weights_init_xavier(nn.Linear(hidden_size, action_space_size)),
+            sparse_init_layer(nn.Linear(hidden_size, action_space_size), sparsity=actor_sparsity_level),
         )
         self.critic = nn.Sequential(
             layer_init(nn.Linear(observation_space_size, 64)),
