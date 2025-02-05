@@ -144,22 +144,19 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
             rewards.append(torch.tensor(reward).to(device).view(-1))
             next_obs, next_done = torch.Tensor(next_obs).to(device), torch.Tensor(next_done).to(device)
             
-            if next_done == 1.0:
-                print('######################################################## Positive example ########################################################')
-                positive_example = True
-                number_samples = len(obs)
-                print('Number of samples:', number_samples)
-                break
+            # if next_done == 1.0:
+            #     print('######################################################## Positive example ########################################################')
+            #     positive_example = True
+            #     number_samples = len(obs)
+            #     print('Number of samples:', number_samples)
+            #     break
 
-        # print('training: Rendering... ')
-        # envs.envs[0].render()
 
-        if positive_example:
-        # Only count these steps towards total training steps
-            # global_step += number_samples
-            positive_step += number_samples
+        # if positive_example:
+        #     positive_step += number_samples
 
         global_step += len(obs)
+        number_samples = len(obs)
 
         if "final_info" in infos:
             for info in infos["final_info"]:
@@ -168,8 +165,9 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
                     writer.add_scalar("charts/episodic_return", info["episode"]["r"], global_step)
                     writer.add_scalar("charts/episodic_length", info["episode"]["l"], global_step)
 
-        if not positive_example:
-            continue
+        # if not positive_example:
+        #     continue
+
 
         rewards = torch.cat(rewards)
         values = torch.cat(values)
