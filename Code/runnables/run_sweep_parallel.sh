@@ -1,12 +1,12 @@
 #!/bin/bash
 #SBATCH --cpus-per-task=6
 #SBATCH --mem=6G
-#SBATCH --time=07-00:00
-#SBATCH --output=job_logs/sweep3_noFE_S0A/%N-%j.out  # %N for node name, %j for jobID
-#SBATCH --account=def-lelis
+#SBATCH --time=00-10:00
+#SBATCH --output=job_logs/stair_sweep16_noFE/%N-%j.out  # %N for node name, %j for jobID
+#SBATCH --account=rrg-lelis
 #SBATCH --mail-user=arajabpo@ualberta.ca
 #SBATCH --mail-type=ALL
-#SBATCH --array=0-215
+#SBATCH --array=0-647
 
 
 source ~/scratch/Sparse-Policies/venv/bin/activate
@@ -15,20 +15,20 @@ module load flexiblas
 export FLEXIBLAS=imkl
 
 seeds=(1 2 3)
-learning_rates=(0.001 0.0001)
-clip_coefs=(0.1 0.2)
-ent_coefs=(0.1 0.2 0.4)
-l1_lambdas=(0.0001 0.0005 0.001)
+learning_rates=(0.001 0.0001 0.00001)
+clip_coefs=(0.01 0.1 0.2)
+ent_coefs=(0.01 0.1 0.2)
+l1_lambdas=(0.0 0.0001 0.0005 0.001)
 hiddens=(32 64)
 
 num_seed=${#seeds[@]}              # 3   
-num_lr=${#learning_rates[@]}       # 2
-num_clip=${#clip_coefs[@]}         # 2
+num_lr=${#learning_rates[@]}       # 3
+num_clip=${#clip_coefs[@]}         # 3
 num_ent=${#ent_coefs[@]}           # 3
-num_l1=${#l1_lambdas[@]}           # 3
+num_l1=${#l1_lambdas[@]}           # 4
 num_hidden=${#hiddens[@]}          # 2
 
-# total combinations = 3*2*2*3*3*2 = 216
+# total combinations = 3*3*3*3*4*2 = 648
 idx=$SLURM_ARRAY_TASK_ID
 
 # Get index for hidden size
@@ -71,16 +71,16 @@ python ~/scratch/Sparse-Policies/Code/scripts/train_ppo.py \
   --game_width 12 \
   --game_height 12 \
   --max_steps 50 \
-  --num_steps 50 \
+  --num_steps 500 \
   --sparse_reward \
   --hidden_size "${H}" \
   --total_timesteps 2_000_000 \
   --num_envs 1 \
   --num_minibatches 1 \
-  --multi_initial_confs \
+  --all_initial_confs \
   --ppo_type original \
   --learning_rate "${LR}" \
   --l1_lambda "${L1}" \
   --ent_coef "${ENT}" \
   --clip_coef "${CLIP}" \
-  --exp_name "stair_sweep3_noFE_S0A_SD${SD}_LR${LR}_CLIP${CLIP}_ENT${ENT}_L1${L1}_H${H}"
+  --exp_name "stair_sweep16_noFE_SD${SD}_LR${LR}_CLIP${CLIP}_ENT${ENT}_L1${L1}_H${H}"
