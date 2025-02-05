@@ -7,11 +7,12 @@ import torch
 import numpy as np
 import argparse
 import gymnasium as gym
+import re
+from collections import defaultdict
 
 from environment.karel_env.gym_envs.karel_gym import KarelGymEnv, make_karel_env
 from agents import PPOAgent, GruAgent
 
-import re
 
 
 def evaluate_model_on_large_grid(model_path, args):
@@ -30,9 +31,6 @@ def evaluate_model_on_large_grid(model_path, args):
         return KarelGymEnv(env_config=env_config)
 
     envs = gym.vector.SyncVectorEnv([make_env])
-    obs_shape = envs.single_observation_space.shape
-    action_space = envs.single_action_space
-
     envs.reset()
     # envs.envs[0].render()
     # envs.envs[0].task.state2image(envs.envs[0].get_observation(), root_dir=project_root+'/environment/').show()
@@ -126,47 +124,90 @@ if __name__ == "__main__":
     base_root = os.path.abspath(os.path.join(project_root, ".."))
     args.binaries_path = os.path.join(base_root, "binary", args.binaries_path)
 
-    # Regex patterns for extracting values
-    # model_pattern = re.compile(
-    #     r'gw(?P<game_width>\d+)-gh(?P<game_height>\d+)-h(?P<hidden_size>\d+)-lr(?P<learning_rate>[0-9e.-]+)-'
-    #     r'sd(?P<model_seed>\d+)-entcoef(?P<ent_coef>[0-9e.-]+)-clipcoef(?P<clip_coef>[0-9e.-]+)_vlr(?P<value_learning_rate>[0-9e.-]+)'
-    # )
     model_pattern = re.compile(
-        r'gw(?P<game_width>\d+)-gh(?P<game_height>\d+)-h(?P<hidden_size>\d+)-lr(?P<learning_rate>[0-9e.-]+)-'
-        r'sd(?P<model_seed>\d+)-entcoef(?P<ent_coef>[0-9e.-]+)-clipcoef(?P<clip_coef>[0-9e.-]+)-l1(?P<l1_lambda>[0-9e.-]+)'
-    )
+    r'gw(?P<game_width>\d+)-gh(?P<game_height>\d+)-h(?P<hidden_size>\d+)-'
+    r'lr(?P<learning_rate>[0-9.]+)-sd(?P<model_seed>\d+)-'
+    r'entcoef(?P<ent_coef>[0-9.]+)-clipcoef(?P<clip_coef>[0-9.]+)-'
+    r'l1(?P<l1_lambda>[0-9.]+)-'
+    r'(?P<ppo_type>\w+)-MODEL'
+)
 
-    for model in os.listdir(args.binaries_path):
-        match = model_pattern.search(model)
+    # Structure: {group_key: {params: dict, seeds: {model_seed: {karel_seed: (reward, steps)}}}}
+    groups = defaultdict(lambda: {
+        'params': None,
+        'seeds': defaultdict(dict),
+        'avg_reward': 0
+    })
+
+    # Process all models
+    for model_file in os.listdir(args.binaries_path):
+        if not model_file.endswith(".pt"):
+            continue
+
+        match = model_pattern.search(model_file)
         if not match:
-            raise ValueError(f"Invalid model filename: {model}")
+            continue
 
-        args.game_width = int(match.group('game_width'))
-        args.game_height = int(match.group('game_height'))
-        args.hidden_size = int(match.group('hidden_size'))
-        args.learning_rate = float(match.group('learning_rate'))
-        args.model_seed = int(match.group('model_seed'))
-        args.ent_coef = float(match.group('ent_coef'))
-        args.clip_coef = float(match.group('clip_coef'))
-        # args.value_learning_rate = float(match.group('value_learning_rate'))
-        args.l1_lambda = float(match.group('l1_lambda'))
-        # args.ppo_type = model.split("_")[-3]
-        # args.time = int(model.split("_")[-1].split(".")[0])
-        args.ppo_type = model.split("-")[-3]
-        args.time = int(model.split("-")[-1].split(".")[0])
+        # Extract hyperparameters from filename
+        params = {
+            k: float(v) if '.' in v else int(v)
+            for k, v in match.groupdict().items()
+            if k != 'ppo_type' 
+        }
+        params['ppo_type'] = match.group('ppo_type')
+        args.ppo_type = params['ppo_type']
+        args.hidden_size = params['hidden_size']
+        
+        # Create group key (excluding model seed)
+        group_key = (params['game_width'], params['game_height'], params['hidden_size'],
+                    params['learning_rate'], params['ent_coef'], 
+                    params['clip_coef'], params['l1_lambda'], params['ppo_type'])
 
-        # print(f"Extracted Parameters: "
-        #       f"Game Width: {args.game_width}, Game Height: {args.game_height}, "
-        #       f"Hidden Size: {args.hidden_size}, Learning Rate: {args.learning_rate}, "
-        #       f"Model Seed: {args.model_seed}, Entropy Coef: {args.ent_coef}, "
-        #       f"Clip Coef: {args.clip_coef}, Value LR: {args.value_learning_rate} \n")
+        # Store parameters if new group
+        if not groups[group_key]['params']:
+            groups[group_key]['params'] = {
+                'lr': params['learning_rate'],
+                'l1': params['l1_lambda'],
+                'ent_coef': params['ent_coef'],
+                'clip_coef': params['clip_coef'],
+                'hidden_size': params['hidden_size'],
+                'game_size': f"{params['game_width']}x{params['game_height']}",
+                'ppo_type': params['ppo_type']
+            }
 
+        # Evaluate model on all environment seeds
+        model_path = os.path.join(args.binaries_path, model_file)
+        seed_results = {}
+        for karel_seed in args.karel_seeds:
+            args.karel_seed = karel_seed
+            reward, steps = evaluate_model_on_large_grid(model_path, args)
+            seed_results[karel_seed] = (int(reward), int(steps))
+        
+        groups[group_key]['seeds'][params['model_seed']] = seed_results
 
-        # model_file_name = f'{args.binaries_path}/PPO-Karel_{args.task_name}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{args.model_seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}_vlr{args.value_learning_rate}_{args.ppo_type}_MODEL_{args.time}.pt'
-        model_file_name = f'{args.binaries_path}/PPO-Karel_{args.task_name}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{args.model_seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}-l1{args.l1_lambda}-{args.ppo_type}-MODEL-{args.time}.pt'
-        print(f"--- Model: {model}")
+    # Calculate averages and sort groups
+    sorted_groups = []
+    for group_key, group_data in groups.items():
+        all_rewards = []
+        for model_seed, seeds in group_data['seeds'].items():
+            for karel_seed, (reward, _) in seeds.items():
+                all_rewards.append(reward)
+        group_data['avg_reward'] = sum(all_rewards)/len(all_rewards) if all_rewards else 0
+        sorted_groups.append((group_data['avg_reward'], group_data))
 
-        for ks in args.karel_seeds:
-            args.karel_seed = ks
-            total_rewards, step = evaluate_model_on_large_grid(model_file_name, args)
-            print(f"--- Seed: {ks}, Total Rewards: {total_rewards}, Steps: {step} \n")
+    # Sort groups by average reward descending
+    sorted_groups.sort(reverse=True, key=lambda x: x[0])
+
+    # Print formatted results
+    print("\n=== Evaluation Results Grouped by Hyperparameters ===")
+    for avg_reward, group in sorted_groups:
+        params = group['params']
+        print(f"\nHyperParams: "
+              f"H: {params['hidden_size']}, Lr: {params['lr']:.0e}, L1: {params['l1']}, "
+              f"Ent_coef: {params['ent_coef']}, Clip_coef: {params['clip_coef']}")
+        print(f"Avg reward (over {len(group['seeds'])*len(args.karel_seeds)} runs): {avg_reward:.1f}")
+        
+        print("Results per training seed:")
+        for model_seed, seeds in sorted(group['seeds'].items()):
+            rewards = [f"{seeds[ks][0]:.1f}" for ks in args.karel_seeds]
+            print(f"  sd{model_seed}: {' '.join(rewards)}")
