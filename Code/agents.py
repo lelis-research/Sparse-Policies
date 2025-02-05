@@ -222,15 +222,31 @@ Sparse initialization for neural network weights from the paper:
 Deep Reinforcement Learning Without Experience Replay, Target Networks, or Batch Updates
 https://openreview.net/pdf?id=yqQJGTDGXN
 """
-def sparse_init(tensor, sparsity, init_type='uniform'):
+def sparse_init(tensor, sparsity, std=None, init_type='uniform'):
     if tensor.ndimension() == 2:
         fan_out, fan_in = tensor.shape
         num_zeros = int(math.ceil(sparsity * fan_in))
         with torch.no_grad():
+            # if init_type == 'uniform':
+            #     tensor.uniform_(-math.sqrt(1.0 / fan_in), math.sqrt(1.0 / fan_in))
+            # elif init_type == 'normal':
+            #     tensor.normal_(0, math.sqrt(1.0 / fan_in))
+            # else:
+            #     raise ValueError("Unknown initialization type")
+
+            if std is None:
+                if init_type == 'uniform':
+                    std = math.sqrt(1.0 / (3 * fan_in))
+                elif init_type == 'normal':
+                    std = math.sqrt(1.0 / fan_in)
+                else:
+                    raise ValueError("Unknown initialization type")
+            
             if init_type == 'uniform':
-                tensor.uniform_(-math.sqrt(1.0 / fan_in), math.sqrt(1.0 / fan_in))
+                a = math.sqrt(3.0) * std
+                tensor.uniform_(-a, a)
             elif init_type == 'normal':
-                tensor.normal_(0, math.sqrt(1.0 / fan_in))
+                tensor.normal_(0, std)
             else:
                 raise ValueError("Unknown initialization type")
 
@@ -263,7 +279,7 @@ def sparse_init(tensor, sparsity, init_type='uniform'):
         raise ValueError("Only tensors with 2 or 4 dimensions are supported for sparse_init")
 
 
-def sparse_init_layer(layer, sparsity=0.9, init_type='uniform'):
+def sparse_init_layer(layer, sparsity=0.9, std=None, init_type='uniform'):
     """
     Initialize the given layer with a specified sparsity level.
     Works similarly to layer_init and weights_init_xavier,
@@ -271,7 +287,7 @@ def sparse_init_layer(layer, sparsity=0.9, init_type='uniform'):
     """
     if isinstance(layer, (nn.Linear, nn.Conv2d)):
         # Apply sparse initialization to layer weights
-        sparse_init(layer.weight, sparsity, init_type=init_type)
+        sparse_init(layer.weight, sparsity, std=std, init_type=init_type)
         if layer.bias is not None:
             torch.nn.init.zeros_(layer.bias)
     return layer
@@ -343,7 +359,7 @@ class PPOAgent(nn.Module):
             nn.Tanh(),
             # layer_init(nn.Linear(hidden_size, action_space_size), std=0.01),
             # weights_init_xavier(nn.Linear(hidden_size, action_space_size)),
-            sparse_init_layer(nn.Linear(hidden_size, action_space_size), sparsity=actor_sparsity_level),
+            sparse_init_layer(nn.Linear(hidden_size, action_space_size), sparsity=actor_sparsity_level, std=0.001),
         )
         self.critic = nn.Sequential(
             layer_init(nn.Linear(observation_space_size, 64)),
