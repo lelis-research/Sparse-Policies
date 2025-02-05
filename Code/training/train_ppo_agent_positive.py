@@ -249,7 +249,7 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
 
                     # L1 loss
                     # l1_loss = _l1_norm(model=agent.actor, lambda_l1=args.l1_lambda)
-                    l1_loss = agent.get_l1_norm() if feature_extractor else 0
+                    l1_loss = agent.get_l1_norm() if feature_extractor else agent.get_l1_norm_actor()
                     # l1_loss = agent.get_l1_norm_actor()
 
                     # Policy loss
@@ -406,14 +406,14 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
     # pattern = r"^(.*?)_SD"
     # result = re.match(pattern, args.exp_name)
     # model_directory = result.group(1) + "/" + model_file_name
+    # os.makedirs(os.path.dirname(model_directory), exist_ok=True)
 
     envs.close()
     writer.close()
-    # os.makedirs(os.path.dirname(model_directory), exist_ok=True)
     logger.info(f"Experiment: {args.exp_name}")
     if "test" not in args.exp_name:
-        # torch.save(agent.state_dict(), model_directory)
-        torch.save(agent.state_dict(), model_file_name)
+        # torch.save(agent.state_dict(), model_directory)    # for sweeps
+        torch.save(agent.state_dict(), model_file_name)    # for single runs
         logger.info(f"Saved on {model_file_name}")
     else:
         print("Test mode, not saving model")
