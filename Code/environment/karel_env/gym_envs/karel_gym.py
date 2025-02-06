@@ -11,7 +11,7 @@ import random
 
 from environment.karel_env.karel.environment import KarelEnvironment, basic_actions
 from environment.karel_env.karel_tasks.stair_climber import StairClimber, StairClimberSparse, StairClimberSparseAllInit, StairClimberAllInit
-from environment.karel_env.karel_tasks.maze import Maze, MazeSparse
+from environment.karel_env.karel_tasks.maze import Maze, MazeSparse, MazeSparseAllInit, MazeAllInit
 from environment.karel_env.karel_tasks.four_corners import FourCorners, FourCornersSparse
 from environment.karel_env.karel_tasks.top_off import TopOff, TopOffSparse
 from environment.karel_env.karel_tasks.harvester import Harvester, HarvesterSparse
@@ -118,11 +118,16 @@ class KarelGymEnv(gym.Env):
             task = task_specific.generate_initial_environment(env_args)
 
         elif self.task_name == 'maze':
-            task_class = MazeSparse if self.config['sparse_reward'] else Maze
-            task_specific = task_class(
-                env_args=env_args,
-                seed=self.config.get('seed'),
-            )
+            if self.all_initial_confs:
+                task_class = MazeSparseAllInit if self.config['sparse_reward'] else MazeAllInit
+                task_specific = task_class(env_args=env_args)
+                self.all_initial_confs_envs = task_specific.all_initial_confs
+            else:
+                task_class = MazeSparse if self.config['sparse_reward'] else Maze
+                task_specific = task_class(
+                    env_args=env_args,
+                    seed=self.config.get('seed'),
+                )
             task = task_specific.generate_initial_environment(env_args)
 
         elif self.task_name == 'four_corner':
@@ -447,21 +452,27 @@ if __name__ == "__main__":
     initial_state[4, 1, 2] = True  # Wall at (1, 2)
 
     env_config = {
-        'task_name': 'stair_climber',
+        'task_name': 'maze',
         'env_height': env_height,
         'env_width': env_width,
         'max_steps': 1,
         'sparse_reward': True,
         'seed': 1,
-        'initial_state': initial_state,
+        'initial_state': None,
         'multi_initial_confs': False, 
         'all_initial_confs': True
     }
 
     env = make_karel_env(env_config=env_config)()
+
+    # # showing all the initial configurations
+    # print("len of all initial confs:", len(env.all_initial_confs_envs))
+    # for init_conf in env.all_initial_confs_envs:
+    #     env.task.state2image(init_conf, root_dir=project_root + '/environment/').show()
+
     init_obs = env.reset()
     env.render()
-    env.task.state2image(env.get_observation(), root_dir=project_root + '/environment/').show()
+    # env.task.state2image(env.get_observation(), root_dir=project_root + '/environment/').show()
 
     action_names = env.task.actions_list
     action_mapping = {name: idx for idx, name in enumerate(action_names)}
@@ -469,6 +480,7 @@ if __name__ == "__main__":
     # action_sequence = ['move', 'putMarker', 'turnLeft', 'move', 'move', 'move', 'move', 'move', 'putMarker', 'turnLeft', 'move', 'move', 'move', 'move', 'move', 'putMarker', 'turnLeft', 'move', 'move', 'move', 'move', 'move', 'putMarker', 'turnLeft', 'move', 'move', 'move', 'move', 'move'] # for stairclimber 6*6
     # action_sequence = ['pickMarker', 'move', 'pickMarker', 'turnLeft', 'move', 'pickMarker']
     # action_sequence = ['move', 'move', 'move', 'putMarker', 'move', 'move', 'putMarker']
+    
     actions = [action_mapping[name] for name in action_sequence]
 
     done = False
@@ -488,4 +500,3 @@ if __name__ == "__main__":
 
     reset_obs = env.reset()
     env.render()
-    # print("init obs == reset obs:", np.all(init_obs == reset_obs))
