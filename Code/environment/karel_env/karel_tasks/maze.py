@@ -99,7 +99,7 @@ class MazeSparse(Maze):
             terminated = True
             # reward = 1.
             reward = 0.
-            print("** Agent reached the goal!!!!")
+            # print("** Agent reached the goal!!!!")
         
         return terminated, reward
     
