@@ -199,15 +199,20 @@ if __name__ == "__main__":
     sorted_groups.sort(reverse=True, key=lambda x: x[0])
 
     # Print formatted results
-    print("\n=== Evaluation Results Grouped by Hyperparameters ===")
-    for avg_reward, group in sorted_groups:
-        params = group['params']
-        print(f"\nHyperParams: "
-              f"H: {params['hidden_size']}, Lr: {params['lr']:.0e}, L1: {params['l1']}, "
-              f"Ent_coef: {params['ent_coef']}, Clip_coef: {params['clip_coef']}")
-        print(f"Avg reward (over {len(group['seeds'])*len(args.karel_seeds)} runs): {avg_reward:.1f}")
-        
-        print("Results per training seed:")
-        for model_seed, seeds in sorted(group['seeds'].items()):
-            rewards = [f"{seeds[ks][0]:.1f}" for ks in args.karel_seeds]
-            print(f"  sd{model_seed}: {' '.join(rewards)}")
+    eval_name = args.binaries_path.split('/')[-2]   # [-1] is "binary"
+    output_filename = f"{project_root}/Scripts/evaluation/eval_{eval_name}.txt"
+    output_dir = os.path.dirname(output_filename)
+    if not os.path.exists(output_dir): os.makedirs(output_dir)
+    with open(output_filename, 'w') as f:
+        f.write("\n=== Evaluation Results Grouped by Hyperparameters ===\n")
+        f.write(f"Task: {args.task_name}, Game size: {args.game_width_eval}x{args.game_width_eval}, Max steps: {args.max_steps}, Karel_seeds: {args.karel_seeds}\n")
+        for avg_reward, group in sorted_groups:
+            params = group['params']
+            f.write(f"\nHyperParams: "
+                    f"H: {params['hidden_size']}, Lr: {params['lr']:.0e}, L1: {params['l1']}, "
+                    f"Ent_coef: {params['ent_coef']}, Clip_coef: {params['clip_coef']}\n")
+            f.write(f"Avg reward (over {len(group['seeds'])*len(args.karel_seeds)} runs): {avg_reward:.2f}\n")
+            f.write("Results per training seed:\n")
+            for model_seed, seeds in sorted(group['seeds'].items()):
+                rewards = [f"{seeds[ks][0]:.1f}" for ks in args.karel_seeds]
+                f.write(f"  sd{model_seed}: {' '.join(rewards)}\n")
