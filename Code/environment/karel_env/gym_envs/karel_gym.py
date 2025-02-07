@@ -305,6 +305,7 @@ class KarelGymEnv(gym.Env):
         else:
             self.task, self.task_specific = self._initialize_task()
 
+        # print("---env: \n", self.task.state2image(root_dir=project_root + '/environment/').show())
         return self._get_observation_dsl(), {}
 
     def render(self, mode='human'):
