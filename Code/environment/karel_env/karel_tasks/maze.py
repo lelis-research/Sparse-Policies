@@ -280,7 +280,8 @@ class MazeSparseAllInit(MazeAllInit):
     """
     def get_reward(self, env: KarelEnvironment):
         terminated = False
-        reward = -1.0
+        # reward = -1.0
+        reward = 0.0
 
         karel_pos = env.get_hero_pos()
         marker_pos = np.argwhere(env.state[6, :, :])
@@ -289,7 +290,8 @@ class MazeSparseAllInit(MazeAllInit):
 
         if karel_pos[0] == marker_pos[0] and karel_pos[1] == marker_pos[1]:
             terminated = True
-            reward = 0.0
+            # reward = 0.0
+            reward = 1.0
             # print("** Agent reached the goal!!!!")
 
         return terminated, reward

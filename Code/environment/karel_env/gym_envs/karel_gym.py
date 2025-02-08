@@ -183,7 +183,6 @@ class KarelGymEnv(gym.Env):
         self.option_sizes = [3 for _ in range(len(options))]    # TODO: change this to a more general way
 
     def step(self, action:int):
-        # print("---- action index:", action)
         assert self.action_space.contains(action), "Invalid action"
         self.last_action = action
         truncated = False
@@ -191,6 +190,7 @@ class KarelGymEnv(gym.Env):
             nonlocal truncated
             action_name = self.task.actions_list[action]
             self.task.run_action(action_name)
+            # print("---- action:", action_name)
 
             self.current_step += 1
             # print("-- Step:", self.current_step)

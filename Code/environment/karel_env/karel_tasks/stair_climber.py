@@ -328,7 +328,8 @@ class StairClimberAllInit(BaseTask):
         # Adjust reward for sparse or non-sparse version
         if self.sparse_reward:
             # reward = reward if done and not self.done else 0.0
-            reward = 0.0 if done and not self.done else -1.0
+            # reward = 0.0 if done and not self.done else -1.0
+            reward = 1.0 if done and not self.done else 0.
             # print("reward sparse: ", reward)
 
         self.done = self.done or done

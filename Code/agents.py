@@ -330,9 +330,9 @@ class PPOAgent(nn.Module):
 
         FE_sparsity_level = float(FE_sparsity_level) / 100
         actor_sparsity_level = float(actor_sparsity_level) / 100
-        # print("FE hidden size: ", FE_hidden_size)
-        # print("FE sparsity level: ", FE_sparsity_level)
-        # print("Actor sparsity level: ", actor_sparsity_level)
+        print("FE hidden size (FEX): ", FE_hidden_size)
+        print("FE sparsity level (SF): ", FE_sparsity_level)
+        print("Actor sparsity level (SA): ", actor_sparsity_level)
         
         # print("obs size: ", observation_space_size, ", act size: ", action_space_size)
         # print("single obs size: ", envs.single_observation_space.shape)
