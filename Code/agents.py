@@ -330,6 +330,8 @@ class PPOAgent(nn.Module):
 
         FE_sparsity_level = float(FE_sparsity_level) / 100
         actor_sparsity_level = float(actor_sparsity_level) / 100
+
+        print("Feature Extractor: ", self.feature_extractor)
         print("FE hidden size (FEX): ", FE_hidden_size)
         print("FE sparsity level (SF): ", FE_sparsity_level)
         print("Actor sparsity level (SA): ", actor_sparsity_level)

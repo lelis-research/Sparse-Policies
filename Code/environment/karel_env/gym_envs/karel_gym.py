@@ -13,7 +13,7 @@ from environment.karel_env.karel.environment import KarelEnvironment, basic_acti
 from environment.karel_env.karel_tasks.stair_climber import StairClimber, StairClimberSparse, StairClimberSparseAllInit, StairClimberAllInit
 from environment.karel_env.karel_tasks.maze import Maze, MazeSparse, MazeSparseAllInit, MazeAllInit
 from environment.karel_env.karel_tasks.four_corners import FourCorners, FourCornersSparse
-from environment.karel_env.karel_tasks.top_off import TopOff, TopOffSparse
+from environment.karel_env.karel_tasks.top_off import TopOff, TopOffSparse, TopOffAllInit, TopOffSparseAllInit
 from environment.karel_env.karel_tasks.harvester import Harvester, HarvesterSparse
 
 
@@ -90,12 +90,16 @@ class KarelGymEnv(gym.Env):
         }
 
         if self.task_name == 'top_off':
-            task_class = TopOffSparse if self.config['sparse_reward'] else TopOff
-            task_specific = task_class(
-                env_args=env_args,
-                seed=self.config.get('seed'),
-                # crash_penalty=self.crash_penalty
-            )
+            if self.all_initial_confs:
+                task_class = TopOffSparseAllInit if self.config['sparse_reward'] else TopOffAllInit
+                task_specific = task_class(env_args=env_args)
+                self.all_initial_confs_envs = task_specific.all_initial_confs
+            else:
+                task_class = TopOffSparse if self.config['sparse_reward'] else TopOff
+                task_specific = task_class(
+                    env_args=env_args,
+                    seed=self.config.get('seed'),
+                )
             task = task_specific.generate_initial_environment(env_args)
 
         elif self.task_name == 'stair_climber':
@@ -193,14 +197,14 @@ class KarelGymEnv(gym.Env):
             # print("---- action:", action_name)
 
             self.current_step += 1
-            # print("-- Step:", self.current_step)
 
-            # Get the reward and check if the episode is terminated
             if self.task_name != 'base':
                 terminated, reward = self.task_specific.get_reward(self.task)
 
             if self.current_step >= self.max_steps:
                 truncated = True
+            
+            # self.task.state2image(root_dir=project_root + '/environment/').show()
 
             # if terminated or truncated: print("-- Episode Done!!")
             # print("truncate:", truncated, "terminated:", terminated)
@@ -305,7 +309,7 @@ class KarelGymEnv(gym.Env):
         else:
             self.task, self.task_specific = self._initialize_task()
 
-        # print(self.task.state2image(root_dir=project_root + '/environment/').show())
+        # self.task.state2image(root_dir=project_root + '/environment/').show()
         return self._get_observation_dsl(), {}
 
     def render(self, mode='human'):
@@ -394,11 +398,6 @@ class KarelGymEnv(gym.Env):
         elif self.last_action == -1:
             one_hot_action[0] = 1.0
 
-        # num_actions = 5   # number of actions
-        # one_hot_action = np.zeros(num_actions, dtype=float)
-        # if self.last_action is not None and self.last_action != -1: 
-        #     one_hot_action[int(self.last_action)] = 1.0
-
         dsl_obs = np.array([
             self.task.get_bool_feature("frontIsClear"),
             self.task.get_bool_feature("leftIsClear"),
@@ -425,7 +424,6 @@ class KarelGymEnv(gym.Env):
             self.config['env_height'] = env_height
             self.config['env_width'] = env_width
         else:
-            # print("---- Using env_height and env_width from input ----")
             self.env_height = self.config['env_height']
             self.env_width = self.config['env_width']
 
@@ -444,8 +442,8 @@ def make_karel_env(env_config: Optional[dict] = None) -> Callable:
 if __name__ == "__main__":
 
     num_features = 16
-    env_height = 8
-    env_width = 8
+    env_height = 6
+    env_width = 6
 
     # A custom initial state for the base task
     initial_state = np.zeros((num_features, env_height, env_width), dtype=bool)
@@ -453,7 +451,7 @@ if __name__ == "__main__":
     initial_state[4, 1, 2] = True  # Wall at (1, 2)
 
     env_config = {
-        'task_name': 'maze',
+        'task_name': 'top_off',
         'env_height': env_height,
         'env_width': env_width,
         'max_steps': 1,
