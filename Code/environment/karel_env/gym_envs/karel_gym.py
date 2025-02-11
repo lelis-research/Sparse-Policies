@@ -442,8 +442,8 @@ def make_karel_env(env_config: Optional[dict] = None) -> Callable:
 if __name__ == "__main__":
 
     num_features = 16
-    env_height = 6
-    env_width = 6
+    env_height = 8
+    env_width = 8
 
     # A custom initial state for the base task
     initial_state = np.zeros((num_features, env_height, env_width), dtype=bool)
@@ -451,15 +451,15 @@ if __name__ == "__main__":
     initial_state[4, 1, 2] = True  # Wall at (1, 2)
 
     env_config = {
-        'task_name': 'top_off',
+        'task_name': 'harvester',
         'env_height': env_height,
         'env_width': env_width,
         'max_steps': 1,
-        'sparse_reward': True,
-        'seed': 1,
+        'sparse_reward': False,
+        'seed': 50,
         'initial_state': None,
         'multi_initial_confs': False, 
-        'all_initial_confs': True
+        'all_initial_confs': False
     }
 
     env = make_karel_env(env_config=env_config)()

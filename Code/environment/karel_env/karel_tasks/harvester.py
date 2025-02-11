@@ -41,12 +41,15 @@ class Harvester(BaseTask):
         num_markers = env.markers_grid.sum()
         
         reward = (self.previous_number_of_markers - num_markers) / self.initial_number_of_markers
+
+        # print(f"num_markers: {num_markers}, prev_marker {self.previous_number_of_markers}, init_marker {self.initial_number_of_markers}, reward: {reward:.2f}")
         
-        if num_markers > self.previous_number_of_markers:
-            reward = self.crash_penalty
-            terminated = True
+        # if num_markers > self.previous_number_of_markers:
+        #     reward = self.crash_penalty
+        #     terminated = True
         
-        elif num_markers == 0:
+        if num_markers == 0:
+            # print("--- Done")
             terminated = True
         
         self.previous_number_of_markers = num_markers
