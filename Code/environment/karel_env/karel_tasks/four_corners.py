@@ -66,27 +66,30 @@ class FourCornersSparse(FourCorners):
     
     def get_reward(self, env: KarelEnvironment):
         terminated = False
-        # reward = 0.
-        reward = -1.0
+        reward = 0.
+        # reward = -1.0
 
         num_placed_markers = env.markers_grid.sum()
+        # print("** Number of placed markers: ", num_placed_markers)
         num_correct_markers = 0
         
         for marker in self.goal_markers:
             if env.markers_grid[marker[0], marker[1]]:
+                # print("** Correct marker placement")
                 num_correct_markers += 1
 
         if num_placed_markers > num_correct_markers:
             # NOT POSITIVE EXAMPLE
-            terminated = True
+            # terminated = True
             # reward = self.crash_penalty
-            reward = -1.0
-            print("** Agent placed more markers than necessary")
+            reward = 0.0
+            # print("** Agent placed more markers than necessary")
         
         elif num_correct_markers == len(self.goal_markers):
             terminated = True
-            # reward = 1.
-            reward = 0.
-            print("** Agent reached the goal!!!!")
-        
+            reward = 1.
+            # reward = 0.
+            # print("** Agent reached the goal!!!!")
+
+        # print("reward: ", reward)
         return terminated, reward
