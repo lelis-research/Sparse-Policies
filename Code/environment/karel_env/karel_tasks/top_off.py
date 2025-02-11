@@ -88,12 +88,12 @@ class TopOff(BaseTask):
                 if markers_grid[last_row, c] == 2:
                     consecutive += 1
                 else:
-                    break
+                    break   # Stop at first missing marker
             else:
                 if markers_grid[last_row, c] == 0:
                     consecutive += 1
                 else:
-                    break
+                    break   # Stop at first extra marker
         
         bonus = 0
         if (agent_row == last_row and agent_col == playable_cols_end and
@@ -103,7 +103,7 @@ class TopOff(BaseTask):
         total = consecutive + bonus
         reward = total / (max_consecutive + 1)
         done = (consecutive == max_consecutive) and (bonus == 1)
-        # print(f"reward: {reward}, done: {done}")
+        # print(f"reward: {reward:.2f}, done: {done}")
         
         return done, reward
 
@@ -126,7 +126,7 @@ class TopOffSparse(TopOff):
             terminated = True
             reward = self.crash_penalty
         
-        if num_correct_markers == len(self.markers):
+        if num_correct_markers == len(self.markers) and env.get_hero_pos()[0] == env.state_shape[1] - 2 and env.get_hero_pos()[1] == env.state_shape[2] - 2:
             terminated = True
             reward = 1.
         
@@ -239,7 +239,7 @@ class TopOffSparseAllInit(TopOffAllInit):
             terminated = True
             reward = self.crash_penalty
         
-        if num_correct_markers == len(self.markers):
+        if num_correct_markers == len(self.markers) and env.get_hero_pos()[0] == env.state_shape[1] - 2 and env.get_hero_pos()[1] == env.state_shape[2] - 2:
             terminated = True
             reward = 1.
         
