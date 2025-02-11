@@ -24,7 +24,7 @@ class TopOff(BaseTask):
         state[1, env_height - 2, 1] = True
         
         self.possible_marker_locations = [
-            [env_height - 2, i] for i in range(2, env_width - 1)
+            [env_height - 2, i] for i in range(2, env_width - 2)    # no marker in the last column
         ]
         
         self.rng.shuffle(self.possible_marker_locations)
@@ -39,7 +39,8 @@ class TopOff(BaseTask):
     
     def reset_environment(self):
         super().reset_environment()
-        self.num_previous_correct_markers = 0
+        # self.num_previous_correct_markers = 0
+        self.prev_consecutive = 0
 
     def get_reward_Tales(self, env: KarelEnvironment):
         terminated = False
@@ -100,11 +101,13 @@ class TopOff(BaseTask):
             consecutive == max_consecutive):
             bonus = 1
         
-        total = consecutive + bonus
+        # total = consecutive + bonus
+        total = (consecutive - self.prev_consecutive) + bonus
         reward = total / (max_consecutive + 1)
         done = (consecutive == max_consecutive) and (bonus == 1)
         # print(f"reward: {reward:.2f}, done: {done}")
         
+        self.prev_consecutive = consecutive
         return done, reward
 
 
@@ -153,7 +156,7 @@ class TopOffAllInit(BaseTask):
         state[1, env_height - 2, 1] = True  # Karel's initial position
 
         possible_marker_locations = [
-            [env_height - 2, c] for c in range(2, env_width - 1)
+            [env_height - 2, c] for c in range(2, env_width - 2)    # no marker in the last column
         ]
 
         def all_non_empty_subsets(s):
@@ -175,7 +178,8 @@ class TopOffAllInit(BaseTask):
             last_row = env_height - 2
             marker_cols = np.where(initial_state[6, last_row, :])[0].tolist()
             self.markers = [[last_row, c] for c in marker_cols]
-            self.num_previous_correct_markers = 0
+            self.prev_consecutive = 0
+
             return KarelEnvironment(**env_args)
         else:
             return KarelEnvironment(**env_args)
@@ -214,10 +218,12 @@ class TopOffAllInit(BaseTask):
             consecutive == max_consecutive):
             bonus = 1
         
-        total = consecutive + bonus
+        # total = consecutive + bonus
+        total = (consecutive - self.prev_consecutive) + bonus
         reward = total / (max_consecutive + 1)
         done = (consecutive == max_consecutive) and (bonus == 1)
         
+        self.prev_consecutive = consecutive
         return done, reward
 
 
