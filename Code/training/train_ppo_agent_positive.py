@@ -161,7 +161,7 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
         if "final_info" in infos:
             for info in infos["final_info"]:
                 if info and "episode" in info:
-                    logger.info(f"global_step={global_step}, episodic_return={info['episode']['r']}, episodic_length={info['episode']['l']}, pos_step={positive_step}")
+                    logger.info(f"global_step={global_step}, episodic_return={info['episode']['r']}, episodic_length={info['episode']['l']}")
                     writer.add_scalar("charts/episodic_return", info["episode"]["r"], global_step)
                     writer.add_scalar("charts/episodic_length", info["episode"]["l"], global_step)
 
