@@ -2,7 +2,7 @@
 #SBATCH --cpus-per-task=6
 #SBATCH --mem=6G
 #SBATCH --time=00-10:00
-#SBATCH --output=job_logs/maze_sweep22_noFE/%N-%j.out  # %N for node name, %j for jobID
+#SBATCH --output=job_logs/top_sweep40_noFE/%N-%j.out  # %N for node name, %j for jobID
 #SBATCH --account=rrg-lelis
 #SBATCH --mail-user=arajabpo@ualberta.ca
 #SBATCH --mail-type=ALL
@@ -66,11 +66,11 @@ H="${hiddens[${h_index}]}"
 
 # Run the training script
 python ~/scratch/Sparse-Policies/Code/scripts/train_ppo.py \
-  --env_id Karel_maze \
+  --env_id Karel_top_off \
   --seed "${SD}" \
-  --game_width 8 \
-  --game_height 8 \
-  --max_steps 100 \
+  --game_width 12 \
+  --game_height 12 \
+  --max_steps 50 \
   --num_steps 500 \
   --sparse_reward \
   --hidden_size "${H}" \
@@ -83,4 +83,4 @@ python ~/scratch/Sparse-Policies/Code/scripts/train_ppo.py \
   --l1_lambda "${L1}" \
   --ent_coef "${ENT}" \
   --clip_coef "${CLIP}" \
-  --exp_name "maze_sweep22_noFE_SD${SD}_LR${LR}_CLIP${CLIP}_ENT${ENT}_L1${L1}_H${H}"
+  --exp_name "top_sweep40_noFE_SD${SD}_LR${LR}_CLIP${CLIP}_ENT${ENT}_L1${L1}_H${H}"
