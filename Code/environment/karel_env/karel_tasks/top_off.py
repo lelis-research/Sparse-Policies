@@ -84,7 +84,7 @@ class TopOff(BaseTask):
         
         consecutive = 0
         for c in range(playable_cols_start, playable_cols_end + 1):
-            current_pos = (last_row, c)
+            current_pos = [last_row, c]
             if current_pos in self.markers:
                 if markers_grid[last_row, c] == 2:
                     consecutive += 1
@@ -201,7 +201,7 @@ class TopOffAllInit(BaseTask):
         
         consecutive = 0
         for c in range(playable_cols_start, playable_cols_end + 1):
-            current_pos = (last_row, c)
+            current_pos = [last_row, c]
             if current_pos in self.markers:
                 if markers_grid[last_row, c] >= 1:
                     consecutive += 1
