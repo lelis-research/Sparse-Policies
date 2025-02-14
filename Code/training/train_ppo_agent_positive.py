@@ -26,7 +26,7 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
         seed = args.seed
 
     # call rnder() on one of the karel_gym env 
-    envs.envs[0].render()
+    # envs.envs[0].render()
 
     feature_extractor = False if "noFE" in args.exp_name else True
     print("FE is: ", feature_extractor)

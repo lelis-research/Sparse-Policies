@@ -17,6 +17,7 @@ from typing import Callable
 from torch.utils.tensorboard import SummaryWriter
 from environment.combogrid_gym import make_env, make_env_combo_four_goals
 from environment.karel_env.gym_envs.karel_gym import make_karel_env
+from environment.cartpole_gym import LastActionObservationWrapper
 # from environment.minigrid import make_env_simple_crossing, make_env_four_rooms
 from training.train_ppo_agent import train_ppo
 from training.train_ppo_agent_positive import train_ppo_positive
@@ -155,6 +156,7 @@ def main(args):
         assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action space is supported"
         logger.info("envs.action_space.n", envs.action_space[0].n)
 
+
     elif "ComboTest" in args.env_id:
         if args.options_enabled:
             model_file_name = f'binary/PPO-{args.env_id}-gw{game_width}-h{hidden_size}-l1l{l1_lambda}-lr{args.learning_rate}-totaltimestep{args.total_timesteps}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}_options_MODEL.pt'
@@ -175,7 +177,6 @@ def main(args):
         model_file_name = f'binary/PPO-{args.env_id}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}-l1{args.l1_lambda}-{args.ppo_type}-MODEL-{run_time}.pt'
         problem = args.env_id[len("Karel_"):]
 
-        ## Method 1
         env_config = {
             'task_name': problem,
             'env_height': args.game_height,
@@ -196,75 +197,22 @@ def main(args):
             [make_karel_env(env_config=env_config) for _ in range(args.num_envs)]
         )
 
-        ## Method 4
-        # args.num_envs = 10
-        # seeds = [i for i in range(args.num_envs)]
-        # envs = gym.vector.AsyncVectorEnv(
-        #     [lambda seed=seed: make_karel_env(env_config={
-        #         'task_name': problem,
-        #         'env_height': args.game_height,
-        #         'env_width': args.game_width,
-        #         'max_steps': args.max_steps,
-        #         'sparse_reward': args.sparse_reward,
-        #         'crash_penalty': args.crash_penalty,
-        #         'seed': seed,
-        #         'initial_state': None,
-        #     })() for seed in seeds]
-        # )
-
-        ## Method 3
-        # args.num_envs = 10
-        # seeds = [i for i in range(args.num_envs)]
-        # env_fns = []
-
-        # for i in range(args.num_envs):
-        #     seed = seeds[i]  # Use a unique seed for each environment
-        #     env_config = {
-        #         'task_name': problem,
-        #         'env_height': args.game_height,
-        #         'env_width': args.game_width,
-        #         'max_steps': args.max_steps,
-        #         'sparse_reward': args.sparse_reward,
-        #         'crash_penalty': args.crash_penalty,
-        #         'seed': seed,  
-        #         'initial_state': None,
-        #     }
-        #     env_fns.append(make_karel_env(env_config=env_config))
-
-        # envs = gym.vector.SyncVectorEnv(env_fns)
-
-        ## Method 2
-        # args.num_envs = 10
-        # seeds = [i for i in range(args.num_envs)]
-
-        # def make_env_with_seed(seed: int) -> Callable:
-        #     def _init():
-        #         env_config = {
-        #             'task_name': problem,
-        #             'env_height': args.game_height,
-        #             'env_width': args.game_width,
-        #             'max_steps': args.max_steps,
-        #             'sparse_reward': args.sparse_reward,
-        #             'crash_penalty': args.crash_penalty,
-        #             'seed': seed,  # Each env gets its own seed
-        #             'initial_state': None,
-        #         }
-        #         # env = make_karel_env(env_config=env_config)()
-        #         env_fn = make_karel_env(env_config=env_config) 
-        #         env = env_fn()
-        #         return env
-        #     return _init
-        
-        # env_fns = [make_env_with_seed(seed) for seed in seeds]
-        # envs = gym.vector.SyncVectorEnv(env_fns)
+    
+    elif "Cartpole" in args.env_id:
+        model_file_name = f'binary/PPO-{args.env_id}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}-l1{args.l1_lambda}-{args.ppo_type}-MODEL-{run_time}.pt'
+        # envs = gym.make_vec("CartPole-v1", num_envs=args.num_envs, vectorization_mode="sync")
+        envs = gym.vector.SyncVectorEnv([
+            lambda: LastActionObservationWrapper(gym.make("CartPole-v1"))
+            for _ in range(args.num_envs)
+        ])
 
 
     else:
         raise NotImplementedError
     
         
-    # average_return = train_ppo(envs, args, model_file_name, device, writer, logger=logger, seed=seed)
-    average_return = train_ppo_positive(envs, args, model_file_name, device, writer, logger=logger, seed=seed)
+    # _ = train_ppo(envs, args, model_file_name, device, writer, logger=logger, seed=seed)
+    _ = train_ppo_positive(envs, args, model_file_name, device, writer, logger=logger, seed=seed)
 
 
 

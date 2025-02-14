@@ -6,7 +6,7 @@ import torch.nn as nn
 from models.model import CustomRNN, CustomRelu 
 from environment.combogrid_gym import ComboGym
 from gymnasium.vector import SyncVectorEnv
-from environment.minigrid import MiniGridWrap
+from environment.minigrid_gym import MiniGridWrap
 from environment.karel_env.gym_envs.karel_gym import KarelGymEnv
 from torch.distributions.categorical import Categorical
 from typing import Union
