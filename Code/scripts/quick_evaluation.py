@@ -181,7 +181,7 @@ if __name__ == "__main__":
         for karel_seed in args.karel_seeds:
             args.karel_seed = karel_seed
             reward, steps = evaluate_model_on_large_grid(model_path, args)
-            seed_results[karel_seed] = (int(reward), int(steps))
+            seed_results[karel_seed] = (float(reward), int(steps))
         
         groups[group_key]['seeds'][params['model_seed']] = seed_results
 
@@ -214,5 +214,5 @@ if __name__ == "__main__":
             f.write(f"Avg reward (over {len(group['seeds'])*len(args.karel_seeds)} runs): {avg_reward:.2f}\n")
             f.write("Results per training seed:\n")
             for model_seed, seeds in sorted(group['seeds'].items()):
-                rewards = [f"{seeds[ks][0]:.1f}" for ks in args.karel_seeds]
+                rewards = [f"{seeds[ks][0]:.2f}" for ks in args.karel_seeds]
                 f.write(f"  sd{model_seed}: {' '.join(rewards)}\n")
