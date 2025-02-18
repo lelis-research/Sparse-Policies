@@ -17,7 +17,7 @@ from typing import Callable
 from torch.utils.tensorboard import SummaryWriter
 from environment.combogrid_gym import make_env, make_env_combo_four_goals
 from environment.karel_env.gym_envs.karel_gym import make_karel_env
-from environment.cartpole_gym import LastActionObservationWrapper
+from environment.cartpole_gym import LastActionObservationWrapper, make_cartpole_env
 # from environment.minigrid import make_env_simple_crossing, make_env_four_rooms
 from training.train_ppo_agent import train_ppo
 from training.train_ppo_agent_positive import train_ppo_positive
@@ -201,10 +201,15 @@ def main(args):
     elif "Cartpole" in args.env_id:
         model_file_name = f'binary/PPO-{args.env_id}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}-l1{args.l1_lambda}-{args.ppo_type}-MODEL-{run_time}.pt'
         # envs = gym.make_vec("CartPole-v1", num_envs=args.num_envs, vectorization_mode="sync")
-        envs = gym.vector.SyncVectorEnv([
-            lambda: LastActionObservationWrapper(gym.make("CartPole-v1"))
-            for _ in range(args.num_envs)
-        ])
+        # envs = gym.vector.SyncVectorEnv([
+        #     lambda: LastActionObservationWrapper(gym.make("CartPole-v1", max_episode_steps=250), 
+        #                                          last_action_in_obs=True)    # 5s / 0.02 = 250 steps
+        #     for _ in range(args.num_envs)
+        # ])
+        last_action_in_obs = False if "normal" in args.exp_name else True
+        envs = gym.vector.SyncVectorEnv([make_cartpole_env(train_mode=True, 
+                                                           last_action_in_obs=last_action_in_obs, 
+                                                           max_episode_steps=250) for _ in range(args.num_envs)])
 
 
     else:

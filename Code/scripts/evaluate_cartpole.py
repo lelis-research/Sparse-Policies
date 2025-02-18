@@ -15,21 +15,21 @@ from agents import PPOAgent, GruAgent
 def evaluate(args):
 
     def make_env():
-        return LastActionObservationWrapper(gym.make("CartPole-v1", render_mode="rgb_array"))
+        return LastActionObservationWrapper(gym.make("CartPole-v1", 
+                                                     max_episode_steps=15000, # 300s / 0.02 = 15000 steps
+                                                     render_mode="rgb_array"), 
+                                            train_mode=False, 
+                                            last_action_in_obs=True)  
 
-    # Create base environment
     base_env = make_env()
     
-    # Wrap with RecordVideo
+    # For recording a video
     env = RecordVideo(
         base_env,
         video_folder=args.video_folder,
         name_prefix=args.video_prefix,
-        episode_trigger=lambda episode: True
+        episode_trigger=lambda episode: episode == 0
     )
-
-    # envs = gym.vector.SyncVectorEnv([make_env])
-    # Create vector env wrapper for agent compatibility
     envs = gym.vector.SyncVectorEnv([lambda: env])
 
     obs_shape = envs.single_observation_space.shape
@@ -40,19 +40,8 @@ def evaluate(args):
     envs.reset()
     envs.envs[0].render()
 
-    # Create the environment
-    # env = gym.make("CartPole-v1")
-    # env = LastActionObservationWrapper(env)
-    # Record a video for every episode
-    # env = RecordVideo(
-    #     env,
-    #     video_folder=args.video_folder,
-    #     name_prefix=args.video_prefix,
-    #     episode_trigger=lambda episode: True
-    # )
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    # Create the appropriate agent based on ppo_type
     if args.ppo_type == "original":
         agent = PPOAgent(envs,
                          hidden_size=args.hidden_size,
@@ -66,14 +55,13 @@ def evaluate(args):
     else:
         raise ValueError(f"Unsupported ppo_type: {args.ppo_type}")
 
-    # Load the model state dictionary
     agent.load_state_dict(torch.load(args.model_path, map_location=device))
     print(f"Model loaded from {args.model_path}")
     agent.eval()
 
     MAX_STEPS = args.num_timesteps
 
-    obs, _ = envs.reset()
+    obs, _ = envs.reset(seed=1)
     done = False
     episode_reward = 0
     step = 0
@@ -81,7 +69,6 @@ def evaluate(args):
 
     if args.ppo_type == "original":
         while not done:
-            # envs.envs[0].render()
             obs_tensor = torch.tensor(obs, dtype=torch.float32).to(device)
 
             with torch.no_grad():
@@ -93,12 +80,11 @@ def evaluate(args):
             episode_reward += reward[0]  # Since we have only one environment
             step += 1
             if step > MAX_STEPS:
-                print("Max steps reached.")
+                print("Max steps reached ==> Successful")
                 done = True
 
     envs.close()
-    print(f"Total Reward = {episode_reward}")
-    print(f"Evaluation complete after {step} timesteps.")
+    print(f"\nTotal Reward = {episode_reward}")
 
 
 if __name__ == "__main__":
@@ -121,6 +107,5 @@ if __name__ == "__main__":
                         help="Prefix for the video file name")
     args = parser.parse_args()
 
-    # Ensure the video folder exists
     os.makedirs(args.video_folder, exist_ok=True)
     evaluate(args)

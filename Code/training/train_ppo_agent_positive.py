@@ -29,7 +29,6 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
     # envs.envs[0].render()
 
     feature_extractor = False if "noFE" in args.exp_name else True
-    print("FE is: ", feature_extractor)
 
     if args.ppo_type == "original":
         from agents import PPOAgent
@@ -137,7 +136,6 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
 
             # TRY NOT TO MODIFY: execute the game and log data.
             next_obs, reward, terminations, truncations, infos = envs.step(action.cpu().numpy())
-            # print("next obs:", next_obs, "reward:", reward, "terminations:", terminations, "truncations:", truncations)
             # next_done = np.logical_or(terminations, truncations)
             next_done = terminations
             # rewards[step] = torch.tensor(reward).to(device).view(-1)
@@ -145,10 +143,8 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
             next_obs, next_done = torch.Tensor(next_obs).to(device), torch.Tensor(next_done).to(device)
             
             # if next_done == 1.0:
-            #     print('######################################################## Positive example ########################################################')
             #     positive_example = True
             #     number_samples = len(obs)
-            #     print('Number of samples:', number_samples)
             #     break
 
 
