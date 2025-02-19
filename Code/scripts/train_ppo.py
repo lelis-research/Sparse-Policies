@@ -206,7 +206,7 @@ def main(args):
         #                                          last_action_in_obs=True)    # 5s / 0.02 = 250 steps
         #     for _ in range(args.num_envs)
         # ])
-        last_action_in_obs = False if "normal" in args.exp_name else True
+        last_action_in_obs = True if "LACIO" in args.exp_name else False    # LACIO: Last Action In Observation
         envs = gym.vector.SyncVectorEnv([make_cartpole_env(train_mode=True, 
                                                            last_action_in_obs=last_action_in_obs, 
                                                            max_episode_steps=250) for _ in range(args.num_envs)])

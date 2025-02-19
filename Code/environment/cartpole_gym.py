@@ -18,14 +18,15 @@ class LastActionObservationWrapper(gym.Wrapper):
         self.last_action_in_obs = last_action_in_obs
         self.num_actions = env.action_space.n + 1   # The one-hot vector will have length: (n_actions + 1)
         
-        # Modify the observation space: new obs = [original observation, one-hot vector]
-        original_obs_space = env.observation_space
-        if isinstance(original_obs_space, Box):
-            new_low = np.concatenate([original_obs_space.low, np.zeros(self.num_actions, dtype=np.float32)])
-            new_high = np.concatenate([original_obs_space.high, np.ones(self.num_actions, dtype=np.float32)])
-            self.observation_space = Box(low=new_low, high=new_high, dtype=np.float32)
-        else:
-            raise ValueError("Unsupported observation space type for LastActionObservationWrapper.")
+        if self.last_action_in_obs:
+            # Modify the observation space: new obs = [original observation, one-hot vector]
+            original_obs_space = env.observation_space
+            if isinstance(original_obs_space, Box):
+                new_low = np.concatenate([original_obs_space.low, np.zeros(self.num_actions, dtype=np.float32)])
+                new_high = np.concatenate([original_obs_space.high, np.ones(self.num_actions, dtype=np.float32)])
+                self.observation_space = Box(low=new_low, high=new_high, dtype=np.float32)
+            else:
+                raise ValueError("Unsupported observation space type for LastActionObservationWrapper.")
 
     def reset(self, **kwargs):
         """
@@ -40,7 +41,11 @@ class LastActionObservationWrapper(gym.Wrapper):
 
         self.last_action = -1
         obs, info = self.env.reset(**kwargs)
-        return self._augment_observation(obs), info
+
+        if self.last_action_in_obs:
+            return self._augment_observation(obs), info
+        else:
+            return obs, info
     
     def step(self, action):
         """
@@ -48,7 +53,11 @@ class LastActionObservationWrapper(gym.Wrapper):
         """
         self.last_action = action 
         obs, reward, terminated, truncated, info = self.env.step(action)
-        return self._augment_observation(obs), reward, terminated, truncated, info
+
+        if self.last_action_in_obs:
+            return self._augment_observation(obs), reward, terminated, truncated, info
+        else:
+            return obs, reward, terminated, truncated, info
     
     def _augment_observation(self, obs):
         """
