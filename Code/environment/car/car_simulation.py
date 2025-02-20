@@ -42,11 +42,20 @@ class CarReversePP(System):
 
         self.screen = None  # Pygame screen object
 
+        # for visualization
+        self.path = []  # Store (x, y, velocity)
+        self.colors = []  # Store path segment colors
+
     def set_inp_limits(self, lim):
         self.dist_min = lim[0]
         self.dist_max = lim[1]
 
     def simulate(self, state, action, dt):
+
+        # Record path before updating state
+        if state is not None:
+            self.path.append((state[0], state[1], action[0]))
+
         # Adjust dt based on scale
         if dt < -0.01:
             dt = self.dt
@@ -233,7 +242,7 @@ class CarReversePP(System):
 
 
     def render(self, state, mode='human'):
-        if mode == 'human' and self.screen is None:
+        if self.screen is None and mode in ('human', 'rgb_array'):
             pygame.init()
             self.screen = pygame.display.set_mode((600, 600))
             pygame.display.set_caption("Car Parking Simulation")
@@ -280,15 +289,35 @@ class CarReversePP(System):
             ]
             pygame.draw.polygon(self.screen, (100, 100, 255), scaled_vertices)
 
+            if len(self.path) > 1:
+                scale = 600 / self.world_size
+                vshift = -5 * scale
+                
+                for i in range(1, len(self.path)):
+                    x1, y1, v1 = self.path[i-1]
+                    x2, y2, v2 = self.path[i]
+                    
+                    # Convert to screen coordinates
+                    p1 = (x1 * scale + 300, y1 * scale + 300 + vshift)
+                    p2 = (x2 * scale + 300, y2 * scale + 300 + vshift)
+                    
+                    # Choose color based on velocity
+                    color = (0, 255, 0) if v1 > 0 else (255, 0, 0)  # Green/Red
+                    pygame.draw.line(self.screen, color, p1, p2, 2)
+
             pygame.display.flip()
 
         if mode == 'rgb_array':
-            return pygame.surfarray.array3d(self.screen) if self.screen else None
+            # return pygame.surfarray.array3d(self.screen) if self.screen else None
+            return np.transpose(pygame.surfarray.array3d(self.screen), (1, 0, 2)) if self.screen else None
         return None
     
     def reset_render(self):
         if self.screen is not None:
             pygame.quit()
             self.screen = None
+        pygame.init()
         self.counter = 0
+        self.path = []  # Clear path on reset
+        self.colors = []
 
