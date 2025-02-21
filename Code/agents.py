@@ -9,6 +9,7 @@ from gymnasium.vector import SyncVectorEnv
 from environment.minigrid_gym import MiniGridWrap
 from environment.karel_env.gym_envs.karel_gym import KarelGymEnv
 from torch.distributions.categorical import Categorical
+from torch.distributions.normal import Normal
 from typing import Union
 import math
 import re
@@ -296,6 +297,8 @@ def sparse_init_layer(layer, sparsity=0.9, std=None, init_type='uniform'):
 class PPOAgent(nn.Module):
     def __init__(self, envs,  hidden_size=6, feature_extractor=False, greedy=False, arch_details=""):
         super().__init__()
+        self.action_space_continuous = False
+
         if isinstance(envs, ComboGym):
             observation_space_size = envs.get_observation_space()
             action_space_size = envs.get_action_space()
@@ -304,7 +307,13 @@ class PPOAgent(nn.Module):
             action_space_size = envs.get_action_space()
         elif isinstance(envs, SyncVectorEnv):
             observation_space_size = envs.observation_space.shape[1]
-            action_space_size = envs.action_space[0].n.item()
+            try:
+                # For discrete action spaces
+                action_space_size = envs.action_space[0].n.item()
+            except:
+                # For continuous action spaces
+                action_space_size = envs.action_space.shape[1]
+                self.action_space_continuous = True
         elif isinstance(envs, KarelGymEnv):
             observation_space_size = envs.observation_space.shape[0]
             print("Wrong size: ", envs.get_observation().shape)
@@ -336,8 +345,6 @@ class PPOAgent(nn.Module):
         print("FE sparsity level (SF): ", FE_sparsity_level)
         print("Actor sparsity level (SA): ", actor_sparsity_level)
         
-        # print("obs size: ", observation_space_size, ", act size: ", action_space_size)
-        # print("single obs size: ", envs.single_observation_space.shape)
         if self.feature_extractor:
             self.network = nn.Sequential(
                 # weights_init_xavier(nn.Linear(np.array(envs.single_observation_space.shape).prod(), 32)),
@@ -363,6 +370,14 @@ class PPOAgent(nn.Module):
             # weights_init_xavier(nn.Linear(hidden_size, action_space_size)),
             sparse_init_layer(nn.Linear(hidden_size, action_space_size), sparsity=actor_sparsity_level, std=0.001),
         )
+
+        # For continuous actions, we need a log_std parameter
+        # (one per action dimension). We'll interpret self.actor(...) as the mean.
+        if self.action_space_continuous:
+            self.log_std = nn.Parameter(torch.zeros(action_space_size))
+        else:
+            self.log_std = None
+
         self.critic = nn.Sequential(
             layer_init(nn.Linear(observation_space_size, 64)),
             nn.Tanh(),
@@ -385,17 +400,45 @@ class PPOAgent(nn.Module):
         return self.critic(x)
 
     def get_action_and_value(self, x, action=None):
+        """
+        Returns (action, log_prob, entropy, value, actor_output).
+        If continuous, actor output is the mean of a Normal distribution,
+        and we use self.log_std as the log-variance.
+        """
 
         x = self.network(x) if self.feature_extractor else x
 
+        # "logits" will be the means if continuous, or the raw logits if discrete
         logits = self.actor(x)
-        probs = Categorical(logits=logits)
-        if action is None:
-            if self.greedy:
-                action = torch.tensor([torch.argmax(logits[i]).item() for i in range(len(logits))])
-            else:
-                action = probs.sample()
-        return action, probs.log_prob(action), probs.entropy(), self.critic(x), logits
+
+        if self.action_space_continuous:
+            # Continuous actions: sample from Normal distribution
+            means = logits
+            stds = self.log_std.exp().expand_as(means)  # same shape as means
+            dist = Normal(means, stds)
+
+            if action is None:
+                if self.greedy:
+                    # "Greedy" can be interpreted as taking the mean
+                    action = means
+                else:
+                    action = dist.sample()
+            # For a multi-dimensional action, sum the log-probs across dimensions
+            log_prob = dist.log_prob(action).sum(dim=-1)
+            entropy = dist.entropy().sum(dim=-1)
+
+        else:   # Discrete actions -> Categorical
+            probs = Categorical(logits=logits)
+            if action is None:
+                if self.greedy:
+                    action = torch.tensor([torch.argmax(logits[i]).item() for i in range(len(logits))])
+                else:
+                    action = probs.sample()
+            log_prob = probs.log_prob(action)
+            entropy = probs.entropy()
+
+        value = self.critic(x)
+        return action, log_prob, entropy, value, logits
     
     def to_option(self, mask, option_size):
         self.mask = mask
