@@ -357,24 +357,51 @@ class PPOAgent(nn.Module):
                 # layer_init(nn.Linear(32, 32)),
             )
 
-        self.actor = nn.Sequential(
-            # layer_init(nn.Linear(observation_space_size, hidden_size)),
-            # weights_init_xavier(nn.Linear(observation_space_size, hidden_size)),
-            sparse_init_layer(nn.Linear(observation_space_size, hidden_size), sparsity=actor_sparsity_level),
-            nn.Tanh(),
-            # layer_init(nn.Linear(hidden_size, hidden_size)),
-            # weights_init_xavier(nn.Linear(hidden_size, hidden_size)),
-            sparse_init_layer(nn.Linear(hidden_size, hidden_size), sparsity=actor_sparsity_level),
-            nn.Tanh(),
-            # layer_init(nn.Linear(hidden_size, action_space_size), std=0.01),
-            # weights_init_xavier(nn.Linear(hidden_size, action_space_size)),
-            sparse_init_layer(nn.Linear(hidden_size, action_space_size), sparsity=actor_sparsity_level, std=0.001),
-        )
+        if self.action_space_continuous:
+            self.actor = nn.Sequential(
+                sparse_init_layer(nn.Linear(observation_space_size, hidden_size), sparsity=actor_sparsity_level),
+                nn.Tanh(),
+                sparse_init_layer(nn.Linear(hidden_size, hidden_size), sparsity=actor_sparsity_level),
+                nn.Tanh(),
+                sparse_init_layer(nn.Linear(hidden_size, action_space_size), sparsity=actor_sparsity_level, std=0.001),
+
+                nn.Tanh() # for the Car env
+            )
+        else:
+            self.actor = nn.Sequential(
+                # layer_init(nn.Linear(observation_space_size, hidden_size)),
+                # weights_init_xavier(nn.Linear(observation_space_size, hidden_size)),
+                sparse_init_layer(nn.Linear(observation_space_size, hidden_size), sparsity=actor_sparsity_level),
+                nn.Tanh(),
+                # layer_init(nn.Linear(hidden_size, hidden_size)),
+                # weights_init_xavier(nn.Linear(hidden_size, hidden_size)),
+                sparse_init_layer(nn.Linear(hidden_size, hidden_size), sparsity=actor_sparsity_level),
+                nn.Tanh(),
+                # layer_init(nn.Linear(hidden_size, action_space_size), std=0.01),
+                # weights_init_xavier(nn.Linear(hidden_size, action_space_size)),
+                sparse_init_layer(nn.Linear(hidden_size, action_space_size), sparsity=actor_sparsity_level, std=0.001),
+            )
 
         # For continuous actions, we need a log_std parameter
         # (one per action dimension). We'll interpret self.actor(...) as the mean.
         if self.action_space_continuous:
-            self.log_std = nn.Parameter(torch.zeros(action_space_size))
+
+            # self.action_scale = torch.FloatTensor(
+            #     (envs.single_action_space.high - envs.single_action_space.low) / 2.0
+            # ).to(device)
+            # self.action_bias = torch.FloatTensor(
+            #     (envs.single_action_space.high + envs.single_action_space.low) / 2.0
+            # ).to(device)
+
+            # Use envs.single_action_space to get bounds
+            high = torch.from_numpy(envs.single_action_space.high)
+            low = torch.from_numpy(envs.single_action_space.low)
+            # Register as buffers to track device
+            self.register_buffer("action_scale", (high - low) / 2.0)
+            self.register_buffer("action_bias", (high + low) / 2.0)
+
+            # self.log_std = nn.Parameter(torch.zeros(action_space_size))
+            self.log_std = nn.Parameter(torch.ones(action_space_size) * -0.5)
         else:
             self.log_std = None
 
@@ -413,7 +440,8 @@ class PPOAgent(nn.Module):
 
         if self.action_space_continuous:
             # Continuous actions: sample from Normal distribution
-            means = logits
+            # means = logits
+            means = logits * self.action_scale + self.action_bias
             stds = self.log_std.exp().expand_as(means)  # same shape as means
             dist = Normal(means, stds)
 

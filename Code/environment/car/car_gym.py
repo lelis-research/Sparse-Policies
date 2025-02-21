@@ -62,7 +62,7 @@ class CarEnv(gym.Env):
         collision = self.sim.check_safe(self.state)
         terminated = collision > 0
         truncated = self.sim.done(self.state)
-        print(f"==== Collision: {collision}, Terminated: {terminated}, Truncated: {truncated}")
+        print(f"==== Collision: {collision}, Terminated: {terminated}, Truncated: {truncated}, Action: {action}")
         
         if terminated:
             reward -= 100
