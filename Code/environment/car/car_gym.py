@@ -74,6 +74,15 @@ class CarEnv(gym.Env):
         super().reset(seed=seed)
         self.sim.reset_render()
         self.state = self.sim.sample_init_state()
+        self.sim.counter = 0
+
+        if self.test_mode:
+            test_limit = (11, 12)
+            self.sim.set_inp_limits(test_limit)
+        else:
+            train_limit = (12, 13.5)
+            self.sim.set_inp_limits(train_limit)
+
         return self.state, {}
 
     def render(self):
@@ -111,13 +120,24 @@ if __name__ == '__main__':
         total_reward = 0.0
         done = False
 
+        state_action_list = []
+        collision_states = []
         while not done:
+
             action = env.action_space.sample()
             state, reward, terminated, truncated, _ = env.step(action)
+
+            # Store collision for plotting
+            collision = env.sim.check_safe(state)
+            if collision > 0:
+                collision_states.append(state)
+
+            # Store states for plotting
+            state_action_list.append((state, action))
+
             total_reward += reward
             done = terminated or truncated
             
-            print(f"State: {state}, Reward: {reward}, Action: {action}")
             time.sleep(env.sim.dt)
             
             if terminated or truncated:
@@ -126,9 +146,23 @@ if __name__ == '__main__':
         print(f"Total Reward: {total_reward}")
         env.close()
 
+        ###### Plotting the trajectory ######
+        sim_plot = CarReversePP()
+        plt.figure(figsize=(4, 8))
+
+        start_state = [state_action_list[0][0]]       
+        goal_state  = [state_action_list[-1][0]]       
+        sim_plot.plot_init_paper(start_state, goal_state)
+        sim_plot.plot_states(state_action_list, line=True)
+        sim_plot.plot_collision_states(collision_states)
+
+        plt.title("Sample Trajectory")
+        plt.legend()
+        plt.show()
+
+
+    # Test in the original code
     elif args.mode == 'test':
-        # This section uses the test functions (simulate_bicycle, get_all_vertices, get_traj)
-        # provided in the original test code to plot a car trajectory.
 
         from math import pi
         def simulate_bicycle(state, action, dt):

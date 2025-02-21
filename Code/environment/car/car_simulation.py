@@ -9,6 +9,7 @@ from collision import *
 from system import *
 from utils import *
 import pygame
+import matplotlib.pyplot as pl 
 
 
 class CarReversePP(System):
@@ -233,7 +234,6 @@ class CarReversePP(System):
         x = self.x_lane_2 + rand(-0.04, 0.04)
         ang = np.pi/2.0 + rand(-0.04, 0.04)
         dist = rand(self.dist_min, self.dist_max) 
-        # print(f"== dist: {dist}, ang: {ang}")
         y = self.height + 0.21
         return np.array([x, y, ang, dist])
 
@@ -357,4 +357,188 @@ class CarReversePP(System):
         self.counter = 0
         self.path = []  # Clear path on reset
         self.colors = []
+
+
+    def get_plot_limits(self):
+        return (-4, 2.2), (-5, 20)
+
+    def plot_init(self, state):
+        x,y,ang,dist = state[0] 
+
+        H = self.height
+        W = self.width
+        l,r,t,b = -W/2.0 + self.x_lane_2, W/2.0 + self.x_lane_2, H/2.0, - H/2.0
+        pl.fill([l, l, r, r], [b, t, t, b], "k")
+        pl.fill([l, l, r, r], [b + dist, t + dist, t + dist, b + dist], 'k')
+
+        pl.fill([l, l, r, r], [b + H + 0.2, t + H + 0.2, t + H + 0.2, b + H + 0.2], 'b', alpha = 0.1)
+
+        v = get_all_vertices(x, y, ang, self.width, self.height)
+        pl.fill([v[2][0], v[1][0], v[0][0], v[3][0] ], [v[2][1], v[1][1], v[0][1], v[3][1] ], 'b', alpha = 0.1)
+
+        x_min = -4.0
+        x_max = 2.2
+
+        y_min = -5 # 0 + 2
+        y_max = 20 # 14
+
+
+
+        pl.xlim((x_min, x_max))
+        pl.ylim((y_min, y_max))
+        #pl.gca().set_aspect('equal', adjustable='box')
+        #pl.plot([self.x_lane_2 + W/2.0 + 0.2, self.x_lane_2 + W/2.0 + 0.2], [y_min, y_max], "k")
+
+
+    def plot_init_paper(self, state1, state2):
+        x,y,ang,dist = state1[0] 
+
+        H = self.height
+        W = self.width
+        l,r,t,b = -W/2.0 + self.x_lane_2, W/2.0 + self.x_lane_2, H/2.0, - H/2.0
+        pl.fill([l, l, r, r], [b, t, t, b], "k")
+        pl.fill([l, l, r, r], [b + dist, t + dist, t + dist, b + dist], 'k')
+
+        
+        v = get_all_vertices(x, y, ang, self.width, self.height)
+        pl.fill([v[2][0], v[1][0], v[0][0], v[3][0] ], [v[2][1], v[1][1], v[0][1], v[3][1] ], 'b', alpha = 0.2)
+        pl.text(x, y, 'start', horizontalalignment='center', verticalalignment='center', fontsize=20)
+
+        x,y,ang,dist = state2[0] 
+        v = get_all_vertices(x, y, ang, self.width, self.height)
+        pl.fill([v[2][0], v[1][0], v[0][0], v[3][0] ], [v[2][1], v[1][1], v[0][1], v[3][1] ], 'b', alpha = 0.2)
+        pl.text(x, y, 'goal', horizontalalignment='center', verticalalignment='center', fontsize=20)
+
+        x_min = -4.0
+        x_max = 2.2
+
+        y_min = -3 # 0 + 2
+        y_max = 18 # 14
+
+
+
+        pl.xlim((x_min, x_max))
+        pl.ylim((y_min, y_max))
+        #pl.gca().set_aspect('equal', adjustable='box')
+        #pl.plot([self.x_lane_2 + W/2.0 + 0.2, self.x_lane_2 + W/2.0 + 0.2], [y_min, y_max], "k")
+
+
+    def plot_states(self, state_actions, line = False):
+        C = [] 
+        states = [x[0] for x in state_actions]
+        actions = [x[1] for x in state_actions]
+
+        X, Y = self.get_2d_states(states)
+
+        for i in range(len(actions)):
+            a = actions[i] 
+            if len(a) == 0:
+                C.append("k")
+            else:
+                if a[0] >= 0 and a[1] >= 0:
+                    c = 'g'
+                if a[0] <= 0 and a[1] >= 0:
+                    c = 'y'
+                if a[0] >= 0 and a[1] <= 0:
+                    c = 'b'
+                if a[0] <= 0 and a[1] <= 0:
+                    c = 'r'
+                C.append(c)
+
+        if line:
+            pl.plot(X,Y, c= 'k', label="Trajectory")
+        else:
+            pl.scatter(X, Y, c = C, s = 1)
+
+    def plot_mode_changes(self, mode_change_states):
+        X_mc, Y_mc = self.get_2d_states(mode_change_states)
+        pl.scatter(X_mc, Y_mc, c= 'k', s = 10)
+
+    def plot_collision_states(self, states):
+        X_mc, Y_mc = self.get_2d_states1(states)
+        # X_mc, Y_mc = self.get_2d_states(states)     # plotted collsion on the opposite side
+        pl.scatter(X_mc, Y_mc, s = 50, facecolors='none', edgecolors='r', label="Collision")
+        
+    def get_2d_states(self, states):
+        X = []
+        Y = []
+        for s in states:
+            v = get_all_vertices(s[0], s[1], s[2], self.width, self.height)
+            x = (v[0][0] + v[1][0])/2.0
+            y = (v[0][1] + v[1][1])/2.0
+            X.append(x)
+            Y.append(y)
+        return X, Y 
+
+    def get_2d_states1(self, states):
+        X = []
+        Y = []
+        for s in states:
+            v = get_all_vertices(s[0], s[1], s[2], self.width, self.height)
+            x = (v[2][0] + v[3][0])/2.0
+            y = (v[2][1] + v[3][1])/2.0
+            X.append(x)
+            Y.append(y)
+        return X, Y 
+        
+
+    '''def get_2d_cond(self, cond, last_states):
+        X = []
+        Y = []
+        #print(len(last_states))
+        for s in last_states[:1]:
+            last_x, last_y, _, _ = s
+            X1 = np.arange(-10, 10, 0.01)
+            #Y1 = (cond[0]*X1 + cond[2]*last_x + cond[3]*last_y + cond[4])/(-cond[1])
+            y1 = ( cond[1])/(-cond[0])
+            Y1 = [y1]*len(X1)
+            X.extend(X1)
+            Y.extend(Y1)
+            X11 = np.arange(-10, 10, 1)
+            if cond[0] > 0.0:
+                for y in np.arange(y1, 20, 1.0):
+                    X.extend(X11)
+                    Y.extend([y]*len(X11))
+            else:
+                for y in np.arange(-5, y1, 1.0):
+                    X.extend(X11)
+                    Y.extend([y]*len(X11))
+
+        return X, Y 
+        '''
+
+    def get_cond_states(self, states):
+        X = []
+        Y = []
+        for s in states:
+            features = self.get_features(s)
+            X.append(features[0])
+            Y.append(features[1])
+        return X, Y 
+
+    def get_2d_cond(self, cond):
+        X = []
+        Y = []
+        
+        if (abs(cond[1]) >= 0.01):
+            X1 = np.arange(-10, 10, 0.01)
+            Y1 = (X1*cond[0] + cond[2] )/(-cond[1])
+            X.extend(X1)
+            Y.extend(Y1)
+        else:
+            Y1 = np.arange(-10, 10, 0.01)
+            X1 = (Y1*cond[1] + cond[2])/(-cond[0])
+            X.extend(X1)
+            Y.extend(Y1)
+
+        X11 = np.arange(-10, 10, 1)
+        Y11 = np.arange(-10, 10, 1)
+        for x in X11:
+            for y in Y11:
+                if cond[0]*x + cond[1]*y + cond[2] > 0.0:
+                    X.append(x)
+                    Y.append(y)
+
+        return X, Y 
+
 
