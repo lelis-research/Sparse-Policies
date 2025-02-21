@@ -290,7 +290,7 @@ class CarReversePP(System):
                 tick_length = 5
                 pygame.draw.line(self.screen, (0, 0, 0), (x_pos, bottom), (x_pos, bottom - tick_length), 2)
                 
-            for y in np.arange(y_lim[0], y_lim[1] + 5, 5):
+            for y in [0.0, 5.0, 10.0, 15.0]:
                 y_pos = y * scale + 300 + vshift
                 text = self.font.render(f"{y:.0f}", True, (0, 0, 0))
                 self.screen.blit(text, (left - 40, y_pos - 10))
