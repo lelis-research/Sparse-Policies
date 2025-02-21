@@ -94,6 +94,14 @@ class CarEnv(gym.Env):
         self.sim.reset_render()
 
 
+def make_car_env(max_episode_steps=100):
+    def thunk():
+        env = CarEnv(n_steps=max_episode_steps, render_mode=None, test_mode=False)
+        env = gym.wrappers.RecordEpisodeStatistics(env)
+        return env
+    return thunk
+
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description="Run CarEnv in either simulation or test mode.")
