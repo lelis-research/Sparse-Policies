@@ -158,15 +158,18 @@ class CarReversePP(System):
     def check_collision(self, state):
         x, y, ang, d = state
 
-        # Obstacle 1 (front car)
+        # Obstacle 1 (back car)
         bx = self.x_lane_2
         by = 0.0
         e1 = check_collision_box(x, y, ang, bx, by, 'l', self.width, self.height)
+        # if e1 > 0: print("== Collision with back car")
 
-        # Obstacle 2 (back car)
+        # Obstacle 2 (front car)
         bx = self.x_lane_2
         by = d
         e2 = check_collision_box(x, y, ang, bx, by, 'u', self.width, self.height)
+        # if e2 > 0: print("== Collision with front car")
+
 
         return e1 + e2
 
@@ -230,6 +233,7 @@ class CarReversePP(System):
         x = self.x_lane_2 + rand(-0.04, 0.04)
         ang = np.pi/2.0 + rand(-0.04, 0.04)
         dist = rand(self.dist_min, self.dist_max) 
+        # print(f"== dist: {dist}, ang: {ang}")
         y = self.height + 0.21
         return np.array([x, y, ang, dist])
 
@@ -246,6 +250,7 @@ class CarReversePP(System):
             pygame.init()
             self.screen = pygame.display.set_mode((600, 600))
             pygame.display.set_caption("Car Parking Simulation")
+            self.font = pygame.font.Font(None, 24)
         
         if self.screen is not None:
             # Clear screen
@@ -259,6 +264,38 @@ class CarReversePP(System):
             # Draw elements
             scale = 600 / self.world_size
             vshift = -5 * scale
+
+            # Get plot limits from original code
+            x_lim, y_lim = (-4, 2.2), (-5, 20)
+
+            # Draw bounding box
+            left = x_lim[0] * scale + 300
+            right = x_lim[1] * scale + 300
+            top = y_lim[1] * scale + 300 + vshift
+            bottom = y_lim[0] * scale + 300 + vshift
+
+            # Draw main bounding box
+            pygame.draw.lines(self.screen, (0,0,0), True, [
+                (left, top),
+                (right, top),
+                (right, bottom),
+                (left, bottom)
+            ], 2)
+
+            # Add axis labels
+            for x in [0.0, -2.5]:
+                x_pos = x * scale + 300
+                text = self.font.render(f"{x:.1f}", True, (0,0,0))
+                self.screen.blit(text, (x_pos - 10, bottom - 25))
+                tick_length = 5
+                pygame.draw.line(self.screen, (0, 0, 0), (x_pos, bottom), (x_pos, bottom - tick_length), 2)
+                
+            for y in np.arange(y_lim[0], y_lim[1] + 5, 5):
+                y_pos = y * scale + 300 + vshift
+                text = self.font.render(f"{y:.0f}", True, (0, 0, 0))
+                self.screen.blit(text, (left - 40, y_pos - 10))
+                tick_length = 5
+                pygame.draw.line(self.screen, (0, 0, 0), (left - tick_length, y_pos), (left, y_pos), 2)
 
             # Draw obstacle cars
             pygame.draw.rect(

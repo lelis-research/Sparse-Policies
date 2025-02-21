@@ -5,6 +5,10 @@ from gymnasium.wrappers import RecordVideo
 import numpy as np
 from car_simulation import CarReversePP
 import pathlib
+import argparse
+import time
+import matplotlib.pyplot as plt
+
 
 class CarEnv(gym.Env):
     """
@@ -12,7 +16,7 @@ class CarEnv(gym.Env):
     """
     metadata = {'render_modes': ['human', 'rgb_array'], 'render_fps': 50}
 
-    def __init__(self, n_steps=100, render_mode=None):
+    def __init__(self, n_steps=100, render_mode=None, test_mode=False):
         super().__init__()
         self.sim = CarReversePP(n_steps=n_steps)
         self.render_mode = render_mode
@@ -31,6 +35,14 @@ class CarEnv(gym.Env):
             dtype=np.float32
         )
         self.state = None
+        self.test_mode = test_mode
+
+        if self.test_mode:
+            test_limit = (11, 12)
+            self.sim.set_inp_limits(test_limit)
+        else:
+            train_limit = (12, 13.5)
+            self.sim.set_inp_limits(train_limit)
 
     def step(self, action):
 
@@ -40,14 +52,13 @@ class CarEnv(gym.Env):
         next_state = self.sim.simulate(self.state, action, dt)
         self.state = next_state
 
-        # Calculate reward
         goal_err = self.sim.check_goal(self.state)
         reward = - (goal_err[0] + goal_err[1])
         
-        # Determine termination and truncation
         collision = self.sim.check_safe(self.state)
         terminated = collision > 0
         truncated = self.sim.done(self.state)
+        print(f"==== Collision: {collision}, Terminated: {terminated}, Truncated: {truncated}")
         
         if terminated:
             reward -= 100
@@ -75,12 +86,9 @@ class CarEnv(gym.Env):
 
 
 if __name__ == '__main__':
-    import argparse
-    import time
-    import matplotlib.pyplot as plt
 
     parser = argparse.ArgumentParser(description="Run CarEnv in either simulation or test mode.")
-    
+
     parser.add_argument('--mode', type=str, default='gym', choices=['gym', 'test'],
                         help="Choose 'gym' for simulation or 'test' for trajectory plotting.")
     parser.add_argument("--video_prefix", type=str, default="eval",
@@ -92,7 +100,7 @@ if __name__ == '__main__':
         video_dir = str(pathlib.Path(__file__).parent.resolve() / "videos")
         os.makedirs(video_dir, exist_ok=True)
 
-        env = CarEnv(n_steps=200, render_mode='rgb_array')
+        env = CarEnv(n_steps=200, render_mode='rgb_array', test_mode=False)
         env = RecordVideo(
             env,
             video_folder=video_dir,
