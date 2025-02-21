@@ -1,9 +1,13 @@
 import os
+import sys
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.insert(0, project_root)
+
 import gymnasium as gym
 from gymnasium import spaces
 from gymnasium.wrappers import RecordVideo
 import numpy as np
-from car_simulation import CarReversePP
+from environment.car.car_simulation import CarReversePP
 import pathlib
 import argparse
 import time
