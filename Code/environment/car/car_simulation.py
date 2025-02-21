@@ -5,9 +5,9 @@ From https://openreview.net/pdf?id=S1l8oANFDH
 
 import numpy as np
 import time
-from collision import *
-from system import *
-from utils import *
+from .collision import *
+from .system import *
+from .car_utils import *
 import pygame
 import matplotlib.pyplot as pl 
 
