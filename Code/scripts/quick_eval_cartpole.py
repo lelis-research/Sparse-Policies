@@ -122,7 +122,8 @@ if __name__ == "__main__":
     groups = defaultdict(lambda: {
         'params': None,
         'seeds': defaultdict(dict),
-        'avg_reward': 0
+        'avg_reward': 0,
+        'first_model': None # to save a model name for easier access to it for further testing
     })
 
     for model_file in os.listdir(args.binaries_path):
@@ -164,6 +165,7 @@ if __name__ == "__main__":
                 'l1_lambda': params['l1_lambda'],
                 'ppo_type': params['ppo_type']
             }
+            groups[group_key]['first_model'] = model_file
 
         model_path = os.path.join(args.binaries_path, model_file)
         seed_results = {}
@@ -226,6 +228,8 @@ if __name__ == "__main__":
             for model_seed, seeds in sorted(group['seeds'].items()):
                 rewards = [f"{seeds[es]:.1f}" for es in args.eval_seeds]
                 f.write(f"  sd {model_seed}: {' '.join(rewards)}\n")
-            f.write("\n")
+
+            f.write(f"First model: {group['first_model']}\n")
+            f.write("------------------------------------------------\n")
 
     print(f"\n\nEvaluation complete. Results saved to {output_filename}")
