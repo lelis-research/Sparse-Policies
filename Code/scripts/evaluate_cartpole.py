@@ -10,23 +10,30 @@ import numpy as np
 from gymnasium.wrappers import RecordVideo
 from environment.cartpole_gym import LastActionObservationWrapper
 from agents import PPOAgent, GruAgent
+import pathlib
 
 
 def evaluate(args):
 
+    if args.num_timesteps == 0:
+        args.num_timesteps = 15000 if args.test_mode else 250 # 250 for training (5 seconds), 15000 for testing (5 minutes)
+
     def make_env():
         return LastActionObservationWrapper(gym.make("CartPole-v1", 
-                                                     max_episode_steps=15000, # 300s / 0.02 = 15000 steps
+                                                     max_episode_steps=args.num_timesteps, # 300s / 0.02 = 15000 steps
                                                      render_mode="rgb_array"), 
-                                            train_mode=False, 
-                                            last_action_in_obs=True)  
+                                            train_mode=(not args.test_mode), 
+                                            last_action_in_obs=False)  
 
     base_env = make_env()
+
+    video_dir = str(pathlib.Path(__file__).parent.resolve() / "videos/cartpole")
+    os.makedirs(video_dir, exist_ok=True)
     
     # For recording a video
     env = RecordVideo(
         base_env,
-        video_folder=args.video_folder,
+        video_folder=video_dir,
         name_prefix=args.video_prefix,
         episode_trigger=lambda episode: episode == 0
     )
@@ -56,7 +63,7 @@ def evaluate(args):
         raise ValueError(f"Unsupported ppo_type: {args.ppo_type}")
 
     agent.load_state_dict(torch.load(args.model_path, map_location=device))
-    print(f"Model loaded from {args.model_path}")
+    print(f"\nModel loaded from {args.model_path}\n")
     agent.eval()
 
     MAX_STEPS = args.num_timesteps
@@ -79,8 +86,8 @@ def evaluate(args):
             done = np.any(terminated) or np.any(truncated)
             episode_reward += reward[0]  # Since we have only one environment
             step += 1
-            if step > MAX_STEPS:
-                print("Max steps reached ==> Successful")
+            if step >= MAX_STEPS:
+                print("\nMax steps reached ==> Successful")
                 done = True
 
     envs.close()
@@ -97,9 +104,11 @@ if __name__ == "__main__":
                         help="Type of PPO agent to use")
     parser.add_argument("--hidden_size", type=int, required=True,
                         help="Hidden size for the agent network")
+    parser.add_argument('--test_mode', action='store_true',
+                        help="Determing the test/train distribution for evaluation")
     parser.add_argument('--feature_extractor', action='store_true',
                         help="Feature extractor to be used by the agent")
-    parser.add_argument("--num_timesteps", type=int, default=1000,
+    parser.add_argument("--num_timesteps", type=int, default=0,
                         help="Number of timesteps to run evaluation")
     parser.add_argument("--video_folder", type=str, default="videos",
                         help="Folder to save the recorded video")
