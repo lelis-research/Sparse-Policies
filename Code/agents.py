@@ -357,30 +357,19 @@ class PPOAgent(nn.Module):
                 # layer_init(nn.Linear(32, 32)),
             )
 
-        if self.action_space_continuous:
-            self.actor = nn.Sequential(
-                sparse_init_layer(nn.Linear(observation_space_size, hidden_size), sparsity=actor_sparsity_level),
-                nn.Tanh(),
-                sparse_init_layer(nn.Linear(hidden_size, hidden_size), sparsity=actor_sparsity_level),
-                nn.Tanh(),
-                sparse_init_layer(nn.Linear(hidden_size, action_space_size), sparsity=actor_sparsity_level, std=0.001),
-
-                nn.Tanh() # for the Car env
-            )
-        else:
-            self.actor = nn.Sequential(
-                # layer_init(nn.Linear(observation_space_size, hidden_size)),
-                # weights_init_xavier(nn.Linear(observation_space_size, hidden_size)),
-                sparse_init_layer(nn.Linear(observation_space_size, hidden_size), sparsity=actor_sparsity_level),
-                nn.Tanh(),
-                # layer_init(nn.Linear(hidden_size, hidden_size)),
-                # weights_init_xavier(nn.Linear(hidden_size, hidden_size)),
-                sparse_init_layer(nn.Linear(hidden_size, hidden_size), sparsity=actor_sparsity_level),
-                nn.Tanh(),
-                # layer_init(nn.Linear(hidden_size, action_space_size), std=0.01),
-                # weights_init_xavier(nn.Linear(hidden_size, action_space_size)),
-                sparse_init_layer(nn.Linear(hidden_size, action_space_size), sparsity=actor_sparsity_level, std=0.001),
-            )
+        self.actor = nn.Sequential(
+            # layer_init(nn.Linear(observation_space_size, hidden_size)),
+            # weights_init_xavier(nn.Linear(observation_space_size, hidden_size)),
+            sparse_init_layer(nn.Linear(observation_space_size, hidden_size), sparsity=actor_sparsity_level),
+            nn.Tanh(),
+            # layer_init(nn.Linear(hidden_size, hidden_size)),
+            # weights_init_xavier(nn.Linear(hidden_size, hidden_size)),
+            sparse_init_layer(nn.Linear(hidden_size, hidden_size), sparsity=actor_sparsity_level),
+            nn.Tanh(),
+            # layer_init(nn.Linear(hidden_size, action_space_size), std=0.01),
+            # weights_init_xavier(nn.Linear(hidden_size, action_space_size)),
+            sparse_init_layer(nn.Linear(hidden_size, action_space_size), sparsity=actor_sparsity_level, std=0.001),
+        )
 
         # For continuous actions, we need a log_std parameter
         # (one per action dimension). We'll interpret self.actor(...) as the mean.
@@ -399,6 +388,9 @@ class PPOAgent(nn.Module):
             # Register as buffers to track device
             self.register_buffer("action_scale", (high - low) / 2.0)
             self.register_buffer("action_bias", (high + low) / 2.0)
+
+            # print("Action Scale: ", self.action_scale)
+            # print("Action Bias: ", self.action_bias)
 
             # self.log_std = nn.Parameter(torch.zeros(action_space_size))
             self.log_std = nn.Parameter(torch.ones(action_space_size) * -0.5)
@@ -438,22 +430,45 @@ class PPOAgent(nn.Module):
         # "logits" will be the means if continuous, or the raw logits if discrete
         logits = self.actor(x)
 
-        if self.action_space_continuous:
-            # Continuous actions: sample from Normal distribution
-            # means = logits
-            means = logits * self.action_scale + self.action_bias
-            stds = self.log_std.exp().expand_as(means)  # same shape as means
-            dist = Normal(means, stds)
+        # if self.action_space_continuous:
+        #     # Continuous actions: sample from Normal distribution
+        #     # means = logits
+        #     means = logits * self.action_scale + self.action_bias
+        #     stds = self.log_std.exp().expand_as(means)  # same shape as means
+        #     dist = Normal(means, stds)
 
-            if action is None:
-                if self.greedy:
-                    # "Greedy" can be interpreted as taking the mean
-                    action = means
-                else:
-                    action = dist.sample()
-            # For a multi-dimensional action, sum the log-probs across dimensions
-            log_prob = dist.log_prob(action).sum(dim=-1)
+        #     if action is None:
+        #         if self.greedy:
+        #             # "Greedy" can be interpreted as taking the mean
+        #             action = means
+        #         else:
+        #             action = dist.sample()
+        #     # For a multi-dimensional action, sum the log-probs across dimensions
+        #     log_prob = dist.log_prob(action).sum(dim=-1)
+        #     entropy = dist.entropy().sum(dim=-1)
+
+        if self.action_space_continuous:
+            # Get mean and std from actor
+            mean = self.actor(x)
+            log_std = self.log_std.expand_as(mean)
+            std = torch.exp(log_std)
+            
+            # Create normal distribution and sample
+            dist = Normal(mean, std)
+            u = dist.rsample() if action is None else action
+            
+            # Squash with Tanh and scale to action space
+            action = torch.tanh(u)
+            scaled_action = action * self.action_scale + self.action_bias
+            
+            # Compute log probability with change of variables
+            log_prob = dist.log_prob(u)
+            log_prob -= torch.log(1 - action.pow(2) + 1e-6)  # Correction for Tanh
+            log_prob = log_prob.sum(dim=-1)
+            
             entropy = dist.entropy().sum(dim=-1)
+            
+            return scaled_action, log_prob, entropy, self.critic(x), mean
 
         else:   # Discrete actions -> Categorical
             probs = Categorical(logits=logits)
