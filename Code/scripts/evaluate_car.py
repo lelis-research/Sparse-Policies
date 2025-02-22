@@ -59,8 +59,12 @@ def evaluate(args):
         raise ValueError(f"Unsupported ppo_type: {args.ppo_type}")
 
     agent.load_state_dict(torch.load(args.model_path, map_location=device))
-    print(f"Model loaded from {args.model_path}")
+    print(f"\nModel loaded from {args.model_path}\n")
     agent.eval()
+
+    # # After loading the agent
+    # print("Agent's action_scale:", agent.action_scale)
+    # print("Agent's action_bias:", agent.action_bias)
 
     MAX_STEPS = args.num_timesteps
 
