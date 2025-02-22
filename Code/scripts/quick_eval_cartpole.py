@@ -11,6 +11,7 @@ import re
 from collections import defaultdict
 from environment.cartpole_gym import LastActionObservationWrapper
 from agents import PPOAgent, GruAgent
+from tqdm import tqdm
 
 
 def evaluate_model(model_path, ppo_type, hidden_size, eval_seed, max_steps, args):
@@ -124,15 +125,16 @@ if __name__ == "__main__":
         'first_model': None # to save a model name for easier access to it for further testing
     })
 
-    for model_file in os.listdir(args.binaries_path):
+    model_files = [f for f in os.listdir(args.binaries_path) if f.endswith(".pt")]
+    for model_file in tqdm(model_files, desc="Evaluating models"):
         if not model_file.endswith(".pt"):
             continue
 
-        print("=== ", {model_file})
+        tqdm.write(f"\nProcessing: {model_file}")
 
         match = model_pattern.match(model_file)
         if not match:
-            print(f"Skipping unmatched file: {model_file}")
+            tqdm.write(f"**** Skipping unmatched file: {model_file}")
             continue
 
         params = {
