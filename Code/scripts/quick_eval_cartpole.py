@@ -47,7 +47,6 @@ def evaluate_model(model_path, ppo_type, hidden_size, eval_seed, max_steps, args
     done = False
     episode_reward = 0
     step = 0
-    is_successful = False
 
     if ppo_type == "original":
         while not done:
@@ -61,7 +60,6 @@ def evaluate_model(model_path, ppo_type, hidden_size, eval_seed, max_steps, args
             episode_reward += reward[0]
             step += 1
             if step > max_steps:
-                is_successful = True
                 break
 
     elif ppo_type == "gru":
@@ -85,7 +83,7 @@ def evaluate_model(model_path, ppo_type, hidden_size, eval_seed, max_steps, args
             done_tensor = torch.tensor(terminated | truncated, dtype=torch.bool).to(device)
 
     envs.close()
-    return episode_reward, is_successful
+    return episode_reward
 
 
 if __name__ == "__main__":
@@ -170,7 +168,7 @@ if __name__ == "__main__":
         model_path = os.path.join(args.binaries_path, model_file)
         seed_results = {}
         for eval_seed in args.eval_seeds:
-            reward, is_succesful = evaluate_model(
+            reward = evaluate_model(
                 model_path=model_path,
                 ppo_type=params['ppo_type'],
                 hidden_size=params['hidden_size'],
