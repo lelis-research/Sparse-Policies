@@ -24,11 +24,23 @@ class CarEnv(gym.Env):
         super().__init__()
         self.sim = CarReversePP(n_steps=n_steps)
         self.render_mode = render_mode
+        self.prev_state = None
         
-        # Observation space: [x, y, angle, distance]
+        # # Observation space: [x, y, angle, distance]
+        # self.observation_space = spaces.Box(
+        #     low=np.array([-5.0, -5.0, -np.pi, 0.0]),
+        #     high=np.array([5.0, 20.0, np.pi, 30.0]),
+        #     dtype=np.float32
+        # )
+
+        # Modified observation space with previous timestep's data
+        single_obs_low = np.array([-5.0, -5.0, -np.pi, 0.0])
+        single_obs_high = np.array([5.0, 20.0, np.pi, 30.0])
+        
+        # Stack current and previous observations
         self.observation_space = spaces.Box(
-            low=np.array([-5.0, -5.0, -np.pi, 0.0]),
-            high=np.array([5.0, 20.0, np.pi, 30.0]),
+            low=np.concatenate([single_obs_low, single_obs_low]),
+            high=np.concatenate([single_obs_high, single_obs_high]),
             dtype=np.float32
         )
         
@@ -49,12 +61,15 @@ class CarEnv(gym.Env):
             self.sim.set_inp_limits(train_limit)
 
     def step(self, action):
-
-        self.sim.last_action = action
+        
+        current_state = self.state
 
         dt = self.sim.dt
         next_state = self.sim.simulate(self.state, action, dt)
         self.state = next_state
+
+        # Update states
+        self.prev_state = current_state
 
         goal_err = self.sim.check_goal(self.state)
         reward = - (goal_err[0] + goal_err[1])
@@ -68,16 +83,19 @@ class CarEnv(gym.Env):
             reward -= 100
             
         info = {}
+
+        observation = np.concatenate([self.state, self.prev_state], dtype=np.float32)
         
         if self.render_mode == 'human':
             self.render()
             
-        return self.state, reward, terminated, truncated, info
+        return observation, reward, terminated, truncated, info
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
         self.sim.reset_render()
         self.state = self.sim.sample_init_state()
+        self.prev_state = np.copy(self.state)
         self.sim.counter = 0
 
         if self.test_mode:
@@ -87,7 +105,7 @@ class CarEnv(gym.Env):
             train_limit = (12, 13.5)
             self.sim.set_inp_limits(train_limit)
 
-        return self.state, {}
+        return np.concatenate([self.state, self.prev_state], dtype=np.float32), {}
 
     def render(self):
         if self.render_mode in ('human', 'rgb_array'):
@@ -128,7 +146,7 @@ if __name__ == '__main__':
             episode_trigger=lambda episode: episode == 0,
             name_prefix="parking_" + args.video_prefix,
         )
-        state, _ = env.reset()
+        obs, _ = env.reset()
         total_reward = 0.0
         done = False
 
@@ -137,7 +155,8 @@ if __name__ == '__main__':
         while not done:
 
             action = env.action_space.sample()
-            state, reward, terminated, truncated, _ = env.step(action)
+            obs, reward, terminated, truncated, _ = env.step(action)
+            state = obs[:4]
 
             # Store collision for plotting
             collision = env.sim.check_safe(state)

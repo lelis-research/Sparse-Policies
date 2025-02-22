@@ -88,12 +88,13 @@ def evaluate(args):
             obs, reward, terminated, truncated, infos = envs.step(action)
 
             # Store collision for plotting
-            collision = envs.envs[0].sim.check_safe(obs.flatten())
+            state = obs.flatten()[:4]
+            collision = envs.envs[0].sim.check_safe(state)
             if collision > 0:
-                collision_states.append(obs.flatten())
+                collision_states.append(state)
 
             # Store states for plotting
-            state_action_list.append((obs.flatten(), action.flatten()))
+            state_action_list.append((state, action.flatten()))
 
             time.sleep(envs.envs[0].sim.dt)
             done = np.any(terminated) or np.any(truncated)
