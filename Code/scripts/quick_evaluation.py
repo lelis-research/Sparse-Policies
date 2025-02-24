@@ -9,6 +9,7 @@ import argparse
 import gymnasium as gym
 import re
 from collections import defaultdict
+from tqdm import tqdm
 
 from environment.karel_env.gym_envs.karel_gym import KarelGymEnv, make_karel_env
 from agents import PPOAgent, GruAgent
@@ -136,16 +137,21 @@ if __name__ == "__main__":
     groups = defaultdict(lambda: {
         'params': None,
         'seeds': defaultdict(dict),
-        'avg_reward': 0
+        'avg_reward': 0,
+        'first_model': None # to save a model name for easier access to it for further testing
     })
 
     # Process all models
-    for model_file in os.listdir(args.binaries_path):
+    model_files = [f for f in os.listdir(args.binaries_path) if f.endswith(".pt")]
+    for model_file in tqdm(model_files, desc="Evaluating models"):
         if not model_file.endswith(".pt"):
             continue
 
+        tqdm.write(f"\nProcessing: {model_file}")
+
         match = model_pattern.search(model_file)
         if not match:
+            tqdm.write(f"**** Skipping unmatched file: {model_file}")
             continue
 
         # Extract hyperparameters from filename
@@ -174,6 +180,7 @@ if __name__ == "__main__":
                 'game_size': f"{params['game_width']}x{params['game_height']}",
                 'ppo_type': params['ppo_type']
             }
+            groups[group_key]['first_model'] = model_file
 
         # Evaluate model on all environment seeds
         model_path = os.path.join(args.binaries_path, model_file)
@@ -200,7 +207,7 @@ if __name__ == "__main__":
 
     # Print formatted results
     eval_name = args.binaries_path.split('/')[-2]   # [-1] is "binary"
-    output_filename = f"{project_root}/Scripts/evaluation/eval_{eval_name}.txt"
+    output_filename = f"{project_root}/Scripts/evaluation/karel/eval{args.game_width_eval}_{eval_name}.txt"
     output_dir = os.path.dirname(output_filename)
     if not os.path.exists(output_dir): os.makedirs(output_dir)
     with open(output_filename, 'w') as f:
@@ -216,3 +223,8 @@ if __name__ == "__main__":
             for model_seed, seeds in sorted(group['seeds'].items()):
                 rewards = [f"{seeds[ks][0]:.2f}" for ks in args.karel_seeds]
                 f.write(f"  sd{model_seed}: {' '.join(rewards)}\n")
+            
+            f.write(f"First model: {group['first_model']}\n")
+            f.write("------------------------------------------------\n")
+
+    print(f"\n\nEvaluation complete. Results saved to {output_filename}")
