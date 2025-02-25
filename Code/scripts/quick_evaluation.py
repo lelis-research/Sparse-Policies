@@ -126,9 +126,13 @@ if __name__ == "__main__":
     args.binaries_path = os.path.join(base_root, "binary", args.binaries_path)
 
     model_pattern = re.compile(
-    r'gw(?P<game_width>\d+)-gh(?P<game_height>\d+)-h(?P<hidden_size>\d+)-'
-    r'lr(?P<learning_rate>[0-9.]+)-sd(?P<model_seed>\d+)-'
-    r'entcoef(?P<ent_coef>[0-9.]+)-clipcoef(?P<clip_coef>[0-9.]+)-'
+    r'gw(?P<game_width>\d+)-'
+    r'gh(?P<game_height>\d+)-'
+    r'h(?P<hidden_size>\d+)-'
+    r'lr(?P<learning_rate>[0-9eE\.\-]+)-'
+    r'sd(?P<model_seed>\d+)-'
+    r'entcoef(?P<ent_coef>[0-9.]+)-'
+    r'clipcoef(?P<clip_coef>[0-9.]+)-'
     r'l1(?P<l1_lambda>[0-9.]+)-'
     r'(?P<ppo_type>\w+)-MODEL'
 )
@@ -155,12 +159,23 @@ if __name__ == "__main__":
             continue
 
         # Extract hyperparameters from filename
+        # params = {
+        #     k: float(v) if '.' in v else int(v)
+        #     for k, v in match.groupdict().items()
+        #     if k != 'ppo_type' 
+        # }
+        # params['ppo_type'] = match.group('ppo_type')
         params = {
-            k: float(v) if '.' in v else int(v)
-            for k, v in match.groupdict().items()
-            if k != 'ppo_type' 
+            'game_width': int(match.group('game_width')),
+            'game_height': int(match.group('game_height')),
+            'hidden_size': int(match.group('hidden_size')),
+            'learning_rate': float(match.group('learning_rate')),
+            'ent_coef': float(match.group('ent_coef')),
+            'clip_coef': float(match.group('clip_coef')),
+            'l1_lambda': float(match.group('l1_lambda')),
+            'ppo_type': match.group('ppo_type'),
+            'model_seed': int(match.group('model_seed'))
         }
-        params['ppo_type'] = match.group('ppo_type')
         args.ppo_type = params['ppo_type']
         args.hidden_size = params['hidden_size']
         
@@ -228,3 +243,9 @@ if __name__ == "__main__":
             f.write("------------------------------------------------\n")
 
     print(f"\n\nEvaluation complete. Results saved to {output_filename}")
+
+    # Save results to pickle file for further analysis
+    import pickle
+    output_filename = output_filename.replace(".txt", ".pkl")
+    with open(output_filename, 'wb') as f:
+        pickle.dump(sorted_groups, f, protocol=pickle.HIGHEST_PROTOCOL)
