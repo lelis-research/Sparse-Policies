@@ -20,3 +20,4 @@ __pycache__/
 job_logs/
 videos/
 *.mp4
+*.pkl
