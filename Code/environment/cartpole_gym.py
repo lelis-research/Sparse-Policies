@@ -11,7 +11,7 @@ class LastActionObservationWrapper(gym.Wrapper):
     At the beginning (i.e. before any action is taken), the vector is set so that the first element is 1.
     After an action is taken, the one-hot vector is updated such that the index (action + 1) is set to 1.
     """
-    def __init__(self, env, train_mode=True, last_action_in_obs=True):
+    def __init__(self, env, train_mode=True, last_action_in_obs=False):
         super(LastActionObservationWrapper, self).__init__(env)
         self.last_action = -1
         self.train_mode = train_mode

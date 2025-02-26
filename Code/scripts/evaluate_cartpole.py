@@ -9,6 +9,7 @@ import gymnasium as gym
 import numpy as np
 from gymnasium.wrappers import RecordVideo
 from environment.cartpole_gym import LastActionObservationWrapper
+from models.student import StudentPolicy
 from agents import PPOAgent, GruAgent
 import pathlib
 
@@ -17,6 +18,8 @@ def evaluate(args):
 
     if args.num_timesteps == 0:
         args.num_timesteps = 15000 if args.test_mode else 250 # 250 for training (5 seconds), 15000 for testing (5 minutes)
+
+    print("\n=== Test mode ===") if args.test_mode else print("\n=== Train mode ===")
 
     def make_env():
         return LastActionObservationWrapper(gym.make("CartPole-v1", 
@@ -49,49 +52,60 @@ def evaluate(args):
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    if args.ppo_type == "original":
-        agent = PPOAgent(envs,
-                         hidden_size=args.hidden_size,
-                         feature_extractor=args.feature_extractor,
-                         greedy=True).to(device)
-    elif args.ppo_type == "gru":
-        agent = GruAgent(envs,
-                         h_size=args.hidden_size,
-                         feature_extractor=args.feature_extractor,
-                         greedy=True).to(device)
-    else:
-        raise ValueError(f"Unsupported ppo_type: {args.ppo_type}")
+    is_student = "student" in args.model_path.lower()
 
-    agent.load_state_dict(torch.load(args.model_path, map_location=device))
+    if is_student:
+        agent = StudentPolicy(input_dim=obs_shape[0]).to(device)
+        agent.load_state_dict(torch.load(args.model_path, map_location=device))
+    
+    else:
+        if args.ppo_type == "original":
+            agent = PPOAgent(envs,
+                            hidden_size=args.hidden_size,
+                            feature_extractor=args.feature_extractor,
+                            greedy=True).to(device)
+        elif args.ppo_type == "gru":
+            agent = GruAgent(envs,
+                            h_size=args.hidden_size,
+                            feature_extractor=args.feature_extractor,
+                            greedy=True).to(device)
+        else:
+            raise ValueError(f"Unsupported ppo_type: {args.ppo_type}")
+
+        agent.load_state_dict(torch.load(args.model_path, map_location=device))
+    
     print(f"\nModel loaded from {args.model_path}\n")
     agent.eval()
 
+    
     MAX_STEPS = args.num_timesteps
-
     obs, _ = envs.reset(seed=1)
     done = False
-    episode_reward = 0
+    total_reward = 0
     step = 0
-        
 
     if args.ppo_type == "original":
         while not done:
             obs_tensor = torch.tensor(obs, dtype=torch.float32).to(device)
 
             with torch.no_grad():
-                action, _, _, _, _ = agent.get_action_and_value(obs_tensor)
-                action = action.cpu().numpy()
+                if is_student:
+                    logits = agent(obs_tensor)
+                    action = torch.argmax(logits, dim=-1).cpu().numpy()
+                else:
+                    action, _, _, _, _ = agent.get_action_and_value(obs_tensor)
+                    action = action.cpu().numpy()
 
             obs, reward, terminated, truncated, infos = envs.step(action)
             done = np.any(terminated) or np.any(truncated)
-            episode_reward += reward[0]  # Since we have only one environment
+            total_reward += reward[0]  # Since we have only one environment
             step += 1
             if step >= MAX_STEPS:
                 print("\nMax steps reached ==> Successful")
                 done = True
 
     envs.close()
-    print(f"\nTotal Reward = {episode_reward}")
+    print(f"\nTotal Reward = {total_reward}")
 
 
 if __name__ == "__main__":
