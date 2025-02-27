@@ -10,7 +10,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
 from environment.cartpole_gym import LastActionObservationWrapper
 from models.student import StudentPolicy
 from data.custom_dataset import DemonstrationDataset
@@ -21,7 +21,10 @@ import re
 def collect_teacher_demonstrations(teacher, env, num_episodes, device):
     dataset = DemonstrationDataset()
     for _ in range(num_episodes):
-        obs, _ = env.reset()
+
+        seed = np.random.randint(0, 1e6)
+        obs, _ = env.reset(seed=seed)
+                
         done = False
         while not done:
             obs_tensor = torch.tensor(obs, dtype=torch.float32).unsqueeze(0).to(device)
@@ -38,7 +41,10 @@ def collect_teacher_demonstrations(teacher, env, num_episodes, device):
 def dagger_iteration(student, teacher, env, dataset, num_episodes, device):
     student.eval()
     for _ in range(num_episodes):
-        obs, _ = env.reset()
+
+        seed = np.random.randint(0, 1e6)
+        obs, _ = env.reset(seed=seed)
+
         done = False
         while not done:
             obs_tensor = torch.tensor(obs, dtype=torch.float32).unsqueeze(0).to(device)
@@ -65,7 +71,7 @@ def dagger_iteration(student, teacher, env, dataset, num_episodes, device):
     return dataset
 
 
-def train_student(student, dataset, batch_size, epochs, lr, device):
+def train_student(student, dataset, batch_size, epochs, lr, l1_lambda, device):
     print("Training student...")
     student.train()
     optimizer = optim.Adam(student.parameters(), lr=lr)
@@ -78,6 +84,10 @@ def train_student(student, dataset, batch_size, epochs, lr, device):
             action_batch = action_batch.to(device)
             logits = student(obs_batch)
             loss = criterion(logits, action_batch)
+
+            l1_loss = sum(torch.norm(param, p=1) for param in student.parameters())
+            loss += l1_lambda * l1_loss
+
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -92,11 +102,14 @@ def main():
     parser.add_argument('--teacher_model_path', type=str, required=True, help="Path to the teacher model.")
     parser.add_argument('--teacher_feature_extractor', action='store_true', help="Teacher uses a feature extractor.")
 
+    parser.add_argument('--student_hidden_size', type=int, default=6, help="Size of the student hidden layer.")
+    parser.add_argument('--student_l1', type=float, default=0.0, help="L1 regularization for student model.")
+    parser.add_argument('--lr', type=float, default=0.001, help="Learning rate.")
+
     parser.add_argument('--dagger_iterations', type=int, default=5, help="Number of DAgger iterations.")
     parser.add_argument('--initial_episodes', type=int, default=10, help="Initial teacher demonstrations.")
     parser.add_argument('--epochs_per_iteration', type=int, default=10, help="Training epochs per DAgger iteration.")
     parser.add_argument('--batch_size', type=int, default=32, help="Batch size for training.")
-    parser.add_argument('--lr', type=float, default=0.001, help="Learning rate.")
 
     args = parser.parse_args()
 
@@ -154,7 +167,7 @@ def main():
     
     # Determine input dimension
     input_dim = env.observation_space.shape[0]
-    student = StudentPolicy(input_dim, hidden_size=6).to(device)
+    student = StudentPolicy(input_dim, hidden_size=args.student_hidden_size).to(device)
     dataset = DemonstrationDataset()
     
     # Collect initial teacher demonstrations
@@ -171,13 +184,13 @@ def main():
         print(f"\nDAgger Iteration {iter + 1}/{args.dagger_iterations}")
         dataset = dagger_iteration(student, teacher, env, dataset, num_episodes=5, device=device)
         
-        train_student(student, dataset, args.batch_size, args.epochs_per_iteration, args.lr, device)
+        train_student(student, dataset, args.batch_size, args.epochs_per_iteration, args.lr, args.student_l1, device)
         print(f"Dataset len added: {len(dataset) - prev_len}")
         prev_len = len(dataset)
     
     
     teacher_name = args.teacher_model_path.split('/')[-1]
-    student_name = teacher_name.replace(".pt", "-student.pt")
+    student_name = teacher_name.replace(".pt", f"-student-sh{args.student_hidden_size}-sl1{args.student_l1}-slr{args.lr}.pt")
     print(f"\nstudent_name: {student_name}")
 
     student_model_path = f"{project_root}/Scripts/binary/cartpole/"

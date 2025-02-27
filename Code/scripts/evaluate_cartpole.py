@@ -12,6 +12,7 @@ from environment.cartpole_gym import LastActionObservationWrapper
 from models.student import StudentPolicy
 from agents import PPOAgent, GruAgent
 import pathlib
+import re
 
 
 def evaluate(args):
@@ -30,22 +31,21 @@ def evaluate(args):
 
     base_env = make_env()
 
+    # For recording a video
     video_dir = str(pathlib.Path(__file__).parent.resolve() / "videos/cartpole")
     os.makedirs(video_dir, exist_ok=True)
-    
-    # For recording a video
     env = RecordVideo(
         base_env,
         video_folder=video_dir,
         name_prefix=args.video_prefix,
         episode_trigger=lambda episode: episode == 0
     )
+    
     envs = gym.vector.SyncVectorEnv([lambda: env])
 
     obs_shape = envs.single_observation_space.shape
-    print(f"Observation Shape: {obs_shape}")
     action_space = envs.single_action_space
-    print(f"Action Space: {action_space}")
+    print(f"Observation Shape: {obs_shape}, Action Space: {action_space}")
 
     envs.reset()
     envs.envs[0].render()
@@ -55,7 +55,13 @@ def evaluate(args):
     is_student = "student" in args.model_path.lower()
 
     if is_student:
-        agent = StudentPolicy(input_dim=obs_shape[0]).to(device)
+        match = re.search(r'sh(\d+)', args.model_path)
+        try:
+            student_hidden_size = int(match.group(1))
+        except Exception as e:
+            print(f"Error extracting student_hidden_size: {e}")
+        
+        agent = StudentPolicy(input_dim=obs_shape[0], hidden_size=student_hidden_size).to(device)
         agent.load_state_dict(torch.load(args.model_path, map_location=device))
     
     else:
@@ -109,25 +115,18 @@ def evaluate(args):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Evaluate a PPO model on CartPole with video recording."
-    )
-    parser.add_argument("--model_path", type=str, required=True,
-                        help="Path to the saved model file (e.g., binary/PPO-Cartpole-...pt)")
-    parser.add_argument("--ppo_type", type=str, default="original", choices=["original", "gru"],
-                        help="Type of PPO agent to use")
-    parser.add_argument("--hidden_size", type=int, required=True,
-                        help="Hidden size for the agent network")
-    parser.add_argument('--test_mode', action='store_true',
-                        help="Determing the test/train distribution for evaluation")
-    parser.add_argument('--feature_extractor', action='store_true',
-                        help="Feature extractor to be used by the agent")
-    parser.add_argument("--num_timesteps", type=int, default=0,
-                        help="Number of timesteps to run evaluation")
-    parser.add_argument("--video_folder", type=str, default="videos",
-                        help="Folder to save the recorded video")
-    parser.add_argument("--video_prefix", type=str, default="eval",
-                        help="Prefix for the video file name")
+    
+    parser = argparse.ArgumentParser(description="Evaluate a PPO model on CartPole with video recording.")
+
+    parser.add_argument("--model_path", type=str, required=True, help="Path to the saved model file (e.g., binary/PPO-Cartpole-...pt)")
+    parser.add_argument("--ppo_type", type=str, default="original", choices=["original", "gru"], help="Type of PPO agent to use")
+    parser.add_argument("--hidden_size", type=int, required=True, help="Hidden size for the agent network")
+    parser.add_argument('--test_mode', action='store_true', help="Determing the test/train distribution for evaluation")
+    parser.add_argument('--feature_extractor', action='store_true', help="Feature extractor to be used by the agent")
+    parser.add_argument("--num_timesteps", type=int, default=0, help="Number of timesteps to run evaluation")
+    parser.add_argument("--video_folder", type=str, default="videos", help="Folder to save the recorded video")
+    parser.add_argument("--video_prefix", type=str, default="eval", help="Prefix for the video file name")
+    
     args = parser.parse_args()
 
     os.makedirs(args.video_folder, exist_ok=True)
