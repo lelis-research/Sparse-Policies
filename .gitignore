@@ -22,3 +22,6 @@ videos/
 *.mp4
 *.pkl
 tree
+*.png
+*.jpg
+*.jpeg
