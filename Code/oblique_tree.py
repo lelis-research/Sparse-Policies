@@ -32,6 +32,50 @@ class ObliqueTree:
 
     def build_tree(self, root):
 
+        if root._layer == 1:  # Stop at hidden layer
+
+            # Get output layer weights and bias
+            W2_0 = self.output_weights[0][0]  # Output neuron 0 weight
+            W2_1 = self.output_weights[1][0]  # Output neuron 1 weight
+            B2_0 = self.output_bias[0][0]     # Output neuron 0 bias
+            B2_1 = self.output_bias[1][0]     # Output neuron 1 bias
+
+            # # Method 1
+            # # Calculate output values based on hidden activation
+            # left_output = W2_0 * (-1) + B2_0   # If hidden < 0
+            # right_output = W2_1 * (+1) + B2_1  # If hidden >= 0
+            # print(f"Left output: {left_output:.2f}, Right output: {right_output:.2f}")
+
+            # # Determine labels using argmax
+            # left_label = 0 if left_output > right_output else 1
+            # right_label = 1 - left_label
+
+
+            # Method 2
+            # Case 1: ReLU(a1) = 0 when a1 < 0
+            left_output_0 = B2_0  # For output neuron 0
+            left_output_1 = B2_1  # For output neuron 1
+            left_label = 0 if left_output_0 > left_output_1 else 1
+
+            # Case 2: For a1 >= 0
+            if W2_0 == W2_1:  # Parallel lines, bias determines winner for all positive a1
+                right_label = 0 if B2_0 > B2_1 else 1
+            else:
+                # Find the intersection point: where a1*W2_0 + B2_0 = a1*W2_1 + B2_1
+                # a1*(W2_0 - W2_1) = B2_1 - B2_0
+                # a1 = (B2_1 - B2_0)/(W2_0 - W2_1)
+                intersection = (B2_1 - B2_0)/(W2_0 - W2_1)
+                right_label = 0 if W2_0 > W2_1 else 1
+                print(f"Intersection at a1={intersection:.4f}")
+            
+            if left_label == right_label:
+                print("=== Warning: Decision boundary is not oblique")
+
+
+            root.add_left_child(LabelNode(left_label))
+            root.add_right_child(LabelNode(right_label))
+            return
+
         if root._layer > 1:
             OW = root._weights[f'OW{root._layer - 1}'] * root._weights[f'W{root._layer}'][root._neuron - 1].T.reshape((root._weights[f'W{root._layer}'][root._neuron - 1].T.shape[0], 1))
             OB = root._weights[f'OB{root._layer - 1}'] * root._weights[f'W{root._layer}'][root._neuron - 1].T.reshape((root._weights[f'W{root._layer}'][root._neuron - 1].T.shape[0], 1))
@@ -69,12 +113,17 @@ class ObliqueTree:
     def induce_oblique_tree(self, weights, dims):
         self._dims = dims
 
-        for i in range(1, len(dims)):
-            weights[f'OW{i}'] = np.zeros((dims[i], dims[0]))
-            weights[f'OB{i}'] = np.zeros((dims[i], 1))
+        # for i in range(1, len(dims)):
+        #     weights[f'OW{i}'] = np.zeros((dims[i], dims[0]))
+        #     weights[f'OB{i}'] = np.zeros((dims[i], 1))
+        # Initialize only for the hidden layer (layer 1)
 
-        weights[f'OW{1}'] = copy.deepcopy(weights[f'W{1}'])
-        weights[f'OB{1}'] = copy.deepcopy(weights[f'B{1}'])
+        weights['OW1'] = copy.deepcopy(weights['W1'])  # Hidden layer weights
+        weights['OB1'] = copy.deepcopy(weights['B1'])  # Hidden layer bias
+
+        # Output layer weights for argmax
+        self.output_weights = weights['W2']  # Shape: (2, 1)
+        self.output_bias = weights['B2']     # Shape: (2, 1)
 
         print(weights[f'OW{1}'])
         print(weights[f'OB{1}'])

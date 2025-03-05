@@ -51,6 +51,7 @@ def print_tree(node, indent="", feature_names=None):
     print_tree(node._left, indent + "│   ", feature_names)
     print(f"{indent}└── Right (False):")
     print_tree(node._right, indent + "    ", feature_names)
+    print()
 
 def export_tree_to_dot(node, node_id=0, dot_lines=None):
     if dot_lines is None:
@@ -158,6 +159,7 @@ def main():
     hidden_size = args.hidden_size
     
     model = load_model(model_path, input_dim, hidden_size)
+    print(model)
     weights = extract_weights(model)
     dims = [input_dim, hidden_size, 2]
     
@@ -170,22 +172,46 @@ def main():
     plot_tree_with_matplotlib(ot._root)
 
 
-    # # Export to DOT and render
-    # _, dot_lines = export_tree_to_dot(ot._root)
-    # dot_code = "\n".join(dot_lines)
-    # src = Source(dot_code)
-    # src.format = 'png'
-    # src.render('tree', cleanup=True)
-
-
-    # Example
-    sample_obs = np.array([0.1, -0.2, 0.05, 0.3])
-    print("\nOblique Tree prediction:", ot.classify(sample_obs))
+    # # Example 1
+    # sample_obs = np.array([0.1, -0.2, 0.05, 0.3])
+    # print("\nOblique Tree prediction:", ot.classify(sample_obs))
     
-    # Compare with student model
-    with torch.no_grad():
-        logits = model(torch.FloatTensor(sample_obs))
-    print("Student prediction:", torch.argmax(logits).item())
+    # # Compare with student model
+    # with torch.no_grad():
+    #     logits = model(torch.FloatTensor(sample_obs))
+    # print("Student prediction:", torch.argmax(logits).item())
+
+    
+    # Example 2
+    similar_answers = 0
+    total = 1000
+    for _ in range(total):
+        # Sample random observations from the CartPole observation space
+        random_obs = np.array([
+            np.random.uniform(-4.8, 4.8),                # Cart position
+            np.random.uniform(-10, 10),                  # Cart velocity (using reasonable bounds)
+            np.random.uniform(-0.41887903, 0.41887903),  # Pole angle
+            np.random.uniform(-10, 10)                   # Pole angular velocity (using reasonable bounds)
+        ])
+        
+        # Get predictions from both models
+        tree_prediction = ot.classify(random_obs)
+        
+        with torch.no_grad():
+            model_logits = model(torch.FloatTensor(random_obs))
+            model_prediction = torch.argmax(model_logits).item()
+        
+        # Check if predictions match
+        if tree_prediction != model_prediction:
+            print(f"-- Mismatch found! Observation: {random_obs}")
+            # print(f"-- Tree predicted: {tree_prediction}, Model predicted: {model_prediction}")
+
+        else:
+            similar_answers += 1
+
+    print(f"Similarity: {float(similar_answers/total):.3f}")
+
+
 
 
 if __name__ == "__main__":
