@@ -56,7 +56,8 @@ def dagger_iteration(student, teacher, env, dataset, num_episodes, device):
                 # student_action = torch.argmax(student_logits, dim=-1).cpu().numpy()[0]
 
                 # For Sigmoid student
-                student_output = student(obs_tensor)
+                # print(f"== full obs: {obs_tensor} vs last2element obs: {obs_tensor[:, -2:]}")
+                student_output = student(obs_tensor[:, -2:])
                 student_action = (student_output >= 0.5).int().cpu().numpy()[0][0]
             
             # Get teacher action for correction
@@ -96,7 +97,9 @@ def train_student(student, dataset, batch_size, epochs, lr, l1_lambda, device):
             # logits = student(obs_batch)
             # loss = criterion(logits, action_batch)
 
-            sigmoid_output = student(obs_batch)  # Get sigmoid output from student
+            # print(f"=== full obs: {obs_batch} vs last2element obs: {obs_batch[:, -2:]}")
+
+            sigmoid_output = student(obs_batch[:, -2:])  # Get sigmoid output from student
             action_batch = action_batch.view(sigmoid_output.shape) # Reshape action_batch to match sigmoid_output
             loss = criterion(sigmoid_output, action_batch) # Calculate BCE loss
 
@@ -181,7 +184,8 @@ def main():
     print(f"\nTeacher model loaded from {args.teacher_model_path}\n")
     
     # Determine input dimension
-    input_dim = env.observation_space.shape[0]
+    # input_dim = env.observation_space.shape[0]
+    input_dim = 2
     # student = StudentPolicy(input_dim, hidden_size=args.student_hidden_size).to(device)
     student = StudentPolicySigmoid(input_dim, hidden_size=args.student_hidden_size).to(device)
     dataset = DemonstrationDataset()
@@ -209,7 +213,7 @@ def main():
     student_name = teacher_name.replace(".pt", f"-student-sh{args.student_hidden_size}-sl1{args.student_l1}-slr{args.lr}.pt")
     print(f"\nstudent_name: {student_name}")
 
-    student_model_path = f"{project_root}/Scripts/binary/cartpole/"
+    student_model_path = f"{project_root}/Scripts/binary/cartpole/obs2/"
     os.makedirs(student_model_path, exist_ok=True)
     torch.save(student.state_dict(), student_model_path + student_name)
     print(f"\nStudent model saved to {student_model_path + student_name}")
