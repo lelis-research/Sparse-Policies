@@ -57,7 +57,7 @@ def dagger_iteration(student, teacher, env, dataset, num_episodes, device):
 
                 # For Sigmoid student
                 # print(f"== full obs: {obs_tensor} vs last2element obs: {obs_tensor[:, -2:]}")
-                student_output = student(obs_tensor[:, -2:])
+                student_output = student(obs_tensor)
                 student_action = (student_output >= 0.5).int().cpu().numpy()[0][0]
             
             # Get teacher action for correction
@@ -99,7 +99,7 @@ def train_student(student, dataset, batch_size, epochs, lr, l1_lambda, device):
 
             # print(f"=== full obs: {obs_batch} vs last2element obs: {obs_batch[:, -2:]}")
 
-            sigmoid_output = student(obs_batch[:, -2:])  # Get sigmoid output from student
+            sigmoid_output = student(obs_batch)  # Get sigmoid output from student
             action_batch = action_batch.view(sigmoid_output.shape) # Reshape action_batch to match sigmoid_output
             loss = criterion(sigmoid_output, action_batch) # Calculate BCE loss
 
@@ -184,8 +184,7 @@ def main():
     print(f"\nTeacher model loaded from {args.teacher_model_path}\n")
     
     # Determine input dimension
-    # input_dim = env.observation_space.shape[0]
-    input_dim = 2
+    input_dim = env.observation_space.shape[0]
     # student = StudentPolicy(input_dim, hidden_size=args.student_hidden_size).to(device)
     student = StudentPolicySigmoid(input_dim, hidden_size=args.student_hidden_size).to(device)
     dataset = DemonstrationDataset()

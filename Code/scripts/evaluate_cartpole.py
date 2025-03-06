@@ -63,7 +63,7 @@ def evaluate(args):
             print(f"Error extracting student_hidden_size: {e}")
         
         # agent = StudentPolicy(input_dim=obs_shape[0], hidden_size=student_hidden_size).to(device)
-        agent = StudentPolicySigmoid(input_dim=obs_shape[0]-2, hidden_size=student_hidden_size).to(device)
+        agent = StudentPolicySigmoid(input_dim=obs_shape[0], hidden_size=student_hidden_size).to(device)
         agent.load_state_dict(torch.load(args.model_path, map_location=device))
     
     else:
@@ -107,8 +107,7 @@ def evaluate(args):
                     # action = torch.argmax(logits, dim=-1).cpu().numpy()
 
                     # For Sigmoid student
-                    sigmoid_output = agent(obs_tensor[:, -2:])
-                    # action = (sigmoid_output >= 0.5).int().cpu().numpy()
+                    sigmoid_output = agent(obs_tensor)
                     action_scalar = (sigmoid_output >= 0.5).int().item()
                     # Format for vectorized environment
                     action = np.array([action_scalar])
