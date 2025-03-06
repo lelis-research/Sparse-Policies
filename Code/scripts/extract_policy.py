@@ -6,16 +6,15 @@ sys.path.insert(0, project_root)
 import torch
 import numpy as np
 from oblique_tree import ObliqueTree, LabelNode
-from models.student import StudentPolicy
+from models.student import StudentPolicy, StudentPolicySigmoid
 import argparse
-from graphviz import Source
 import matplotlib.pyplot as plt
-from matplotlib.patches import FancyBboxPatch
 
 
 
 def load_model(model_path, input_dim, hidden_size):
-    model = StudentPolicy(input_dim, hidden_size)
+    # model = StudentPolicy(input_dim, hidden_size)
+    model = StudentPolicySigmoid(input_dim, hidden_size)
     model.load_state_dict(torch.load(model_path, map_location='cpu'))
     model.eval()
     return model
@@ -142,9 +141,25 @@ def plot_tree_with_matplotlib(root, figsize=(30, 8)):
                    ha='center', va='center', 
                    backgroundcolor='white', fontsize=10)
     
-    plt.tight_layout()
-    plt.savefig('tree_matplotlib.png')
+    plt.savefig('tree_sigmoid_half_good_test.png')
     plt.close()
+
+def modify_model_weight(model, layer_name, neuron_idx, new_value):
+    """Modifies a specific weight in the model.
+    
+    Args:
+        model: The PyTorch model
+        layer_name: 'fc1' for first layer, 'fc2' for second layer
+        neuron_idx: The neuron index (row in weight matrix)
+        weight_idx: The weight index (column in weight matrix)
+        new_value: The new weight value to set
+    """
+    with torch.no_grad():
+        if layer_name == 'fc1':
+            model.fc1.weight[0][neuron_idx] = new_value
+        elif layer_name == 'fc2':
+            model.fc2.weight[0][neuron_idx] = new_value
+    return model
 
 
 def main():
@@ -160,8 +175,12 @@ def main():
     
     model = load_model(model_path, input_dim, hidden_size)
     print(model)
+    print("== Before ", model.fc1.weight)
+
+    model = modify_model_weight(model, layer_name='fc1', neuron_idx=1, new_value=1.15)
+
     weights = extract_weights(model)
-    dims = [input_dim, hidden_size, 2]
+    dims = [input_dim, hidden_size, 1]
     
     ot = ObliqueTree()
     ot.induce_oblique_tree(weights, dims)
@@ -198,8 +217,15 @@ def main():
         tree_prediction = ot.classify(random_obs)
         
         with torch.no_grad():
-            model_logits = model(torch.FloatTensor(random_obs))
-            model_prediction = torch.argmax(model_logits).item()
+            # # For Softmax model
+            # model_logits = model(torch.FloatTensor(random_obs))
+            # model_prediction = torch.argmax(model_logits).item()
+
+            # For Sigmoid model
+            obs_tensor = torch.tensor(random_obs, dtype=torch.float32)
+            model_output = model(obs_tensor)
+            model_prediction = (model_output >= 0.5).int().item()
+
         
         # Check if predictions match
         if tree_prediction != model_prediction:

@@ -12,7 +12,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from environment.cartpole_gym import LastActionObservationWrapper
-from models.student import StudentPolicy
+from models.student import StudentPolicy, StudentPolicySigmoid
 from data.custom_dataset import DemonstrationDataset
 import re
 
@@ -51,8 +51,13 @@ def dagger_iteration(student, teacher, env, dataset, num_episodes, device):
             
             # Get student action (not used for stepping)
             with torch.no_grad():
-                student_logits = student(obs_tensor)
-                student_action = torch.argmax(student_logits, dim=-1).cpu().numpy()[0]
+                # # For Softmax student
+                # student_logits = student(obs_tensor)
+                # student_action = torch.argmax(student_logits, dim=-1).cpu().numpy()[0]
+
+                # For Sigmoid student
+                student_output = student(obs_tensor)
+                student_action = (student_output >= 0.5).int().cpu().numpy()[0][0]
             
             # Get teacher action for correction
             with torch.no_grad():
@@ -75,15 +80,25 @@ def train_student(student, dataset, batch_size, epochs, lr, l1_lambda, device):
     print("Training student...")
     student.train()
     optimizer = optim.Adam(student.parameters(), lr=lr)
-    criterion = nn.CrossEntropyLoss()
+    
+    # criterion = nn.CrossEntropyLoss()   # for Softmax student
+    criterion = nn.BCELoss()            # for Sigmoid student
+
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     for epoch in range(epochs):
         total_loss = 0
         for obs_batch, action_batch in dataloader:
             obs_batch = obs_batch.to(device)
-            action_batch = action_batch.to(device)
-            logits = student(obs_batch)
-            loss = criterion(logits, action_batch)
+
+            # action_batch = action_batch.to(device)
+            action_batch = action_batch.float().to(device)  # Convert to float for BCE loss
+
+            # logits = student(obs_batch)
+            # loss = criterion(logits, action_batch)
+
+            sigmoid_output = student(obs_batch)  # Get sigmoid output from student
+            action_batch = action_batch.view(sigmoid_output.shape) # Reshape action_batch to match sigmoid_output
+            loss = criterion(sigmoid_output, action_batch) # Calculate BCE loss
 
             l1_loss = sum(torch.norm(param, p=1) for param in student.parameters())
             loss += l1_lambda * l1_loss
@@ -102,7 +117,7 @@ def main():
     parser.add_argument('--teacher_model_path', type=str, required=True, help="Path to the teacher model.")
     parser.add_argument('--teacher_feature_extractor', action='store_true', help="Teacher uses a feature extractor.")
 
-    parser.add_argument('--student_hidden_size', type=int, default=6, help="Size of the student hidden layer.")
+    parser.add_argument('--student_hidden_size', type=int, default=1, help="Size of the student hidden layer.")
     parser.add_argument('--student_l1', type=float, default=0.0, help="L1 regularization for student model.")
     parser.add_argument('--lr', type=float, default=0.001, help="Learning rate.")
 
@@ -167,7 +182,8 @@ def main():
     
     # Determine input dimension
     input_dim = env.observation_space.shape[0]
-    student = StudentPolicy(input_dim, hidden_size=args.student_hidden_size).to(device)
+    # student = StudentPolicy(input_dim, hidden_size=args.student_hidden_size).to(device)
+    student = StudentPolicySigmoid(input_dim, hidden_size=args.student_hidden_size).to(device)
     dataset = DemonstrationDataset()
     
     # Collect initial teacher demonstrations

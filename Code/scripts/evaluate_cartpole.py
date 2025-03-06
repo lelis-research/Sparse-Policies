@@ -9,10 +9,11 @@ import gymnasium as gym
 import numpy as np
 from gymnasium.wrappers import RecordVideo
 from environment.cartpole_gym import LastActionObservationWrapper
-from models.student import StudentPolicy
+from models.student import StudentPolicy, StudentPolicySigmoid
 from agents import PPOAgent, GruAgent
 import pathlib
 import re
+from extract_policy import modify_model_weight
 
 
 def evaluate(args):
@@ -61,7 +62,8 @@ def evaluate(args):
         except Exception as e:
             print(f"Error extracting student_hidden_size: {e}")
         
-        agent = StudentPolicy(input_dim=obs_shape[0], hidden_size=student_hidden_size).to(device)
+        # agent = StudentPolicy(input_dim=obs_shape[0], hidden_size=student_hidden_size).to(device)
+        agent = StudentPolicySigmoid(input_dim=obs_shape[0], hidden_size=student_hidden_size).to(device)
         agent.load_state_dict(torch.load(args.model_path, map_location=device))
     
     else:
@@ -83,6 +85,10 @@ def evaluate(args):
     print(f"\nModel loaded from {args.model_path}\n")
     agent.eval()
 
+    print("== Before ", agent.fc1.weight)
+    agent = modify_model_weight(agent, layer_name='fc1', neuron_idx=1, new_value=1.15)
+    print("== After ", agent.fc1.weight, "\n")
+
     
     MAX_STEPS = args.num_timesteps
     obs, _ = envs.reset(seed=1)
@@ -96,8 +102,17 @@ def evaluate(args):
 
             with torch.no_grad():
                 if is_student:
-                    logits = agent(obs_tensor)
-                    action = torch.argmax(logits, dim=-1).cpu().numpy()
+                    # # For Softmax student
+                    # logits = agent(obs_tensor)
+                    # action = torch.argmax(logits, dim=-1).cpu().numpy()
+
+                    # For Sigmoid student
+                    sigmoid_output = agent(obs_tensor)
+                    # action = (sigmoid_output >= 0.5).int().cpu().numpy()
+                    action_scalar = (sigmoid_output >= 0.5).int().item()
+                    # Format for vectorized environment
+                    action = np.array([action_scalar])
+
                 else:
                     action, _, _, _, _ = agent.get_action_and_value(obs_tensor)
                     action = action.cpu().numpy()

@@ -32,7 +32,7 @@ class ObliqueTree:
 
     def build_tree(self, root):
 
-        if root._layer == 1:  # Stop at hidden layer
+        if root._layer == 1 and False:  # Stop at hidden layer
 
             # Get output layer weights and bias
             W2_0 = self.output_weights[0][0]  # Output neuron 0 weight
@@ -84,6 +84,7 @@ class ObliqueTree:
             root._weights[f'OB{root._layer}'][root._neuron - 1] = np.sum(OB, axis = 0) + root._weights[f'B{root._layer}'][root._neuron - 1]
 
         if root._layer == len(self._dims) - 1 and root._neuron == self._dims[-1]: # last neuron in the last layer
+            print("== Last neuron in the last layer")
             label_left = LabelNode(0)
             label_right = LabelNode(1)
 
@@ -113,9 +114,9 @@ class ObliqueTree:
     def induce_oblique_tree(self, weights, dims):
         self._dims = dims
 
-        # for i in range(1, len(dims)):
-        #     weights[f'OW{i}'] = np.zeros((dims[i], dims[0]))
-        #     weights[f'OB{i}'] = np.zeros((dims[i], 1))
+        for i in range(1, len(dims)):
+            weights[f'OW{i}'] = np.zeros((dims[i], dims[0]))
+            weights[f'OB{i}'] = np.zeros((dims[i], 1))
         # Initialize only for the hidden layer (layer 1)
 
         weights['OW1'] = copy.deepcopy(weights['W1'])  # Hidden layer weights
