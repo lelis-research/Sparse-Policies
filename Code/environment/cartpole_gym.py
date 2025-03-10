@@ -1,6 +1,7 @@
 import gymnasium as gym
 import numpy as np
 from gymnasium.spaces import Box
+from gymnasium.envs.classic_control import CartPoleEnv
 
 
 class LastActionObservationWrapper(gym.Wrapper):
@@ -72,7 +73,30 @@ class LastActionObservationWrapper(gym.Wrapper):
 
         augmented_obs = np.concatenate([obs, one_hot])
         return augmented_obs
+
+
+
+class CustomForceWrapper(LastActionObservationWrapper):
+    """
+    Wrapper that modifies the force magnitude based on the action (0 or 1).
+    - Action 0 applies a force of -3.3 (left)
+    - Action 1 applies a force of 3.98 (right)
+    This overrides the default force_mag in CartPoleEnv.
+    """
+    def __init__(self, env, train_mode=True, last_action_in_obs=False):
+        super().__init__(env, train_mode=train_mode, last_action_in_obs=last_action_in_obs)
+        
+    def step(self, action):
+        if action == 0:
+            self.env.unwrapped.force_mag = 3.3  # Action 0: force = -3.3
+        elif action == 1:
+            self.env.unwrapped.force_mag = 3.98  # Action 1: force = 3.98
+        else:
+            raise ValueError(f"Invalid action: {action}. Must be 0 or 1.")
+        
+        return super().step(action)
     
+
 
 def make_cartpole_env(train_mode=True, last_action_in_obs=True, max_episode_steps=250):
     def thunk():
