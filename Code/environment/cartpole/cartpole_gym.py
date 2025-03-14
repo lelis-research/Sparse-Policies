@@ -100,9 +100,8 @@ class CustomForceWrapper(LastActionObservationWrapper):
 class EasyCartPoleEnv(gym.Env):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 100}
     
-    def __init__(self, render_mode=None, max_episode_steps=500):
+    def __init__(self, train_mode=True, render_mode=None, max_episode_steps=500):
         super().__init__()
-        print("== EasyCartPoleEnv init")
         
         self.render_mode = render_mode
         self.max_episode_steps = max_episode_steps
@@ -112,10 +111,10 @@ class EasyCartPoleEnv(gym.Env):
         self.mass_cart = 1.0
         self.mass_pole = 0.1
         self.total_mass = self.mass_cart + self.mass_pole
-        self.length = 0.5  # Half pole length
         self.force_mag = 10.0
         self.x_threshold = 2.0  # Cart position limits
         self.theta_threshold = 0.21  # Angle limits
+        self.length = 0.5  if train_mode else 1.0  # Pole length
         
         self.action_space = Box(-np.inf, np.inf, (1,), dtype=np.float32)
         self.observation_space = Box(
@@ -255,7 +254,8 @@ def make_cartpole_env(train_mode=True, last_action_in_obs=True,
                       max_episode_steps=250, easy_cartpole=False):
     def thunk():
         if easy_cartpole:
-            env = EasyCartPoleEnv(max_episode_steps=max_episode_steps)  # should be 500 for 5s of training
+            env = EasyCartPoleEnv(train_mode=train_mode, 
+                                  max_episode_steps=max_episode_steps)  # should be 500 for 5s of training
         else:
             env = gym.make("CartPole-v1", max_episode_steps=max_episode_steps)
             env = LastActionObservationWrapper(env, 

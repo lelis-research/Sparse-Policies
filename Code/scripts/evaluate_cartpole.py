@@ -8,7 +8,7 @@ import torch
 import gymnasium as gym
 import numpy as np
 from gymnasium.wrappers import RecordVideo
-from environment.cartpole.cartpole_gym import LastActionObservationWrapper
+from environment.cartpole.cartpole_gym import LastActionObservationWrapper, EasyCartPoleEnv
 from models.student import StudentPolicy, StudentPolicySigmoid
 from agents import PPOAgent, GruAgent
 import pathlib
@@ -18,8 +18,15 @@ from extract_policy import modify_model_weight
 
 def evaluate(args):
 
-    if args.num_timesteps == 0:
+    easy_mode = False
+    if "easy" in args.model_path.lower():
+        easy_mode = True
+
+
+    if args.num_timesteps == 0 and not easy_mode:
         args.num_timesteps = 15000 if args.test_mode else 250 # 250 for training (5 seconds), 15000 for testing (5 minutes)
+    elif args.num_timesteps == 0 and easy_mode:
+        args.num_timesteps = 30000 if args.test_mode else 500 # 500 for training (5 seconds), 30000 for testing (5 minutes)
 
     print("\n=== Test mode ===") if args.test_mode else print("\n=== Train mode ===")
 
@@ -29,27 +36,32 @@ def evaluate(args):
                                                      render_mode="rgb_array"), 
                                             train_mode=(not args.test_mode), 
                                             last_action_in_obs=False)  
+    def make_env_easy():
+        return EasyCartPoleEnv(train_mode=(not args.test_mode),
+                               max_episode_steps=args.num_timesteps) # 300s / 0.01 = 30000 steps
 
-    base_env = make_env()
+    base_env = make_env() if not easy_mode else make_env_easy()
 
-    # For recording a video
-    video_dir = str(pathlib.Path(__file__).parent.resolve() / "videos/cartpole")
-    os.makedirs(video_dir, exist_ok=True)
-    env = RecordVideo(
-        base_env,
-        video_folder=video_dir,
-        name_prefix=args.video_prefix,
-        episode_trigger=lambda episode: episode == 0
-    )
+    # # For recording a video
+    # video_dir = str(pathlib.Path(__file__).parent.resolve() / "videos/cartpoleEasy")
+    # os.makedirs(video_dir, exist_ok=True)
+    # env = RecordVideo(
+    #     base_env,
+    #     video_folder=video_dir,
+    #     name_prefix=args.video_prefix,
+    #     episode_trigger=lambda episode: episode == 0
+    # )
     
-    envs = gym.vector.SyncVectorEnv([lambda: env])
+    # envs = gym.vector.SyncVectorEnv([lambda: env])
+    envs = gym.vector.SyncVectorEnv([lambda: base_env])
+
 
     obs_shape = envs.single_observation_space.shape
     action_space = envs.single_action_space
     print(f"Observation Shape: {obs_shape}, Action Space: {action_space}")
 
     envs.reset()
-    envs.envs[0].render()
+    # envs.envs[0].render()
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -68,10 +80,12 @@ def evaluate(args):
     
     else:
         if args.ppo_type == "original":
+            arch_details = "cartpole_easy" if easy_mode else ""
             agent = PPOAgent(envs,
                             hidden_size=args.hidden_size,
                             feature_extractor=args.feature_extractor,
-                            greedy=True).to(device)
+                            greedy=True,
+                            arch_details=arch_details).to(device)
         elif args.ppo_type == "gru":
             agent = GruAgent(envs,
                             h_size=args.hidden_size,
@@ -85,7 +99,7 @@ def evaluate(args):
     print(f"\nModel loaded from {args.model_path}\n")
     agent.eval()
 
-    print("== Before ", agent.fc1.weight)
+    # print("== Before ", agent.fc1.weight)
     # agent = modify_model_weight(agent, layer_name='fc1', neuron_idx=1, new_value=1.15)
     # print("== After ", agent.fc1.weight, "\n")
 
@@ -119,11 +133,19 @@ def evaluate(args):
             obs, reward, terminated, truncated, infos = envs.step(action)
             done = np.any(terminated) or np.any(truncated)
             total_reward += reward[0]  # Since we have only one environment
+
+            # For Easy Cartpole
+            if easy_mode:
+                if reward > 0.05:   # reward is the safe_error
+                    print("Breaking because unsafe")
+                    done = True 
+
             step += 1
             if step >= MAX_STEPS:
                 print("\nMax steps reached ==> Successful")
                 done = True
 
+    print(f"Steps: {step}")
     envs.close()
     print(f"\nTotal Reward = {total_reward}")
 
