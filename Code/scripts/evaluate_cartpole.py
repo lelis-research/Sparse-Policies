@@ -38,22 +38,23 @@ def evaluate(args):
                                             last_action_in_obs=False)  
     def make_env_easy():
         return EasyCartPoleEnv(train_mode=(not args.test_mode),
+                               render_mode="rgb_array",
                                max_episode_steps=args.num_timesteps) # 300s / 0.01 = 30000 steps
 
     base_env = make_env() if not easy_mode else make_env_easy()
 
-    # # For recording a video
-    # video_dir = str(pathlib.Path(__file__).parent.resolve() / "videos/cartpoleEasy")
-    # os.makedirs(video_dir, exist_ok=True)
-    # env = RecordVideo(
-    #     base_env,
-    #     video_folder=video_dir,
-    #     name_prefix=args.video_prefix,
-    #     episode_trigger=lambda episode: episode == 0
-    # )
+    # For recording a video
+    video_dir = str(pathlib.Path(__file__).parent.resolve() / "videos/cartpoleEasy")
+    os.makedirs(video_dir, exist_ok=True)
+    env = RecordVideo(
+        base_env,
+        video_folder=video_dir,
+        name_prefix=args.video_prefix,
+        episode_trigger=lambda episode: episode == 0
+    )
     
-    # envs = gym.vector.SyncVectorEnv([lambda: env])
-    envs = gym.vector.SyncVectorEnv([lambda: base_env])
+    envs = gym.vector.SyncVectorEnv([lambda: env])
+    # envs = gym.vector.SyncVectorEnv([lambda: base_env])
 
 
     obs_shape = envs.single_observation_space.shape
@@ -61,7 +62,7 @@ def evaluate(args):
     print(f"Observation Shape: {obs_shape}, Action Space: {action_space}")
 
     envs.reset()
-    # envs.envs[0].render()
+    envs.envs[0].render()
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -136,7 +137,7 @@ def evaluate(args):
 
             # For Easy Cartpole
             if easy_mode:
-                if reward > 0.05:   # reward is the safe_error
+                if -reward > 0.05:   # reward is the safe_error
                     print("Breaking because unsafe")
                     done = True 
 

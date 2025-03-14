@@ -1,6 +1,7 @@
 import gymnasium as gym
 import numpy as np
-from gymnasium.spaces import Box, Discrete
+from gymnasium.spaces import Box
+import pygame
 
 
 class LastActionObservationWrapper(gym.Wrapper):
@@ -126,6 +127,16 @@ class EasyCartPoleEnv(gym.Env):
         self.steps = 0
         self.viewer = None
 
+        # Pygame rendering setup
+        self.render_mode = render_mode
+        self.screen = None
+        self.clock = None
+        self.cart_width = 50
+        self.cart_height = 30
+        self.pole_length = 100
+        self.screen_width = 600
+        self.screen_height = 400
+
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
         self.state = np.array([
@@ -191,57 +202,105 @@ class EasyCartPoleEnv(gym.Env):
         return self._get_obs(), -safe_error, terminated, truncated, {}
 
     def render(self):
-        screen_width = 600
-        screen_height = 400
-        
-        if self.viewer is None:
-            self.viewer = rendering.Viewer(screen_width, screen_height)
-            
-            # Cart
-            cart_width, cart_height = 50.0, 30.0
-            cart = rendering.FilledPolygon([
-                (-cart_width/2, -cart_height/2),
-                (-cart_width/2, cart_height/2),
-                (cart_width/2, cart_height/2),
-                (cart_width/2, -cart_height/2)
-            ])
-            self.cart_transform = rendering.Transform()
-            cart.add_attr(self.cart_transform)
-            self.viewer.add_geom(cart)
-            
-            # Pole
-            pole_width = 10.0
-            pole_length = screen_height * 0.4
-            pole = rendering.FilledPolygon([
-                (-pole_width/2, 0),
-                (-pole_width/2, pole_length),
-                (pole_width/2, pole_length),
-                (pole_width/2, 0)
-            ])
-            pole.set_color(0.8, 0.6, 0.4)
-            self.pole_transform = rendering.Transform(translation=(0, cart_height/4))
-            pole.add_attr(self.pole_transform)
-            pole.add_attr(self.cart_transform)
-            self.viewer.add_geom(pole)
-            
-            # Track
-            self.track = rendering.Line((0, 100), (screen_width, 100))
-            self.track.set_color(0, 0, 0)
-            self.viewer.add_geom(self.track)
+        if self.render_mode is None:
+            return
 
-        # Update positions
+        if self.screen is None and self.render_mode == "human":
+            pygame.init()
+            self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
+            pygame.display.set_caption("Easy CartPole")
+        if self.clock is None:
+            self.clock = pygame.time.Clock()
+
+        # Convert state to screen coordinates
         x, _, theta, _ = self.state
-        scale = screen_width / (self.x_threshold * 2)  # 4.0 total width
-        cart_x = x * scale + screen_width/2.0
-        self.cart_transform.set_translation(cart_x, 100)
-        self.pole_transform.set_rotation(-theta)
+        scale = self.screen_width / (self.x_threshold * 2)
+        cart_x = x * scale + self.screen_width/2 - self.cart_width/2
+        cart_y = self.screen_height/2 - self.cart_height/2
+        
+        # Pole endpoints
+        pole_x = cart_x + self.cart_width/2
+        pole_y = cart_y + self.cart_height/2
+        pole_end_x = pole_x + self.pole_length * np.sin(theta)
+        pole_end_y = pole_y - self.pole_length * np.cos(theta)
 
-        return self.viewer.render(return_rgb_array=self.render_mode == "rgb_array")
+        if self.render_mode == "human":
+            self.screen.fill((255, 255, 255))
+            
+            # Draw track
+            pygame.draw.line(
+                self.screen, (0, 0, 0),
+                (0, self.screen_height//2 + 10),
+                (self.screen_width, self.screen_height//2 + 10),
+                2
+            )
+            
+            # Draw cart
+            pygame.draw.rect(
+                self.screen, (0, 0, 255),
+                (cart_x, cart_y, self.cart_width, self.cart_height)
+            )
+            
+            # Draw pole
+            pygame.draw.line(
+                self.screen, (188, 122, 66),
+                (pole_x, pole_y), (pole_end_x, pole_end_y),
+                5
+            )
+            
+            # Draw axle
+            pygame.draw.circle(
+                self.screen, (128, 128, 128),
+                (int(pole_x), int(pole_y)),
+                5
+            )
+
+            pygame.event.pump()
+            pygame.display.flip()
+            self.clock.tick(self.metadata["render_fps"])
+            
+        elif self.render_mode == "rgb_array":
+            surface = pygame.Surface((self.screen_width, self.screen_height))
+            surface.fill((255, 255, 255))
+            
+            # Draw track
+            pygame.draw.line(
+                surface, (0, 0, 0),
+                (0, self.screen_height//2 + 10),
+                (self.screen_width, self.screen_height//2 + 10),
+                2
+            )
+            
+            # Draw cart
+            pygame.draw.rect(
+                surface, (0, 0, 0),
+                (cart_x, cart_y, self.cart_width, self.cart_height)
+            )
+            
+            # Draw pole
+            pygame.draw.line(
+                surface, (188, 122, 66),
+                (pole_x, pole_y), (pole_end_x, pole_end_y),
+                5
+            )
+            
+            # Draw axle
+            pygame.draw.circle(
+                surface, (128, 128, 128),
+                (int(pole_x), int(pole_y)),
+                5
+            )
+
+            return np.transpose(
+                np.array(pygame.surfarray.pixels3d(surface)), 
+                axes=(1, 0, 2))
 
     def close(self):
-        if self.viewer:
-            self.viewer.close()
-            self.viewer = None
+        if self.screen is not None:
+            pygame.display.quit()
+            pygame.quit()
+            self.screen = None
+            self.clock = None
     
     def _rand(self, a, b):
         if b < a:
