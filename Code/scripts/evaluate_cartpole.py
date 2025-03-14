@@ -8,7 +8,7 @@ import torch
 import gymnasium as gym
 import numpy as np
 from gymnasium.wrappers import RecordVideo
-from environment.cartpole_gym import LastActionObservationWrapper
+from environment.cartpole.cartpole_gym import LastActionObservationWrapper
 from models.student import StudentPolicy, StudentPolicySigmoid
 from agents import PPOAgent, GruAgent
 import pathlib

@@ -9,7 +9,7 @@ import argparse
 import gymnasium as gym
 import re
 from collections import defaultdict
-from environment.cartpole_gym import LastActionObservationWrapper
+from environment.cartpole.cartpole_gym import LastActionObservationWrapper
 from agents import PPOAgent, GruAgent
 from tqdm import tqdm
 

@@ -11,7 +11,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from environment.cartpole_gym import LastActionObservationWrapper
+from environment.cartpole.cartpole_gym import LastActionObservationWrapper
 from models.student import StudentPolicy, StudentPolicySigmoid
 from data.custom_dataset import DemonstrationDataset
 import re

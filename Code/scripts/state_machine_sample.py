@@ -6,7 +6,7 @@ sys.path.insert(0, project_root)
 
 import gymnasium as gym
 import pathlib
-from environment.cartpole_gym import LastActionObservationWrapper, CustomForceWrapper
+from environment.cartpole.cartpole_gym import LastActionObservationWrapper, CustomForceWrapper
 from gymnasium.wrappers import RecordVideo
 import numpy as np
 
