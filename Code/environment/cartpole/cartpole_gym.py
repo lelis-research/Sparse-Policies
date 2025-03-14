@@ -94,50 +94,6 @@ class CustomForceWrapper(LastActionObservationWrapper):
             raise ValueError(f"Invalid action: {action}. Must be 0 or 1.")
         
         return super().step(action)
-    
-
-        
-
-class EasyCartPoleEnv0(gym.Env):
-    metadata = {'render.modes': ['human', 'rgb_array']}
-    
-    def __init__(self, max_episode_steps=500):
-        super().__init__()
-        self.system = CartPole(n_steps=max_episode_steps)
-        self.max_episode_steps = max_episode_steps
-        self.action_space = Discrete(2)  # 0=left, 1=right
-        self.observation_space = Box(low=-np.inf, high=np.inf, shape=(4,), dtype=np.float32)
-        self.current_step = 0
-        self.state = None
-
-    def reset(self, seed=None, options=None):
-        self.current_step = 0
-        self.state = self.system.sample_init_state()
-        return self.system.get_features(self.state), {}
-
-    def step(self, action):
-        # Convert discrete action to continuous force
-        force = -1.0 if action == 0 else 1.0 
-        new_state = self.system.simulate(self.state, [force], dt=-1)
-        
-        # Calculate reward (1 per step)
-        reward = 1.0
-        
-        # Check termination conditions
-        self.current_step += 1
-        angle = new_state[2]
-        terminated = angle < self.system.t_min or angle > self.system.t_max
-        truncated = self.current_step >= self.max_episode_steps
-        
-        self.state = new_state
-        return self.system.get_features(new_state), reward, terminated, truncated, {}
-
-    def render(self, mode='human'):
-        return self.system.render(self.state, mode)
-    
-    def close(self):
-        if self.system.viewer:
-            self.system.viewer.close()
 
 
 
