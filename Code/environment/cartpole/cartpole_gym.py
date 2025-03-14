@@ -133,9 +133,9 @@ class EasyCartPoleEnv(gym.Env):
         self.clock = None
         self.cart_width = 50
         self.cart_height = 30
-        self.pole_length = 100
+        self.pole_length = 100 if train_mode else 200
         self.screen_width = 600
-        self.screen_height = 400
+        self.screen_height = 450
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
