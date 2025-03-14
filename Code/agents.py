@@ -298,6 +298,7 @@ class PPOAgent(nn.Module):
     def __init__(self, envs,  hidden_size=6, feature_extractor=False, greedy=False, arch_details=""):
         super().__init__()
         self.action_space_continuous = False
+        self.is_easy_cartpole = "easy" in arch_details.lower()
 
         if isinstance(envs, ComboGym):
             observation_space_size = envs.get_observation_space()
@@ -340,12 +341,13 @@ class PPOAgent(nn.Module):
         FE_sparsity_level = float(FE_sparsity_level) / 100
         actor_sparsity_level = float(actor_sparsity_level) / 100
 
-        verbose = False
+        verbose = True
         if verbose:
-            print("Feature Extractor: ", self.feature_extractor)
+            print("\nFeature Extractor: ", self.feature_extractor)
             print("FE hidden size (FEX): ", FE_hidden_size)
             print("FE sparsity level (SF): ", FE_sparsity_level)
             print("Actor sparsity level (SA): ", actor_sparsity_level)
+            print("Action space is continuous: ", self.action_space_continuous, "\n")
         
         if self.feature_extractor:
             self.network = nn.Sequential(
@@ -374,28 +376,24 @@ class PPOAgent(nn.Module):
         )
 
         # For continuous actions, we need a log_std parameter
-        # (one per action dimension). We'll interpret self.actor(...) as the mean.
         if self.action_space_continuous:
+            if self.is_easy_cartpole:
+                # Force ±5 action bounds
+                self.register_buffer("action_scale", torch.tensor([5.0], device=device))
+                self.register_buffer("action_bias", torch.tensor([0.0], device=device))
+                self.log_std = nn.Parameter(torch.zeros(1, device=device))
 
-            # self.action_scale = torch.FloatTensor(
-            #     (envs.single_action_space.high - envs.single_action_space.low) / 2.0
-            # ).to(device)
-            # self.action_bias = torch.FloatTensor(
-            #     (envs.single_action_space.high + envs.single_action_space.low) / 2.0
-            # ).to(device)
+            else:
+                # Use envs.single_action_space to get bounds
+                high = torch.from_numpy(envs.single_action_space.high)
+                low = torch.from_numpy(envs.single_action_space.low)
+                
+                # Register as buffers to track device
+                self.register_buffer("action_scale", (high - low) / 2.0)
+                self.register_buffer("action_bias", (high + low) / 2.0)
 
-            # Use envs.single_action_space to get bounds
-            high = torch.from_numpy(envs.single_action_space.high)
-            low = torch.from_numpy(envs.single_action_space.low)
-            # Register as buffers to track device
-            self.register_buffer("action_scale", (high - low) / 2.0)
-            self.register_buffer("action_bias", (high + low) / 2.0)
-
-            # print("Action Scale: ", self.action_scale)
-            # print("Action Bias: ", self.action_bias)
-
-            # self.log_std = nn.Parameter(torch.zeros(action_space_size))
-            self.log_std = nn.Parameter(torch.ones(action_space_size) * -0.5)
+                # self.log_std = nn.Parameter(torch.zeros(action_space_size))
+                self.log_std = nn.Parameter(torch.ones(action_space_size) * -0.5)
         else:
             self.log_std = None
 
@@ -451,21 +449,21 @@ class PPOAgent(nn.Module):
 
         if self.action_space_continuous:
             # Get mean and std from actor
-            mean = self.actor(x)
+            mean = logits
             log_std = self.log_std.expand_as(mean)
             std = torch.exp(log_std)
             
             # Create normal distribution and sample
             dist = Normal(mean, std)
-            u = dist.rsample() if action is None else action
+            action = dist.rsample() if action is None else action
             
             # Squash with Tanh and scale to action space
-            action = torch.tanh(u)
-            scaled_action = action * self.action_scale + self.action_bias
+            tanh_action = torch.tanh(action)
+            scaled_action = tanh_action * self.action_scale + self.action_bias
             
             # Compute log probability with change of variables
-            log_prob = dist.log_prob(u)
-            log_prob -= torch.log(1 - action.pow(2) + 1e-6)  # Correction for Tanh
+            log_prob = dist.log_prob(action)
+            log_prob -= torch.log(1 - tanh_action.pow(2) + 1e-6)  # Correction for Tanh
             log_prob = log_prob.sum(dim=-1)
             
             entropy = dist.entropy().sum(dim=-1)
