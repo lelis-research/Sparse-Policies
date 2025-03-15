@@ -195,6 +195,8 @@ class EasyCartPoleEnv(gym.Env):
         # Reward and termination
         reward = 1.0  # not used in their version
         terminated = False  # Never terminate early based on state
+        # if safe_error > 0.2:
+        #     terminated = True  
         truncated = self.steps >= self.max_episode_steps
         
         if self.render_mode == "human":
