@@ -2,11 +2,10 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=1G
 #SBATCH --time=00-05:00
-#SBATCH --output=job_logs/${ARCH}/%N-%j.out  # %N for node name, %j for jobID
 #SBATCH --account=rrg-lelis
 #SBATCH --mail-user=arajabpo@ualberta.ca
 #SBATCH --mail-type=ALL
-#SBATCH --array=0
+#SBATCH --array=0-647
 
 
 source ~/scratch/Sparse-Policies/venv/bin/activate
