@@ -9,12 +9,12 @@ import argparse
 import gymnasium as gym
 import re
 from collections import defaultdict
-from environment.cartpole.cartpole_gym import LastActionObservationWrapper
+from environment.cartpole.cartpole_gym import LastActionObservationWrapper, EasyCartPoleEnv
 from agents import PPOAgent, GruAgent
 from tqdm import tqdm
 
 
-def evaluate_model(model_path, ppo_type, hidden_size, eval_seed, max_steps, args):
+def evaluate_model(model_path, ppo_type, hidden_size, eval_seed, max_steps, args, easy_mode=False):
 
     def make_env():
         return LastActionObservationWrapper(
@@ -24,15 +24,22 @@ def evaluate_model(model_path, ppo_type, hidden_size, eval_seed, max_steps, args
             train_mode=(not args.test_mode), 
             last_action_in_obs=False
         )
+    
+    def make_env_easy():
+        return EasyCartPoleEnv(train_mode=(not args.test_mode),
+                               render_mode="rgb_array",
+                               max_episode_steps=max_steps) # 300s / 0.01 = 30000 steps
 
-    envs = gym.vector.SyncVectorEnv([make_env])
+    envs = gym.vector.SyncVectorEnv([make_env]) if not easy_mode else gym.vector.SyncVectorEnv([make_env_easy])
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     if ppo_type == "original":
+        arch_details = "cartpole_easy" if easy_mode else ""
         agent = PPOAgent(envs, 
                         hidden_size=hidden_size,
                         feature_extractor=args.feature_extractor,
-                        greedy=True).to(device)
+                        greedy=True,
+                        arch_details=arch_details).to(device)
     elif ppo_type == "gru":
         agent = GruAgent(envs,
                         h_size=hidden_size,
@@ -59,6 +66,13 @@ def evaluate_model(model_path, ppo_type, hidden_size, eval_seed, max_steps, args
             obs, reward, terminated, truncated, infos = envs.step(action)
             done = np.any(terminated) or np.any(truncated)
             episode_reward += reward[0]
+
+            # For Easy Cartpole
+            if easy_mode:
+                if -reward > 0.05:   # reward is the safe_error
+                    # print("Breaking because unsafe")
+                    done = True
+
             step += 1
             if step > max_steps:
                 break
@@ -83,6 +97,10 @@ def evaluate_model(model_path, ppo_type, hidden_size, eval_seed, max_steps, args
 
             done_tensor = torch.tensor(terminated | truncated, dtype=torch.bool).to(device)
 
+    # Because we want to evaluate based on the number of steps and see how long the agent lasts
+    if easy_mode:
+        episode_reward = step
+
     envs.close()
     return episode_reward
 
@@ -101,21 +119,30 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    if args.max_steps == 0:
+
+    easy_mode = False
+    if "easy" in args.binaries_path.lower():
+        easy_mode = True
+
+
+    if args.max_steps == 0 and not easy_mode:
         args.max_steps = 15000 if args.test_mode else 250 # 250 for training (5 seconds), 15000 for testing (5 minutes)
+    elif args.max_steps == 0 and easy_mode:
+        args.max_steps = 30000 if args.test_mode else 500 # 500 for training (5 seconds), 30000 for testing (5 minutes)
+
 
     base_root = os.path.abspath(os.path.join(project_root, ".."))
     args.binaries_path = os.path.join(base_root, "binary", args.binaries_path)
 
     model_pattern = re.compile(
-        r'PPO-Cartpole-gw\d+-gh\d+-'
+        r'PPO-Cartpole(?:Easy)?-gw\d+-gh\d+-'
         r'h(?P<hidden_size>\d+)-'
         r'lr(?P<lr>[0-9eE\.\-]+)-'  # Allow scientific notation (e.g., 1e-05)
         r'sd(?P<model_seed>\d+)-'
         r'entcoef(?P<ent_coef>[0-9.]+)-'
         r'clipcoef(?P<clip_coef>[0-9.]+)-'
         r'l1(?P<l1_lambda>[0-9.]+)-'
-        r'(?P<ppo_type>\w+)-MODEL.*\.pt$'  # Match full filename including timestamp
+        r'(?P<ppo_type>\w+)-MODEL.*\.pt$'
     )
 
     groups = defaultdict(lambda: {
@@ -176,6 +203,7 @@ if __name__ == "__main__":
                 hidden_size=params['hidden_size'],
                 eval_seed=eval_seed,
                 max_steps=args.max_steps,
+                easy_mode=easy_mode,
                 args=args
             )
             seed_results[eval_seed] = reward
