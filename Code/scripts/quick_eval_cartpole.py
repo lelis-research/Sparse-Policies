@@ -16,6 +16,8 @@ from tqdm import tqdm
 
 def evaluate_model(model_path, ppo_type, hidden_size, eval_seed, max_steps, args, easy_mode=False):
 
+    torch.manual_seed(eval_seed)
+
     def make_env():
         return LastActionObservationWrapper(
             gym.make("CartPole-v1", 
@@ -70,7 +72,6 @@ def evaluate_model(model_path, ppo_type, hidden_size, eval_seed, max_steps, args
             # For Easy Cartpole
             if easy_mode:
                 if -reward > 0.05:   # reward is the safe_error
-                    # print("Breaking because unsafe")
                     done = True
 
             step += 1
@@ -226,7 +227,7 @@ if __name__ == "__main__":
     if args.test_mode:
         output_filename = f"{project_root}/Scripts/evaluation/cartpole/eval_{eval_name}_testMode.txt"
     else:
-        output_filename = f"{project_root}/Scripts/evaluation/cartpole/eval_{eval_name}_trainMode.txt"
+        output_filename = f"{project_root}/Scripts/evaluation/cartpole/eval_{eval_name}_trainMode2.txt"
     output_dir = os.path.dirname(output_filename)
     if not os.path.exists(output_dir): os.makedirs(output_dir)
 

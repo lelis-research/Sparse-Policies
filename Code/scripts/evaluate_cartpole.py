@@ -18,6 +18,9 @@ from extract_policy import modify_model_weight
 
 def evaluate(args):
 
+    SEED = 1
+    torch.manual_seed(SEED)
+
     easy_mode = False
     if "easy" in args.model_path.lower():
         easy_mode = True
@@ -61,7 +64,7 @@ def evaluate(args):
     action_space = envs.single_action_space
     print(f"Observation Shape: {obs_shape}, Action Space: {action_space}")
 
-    envs.reset()
+    envs.reset(seed=SEED)
     envs.envs[0].render()
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -106,7 +109,7 @@ def evaluate(args):
 
     
     MAX_STEPS = args.num_timesteps
-    obs, _ = envs.reset(seed=1)
+    obs, _ = envs.reset(seed=SEED)
     done = False
     total_reward = 0
     step = 0

@@ -107,6 +107,8 @@ class EasyCartPoleEnv(gym.Env):
         self.render_mode = render_mode
         self.max_episode_steps = max_episode_steps
         self.tau = 0.01  # 0.01s timestep (500 steps = 5 seconds)
+
+        self.np_random = np.random.default_rng(0)
         
         self.gravity = 9.8
         self.mass_cart = 1.0
@@ -117,10 +119,10 @@ class EasyCartPoleEnv(gym.Env):
         self.theta_threshold = 0.21  # Angle limits
         self.length = 0.5  if train_mode else 1.0  # Pole length
         
-        self.action_space = Box(-np.inf, np.inf, (1,), dtype=np.float32)
         self.observation_space = Box(
             low=-np.inf, high=np.inf, shape=(4,), dtype=np.float32
         )
+        self.action_space = Box(-5.0, 5.0, (1,), dtype=np.float32)
         
         # State variables
         self.state = None
@@ -136,9 +138,19 @@ class EasyCartPoleEnv(gym.Env):
         self.pole_length = 100 if train_mode else 200
         self.screen_width = 600
         self.screen_height = 450
+    
+    def _sample_action(self):
+        return self.np_random.uniform(
+            low=self.action_space.low,
+            high=self.action_space.high,
+            size=self.action_space.shape
+        ).astype(np.float32)
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
+        if seed is not None:
+            self.np_random = np.random.default_rng(seed)
+
         self.state = np.array([
             self._rand(-0.05, 0.05),
             self._rand(-0.05, 0.05),
