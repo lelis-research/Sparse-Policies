@@ -227,7 +227,7 @@ if __name__ == "__main__":
     if args.test_mode:
         output_filename = f"{project_root}/Scripts/evaluation/cartpole/eval_{eval_name}_testMode.txt"
     else:
-        output_filename = f"{project_root}/Scripts/evaluation/cartpole/eval_{eval_name}_trainMode2.txt"
+        output_filename = f"{project_root}/Scripts/evaluation/cartpole/eval_{eval_name}_trainMode.txt"
     output_dir = os.path.dirname(output_filename)
     if not os.path.exists(output_dir): os.makedirs(output_dir)
 
