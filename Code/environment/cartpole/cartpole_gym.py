@@ -127,7 +127,7 @@ class EasyCartPoleEnv(gym.Env):
         # State variables
         self.state = None
         self.steps = 0
-        self.viewer = None
+        self.total_safe_error = 0.0
 
         # Pygame rendering setup
         self.render_mode = render_mode
@@ -139,12 +139,6 @@ class EasyCartPoleEnv(gym.Env):
         self.screen_width = 600
         self.screen_height = 450
     
-    def _sample_action(self):
-        return self.np_random.uniform(
-            low=self.action_space.low,
-            high=self.action_space.high,
-            size=self.action_space.shape
-        ).astype(np.float32)
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
@@ -203,12 +197,13 @@ class EasyCartPoleEnv(gym.Env):
             safe_error += theta - self.theta_threshold
         elif theta < -self.theta_threshold:
             safe_error += -self.theta_threshold - theta
+
+        self.total_safe_error += safe_error
         
         # Reward and termination
-        reward = 1.0  # not used in their version
-        terminated = False  # Never terminate early based on state
-        # if safe_error > 0.2:
-        #     terminated = True  
+        terminated = False
+        if self.total_safe_error > 0.05:
+            terminated = True  
         truncated = self.steps >= self.max_episode_steps
         
         if self.render_mode == "human":
