@@ -152,6 +152,7 @@ class EasyCartPoleEnv(gym.Env):
             self._rand(-0.05, 0.05)
         ])
         self.steps = 0
+        self.total_safe_error = 0.0
         
         if self.render_mode == "human":
             self.render()
