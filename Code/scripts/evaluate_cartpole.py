@@ -18,7 +18,7 @@ from extract_policy import modify_model_weight
 
 def evaluate(args):
 
-    SEED = 1
+    SEED = args.seed
     torch.manual_seed(SEED)
 
     easy_mode = False
@@ -166,6 +166,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_timesteps", type=int, default=0, help="Number of timesteps to run evaluation")
     parser.add_argument("--video_folder", type=str, default="videos", help="Folder to save the recorded video")
     parser.add_argument("--video_prefix", type=str, default="eval", help="Prefix for the video file name")
+    parser.add_argument("--seed", type=int, default=1, help="Random seed for the environment")
     
     args = parser.parse_args()
 
