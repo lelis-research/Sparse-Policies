@@ -455,7 +455,12 @@ class PPOAgent(nn.Module):
             
             # Create normal distribution and sample
             dist = Normal(mean, std)
-            action = dist.rsample() if action is None else action
+            # action = dist.rsample() if action is None else action
+            if action is None:
+                if self.greedy:
+                    action = mean  # Deterministic: take the mean of the distribution
+                else:
+                    action = dist.rsample()  # Stochastic: sample using reparameterization trick
             
             # Squash with Tanh and scale to action space
             tanh_action = torch.tanh(action)
