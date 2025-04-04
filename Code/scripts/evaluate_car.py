@@ -19,7 +19,10 @@ import pathlib
 def evaluate(args):
 
     def make_env():
-        return CarEnv(n_steps=args.num_timesteps, render_mode="rgb_array", test_mode=args.test_mode)  
+        return CarEnv(n_steps=args.num_timesteps, 
+                      render_mode="rgb_array", 
+                      test_mode=args.test_mode,
+                      last_state_in_obs=True)  
 
     base_env = make_env()
 
@@ -83,9 +86,10 @@ def evaluate(args):
                 action, _, _, _, _ = agent.get_action_and_value(obs_tensor)
                 action = action.cpu().numpy()
             
-            print(f"== Step: {step}, Action: {action}")
+            # print(f"== Step: {step}, Action: {action}")
 
             obs, reward, terminated, truncated, infos = envs.step(action)
+            # print("Reward:", reward)
 
             # Store collision for plotting
             state = obs.flatten()[:4]

@@ -298,7 +298,6 @@ class PPOAgent(nn.Module):
     def __init__(self, envs,  hidden_size=6, feature_extractor=False, greedy=False, arch_details=""):
         super().__init__()
         self.action_space_continuous = False
-        self.is_easy_cartpole = "easy" in arch_details.lower()
 
         if isinstance(envs, ComboGym):
             observation_space_size = envs.get_observation_space()
@@ -341,7 +340,7 @@ class PPOAgent(nn.Module):
         FE_sparsity_level = float(FE_sparsity_level) / 100
         actor_sparsity_level = float(actor_sparsity_level) / 100
 
-        verbose = False
+        verbose = True
         if verbose:
             print("\nFeature Extractor: ", self.feature_extractor)
             print("FE hidden size (FEX): ", FE_hidden_size)
@@ -377,23 +376,10 @@ class PPOAgent(nn.Module):
 
         # For continuous actions, we need a log_std parameter
         if self.action_space_continuous:
-            if self.is_easy_cartpole:
-                # Force ±5 action bounds
-                self.register_buffer("action_scale", torch.tensor([5.0], device=device))
-                self.register_buffer("action_bias", torch.tensor([0.0], device=device))
-                self.log_std = nn.Parameter(torch.zeros(1, device=device))
-
-            else:
-                # Use envs.single_action_space to get bounds
-                high = torch.from_numpy(envs.single_action_space.high)
-                low = torch.from_numpy(envs.single_action_space.low)
-                
-                # Register as buffers to track device
-                self.register_buffer("action_scale", (high - low) / 2.0)
-                self.register_buffer("action_bias", (high + low) / 2.0)
-
-                # self.log_std = nn.Parameter(torch.zeros(action_space_size))
-                self.log_std = nn.Parameter(torch.ones(action_space_size) * -0.5)
+            # Force ±5 action bounds for all continuous action space envs
+            self.register_buffer("action_scale", torch.tensor([5.0], device=device))
+            self.register_buffer("action_bias", torch.tensor([0.0], device=device))
+            self.log_std = nn.Parameter(torch.zeros(1, device=device))
         else:
             self.log_std = None
 

@@ -13,7 +13,7 @@ import matplotlib.pyplot as pl
 
 
 class CarReversePP(System):
-    def __init__(self, n_steps=100):
+    def __init__(self, n_steps=10000):
         self.height = 5.0
         self.width = 1.8
         self.dist_min = 15.0
@@ -209,14 +209,20 @@ class CarReversePP(System):
         # error for ang
         if abs(ang - self.goal_ang) > self.tol:
             error_ang += abs(ang - self.goal_ang) - self.tol
-
+        
         # error for y
-		#if (y < dist - self.height):
-		#	error_y += dist - self.height - y
+        if (y < dist - self.height):
+            error_y += dist - self.height - y
 
         error = error_x + error_y + error_ang   # not used
+        # print(f"x: {x}, self.x_lane_2: {self.x_lane_2}, width: {self.width}")
+        # print(f"y: {y}, dist: {dist}, height: {self.height}")
+        # print("Error: ", error_x, error_y, error_ang)
 
         return [error_x, 5.0 * error_ang]
+        # return [error_x, 5.0 * error_ang, error_y]    # yError
+        # return [error_x, error_y]   # errorXY.1
+
     
     def check_time(self, total_time):
         return 0.0
@@ -225,9 +231,8 @@ class CarReversePP(System):
         return 0.0
 
     def done(self, state):
-        # For now, we simply end after a fixed number of steps
         goal_err = self.check_goal(state)
-        return self.counter >= self.n_steps     # or np.sum(goal_err) < 0.01
+        return self.counter >= self.n_steps or np.sum(goal_err) < 0.01
 
     def sample_init_state(self):
         # Initialize the state near a desired starting position

@@ -20,38 +20,43 @@ class CarEnv(gym.Env):
     """
     metadata = {'render_modes': ['human', 'rgb_array'], 'render_fps': 50}
 
-    def __init__(self, n_steps=100, render_mode=None, test_mode=False):
+    def __init__(self, n_steps=10000, render_mode=None, test_mode=False, last_state_in_obs=True):
         super().__init__()
         self.sim = CarReversePP(n_steps=n_steps)
         self.render_mode = render_mode
+        self.test_mode = test_mode
+        self.last_state_in_obs = last_state_in_obs
         self.prev_state = None
-        
-        # # Observation space: [x, y, angle, distance]
-        # self.observation_space = spaces.Box(
-        #     low=np.array([-5.0, -5.0, -np.pi, 0.0]),
-        #     high=np.array([5.0, 20.0, np.pi, 30.0]),
-        #     dtype=np.float32
-        # )
+        self.state = None
+        self.total_safe_error = 0.0
 
-        # Modified observation space with previous timestep's data
-        single_obs_low = np.array([-5.0, -5.0, -np.pi, 0.0])
-        single_obs_high = np.array([5.0, 20.0, np.pi, 30.0])
-        
-        # Stack current and previous observations
-        self.observation_space = spaces.Box(
-            low=np.concatenate([single_obs_low, single_obs_low]),
-            high=np.concatenate([single_obs_high, single_obs_high]),
-            dtype=np.float32
-        )
+
+        if self.last_state_in_obs:
+            # Modified observation space with previous timestep's data
+            single_obs_low = np.array([-5.0, -5.0, -np.pi, 0.0])
+            single_obs_high = np.array([5.0, 20.0, np.pi, 30.0])
+            
+            # Stack current and previous observations
+            self.observation_space = spaces.Box(
+                low=np.concatenate([single_obs_low, single_obs_low]),
+                high=np.concatenate([single_obs_high, single_obs_high]),
+                dtype=np.float32
+            )
+        else:
+            # Observation space: [x, y, angle, distance]
+            self.observation_space = spaces.Box(
+                low=np.array([-5.0, -5.0, -np.pi, 0.0]),
+                high=np.array([5.0, 20.0, np.pi, 30.0]),
+                dtype=np.float32
+            )
+
         
         # Action space: [velocity, angular rate]
         self.action_space = spaces.Box(
-            low=np.array([-5.0, -0.5]),
-            high=np.array([5.0, 0.5]),
+            low=np.array([-5.0, -5.0]), # for angular rate, it'll be divided by 10 in the simulate function
+            high=np.array([5.0, 5.0]),
             dtype=np.float32
         )
-        self.state = None
-        self.test_mode = test_mode
 
         if self.test_mode:
             test_limit = (11, 12)
@@ -72,19 +77,33 @@ class CarEnv(gym.Env):
         self.prev_state = current_state
 
         goal_err = self.sim.check_goal(self.state)
-        reward = - (goal_err[0] + goal_err[1])
+        reward = - np.sum(goal_err)
+        # reward = -1.0
+        
+        truncated = self.sim.done(self.state)
+        # if truncated and np.sum(goal_err) < 0.01:
+        #     reward += 1
         
         collision = self.sim.check_safe(self.state)
-        terminated = collision > 0
-        truncated = self.sim.done(self.state)
-        print(f"==== Collision: {collision}, Terminated: {terminated}, Truncated: {truncated}, Action: {action}")
-        
-        if terminated:
-            reward -= 100
-            
+        terminated = False
+        # if not truncated:
+        #     # total safe error
+        #     self.total_safe_error += collision
+        #     if self.total_safe_error > 0.05:
+        #         # terminated = True
+        #         reward -= 10
+
+        if not truncated and collision > 0.05:
+            reward -= 10
+
+
+        print(f"==== Terminated: {terminated}, Truncated: {truncated}, Collision: {collision:.10f}, Reward: {reward:.5f}, Action: {action}")
         info = {}
 
-        observation = np.concatenate([self.state, self.prev_state], dtype=np.float32)
+        if self.last_state_in_obs:
+            observation = np.concatenate([self.state, self.prev_state], dtype=np.float32)
+        else:
+            observation = self.state
         
         if self.render_mode == 'human':
             self.render()
@@ -97,6 +116,7 @@ class CarEnv(gym.Env):
         self.state = self.sim.sample_init_state()
         self.prev_state = np.copy(self.state)
         self.sim.counter = 0
+        self.total_safe_error = 0.0
 
         if self.test_mode:
             test_limit = (11, 12)
@@ -105,7 +125,9 @@ class CarEnv(gym.Env):
             train_limit = (12, 13.5)
             self.sim.set_inp_limits(train_limit)
 
-        return np.concatenate([self.state, self.prev_state], dtype=np.float32), {}
+        if self.last_state_in_obs:
+            return np.concatenate([self.state, self.prev_state], dtype=np.float32), {}
+        return self.state, {}
 
     def render(self):
         if self.render_mode in ('human', 'rgb_array'):
@@ -116,9 +138,12 @@ class CarEnv(gym.Env):
         self.sim.reset_render()
 
 
-def make_car_env(max_episode_steps=100):
+def make_car_env(max_episode_steps=10000):
     def thunk():
-        env = CarEnv(n_steps=max_episode_steps, render_mode=None, test_mode=False)
+        env = CarEnv(n_steps=max_episode_steps, 
+                     render_mode=None, 
+                     test_mode=False,
+                     last_state_in_obs=True)
         env = gym.wrappers.RecordEpisodeStatistics(env)
         return env
     return thunk
@@ -128,10 +153,8 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description="Run CarEnv in either simulation or test mode.")
 
-    parser.add_argument('--mode', type=str, default='gym', choices=['gym', 'test'],
-                        help="Choose 'gym' for simulation or 'test' for trajectory plotting.")
-    parser.add_argument("--video_prefix", type=str, default="eval",
-                        help="Prefix for the video file name")
+    parser.add_argument('--mode', type=str, default='gym', choices=['gym', 'test'], help="Choose 'gym' for simulation or 'test' for trajectory plotting.")
+    parser.add_argument("--video_prefix", type=str, default="eval", help="Prefix for the video file name")
     args = parser.parse_args()
 
     if args.mode == 'gym':
