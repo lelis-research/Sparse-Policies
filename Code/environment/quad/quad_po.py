@@ -3,11 +3,6 @@ From https://openreview.net/pdf?id=S1l8oANFDH
 """
 
 import numpy as np 
-import gym
-import sys
-import time
-import random
-
 from ..system import * 
 from ..utils import * 
 from .quad_collision import *
