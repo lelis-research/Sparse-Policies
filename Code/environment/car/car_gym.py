@@ -113,8 +113,6 @@ class CarEnv(gym.Env):
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
         self.sim.reset_render()
-        self.state = self.sim.sample_init_state()
-        self.prev_state = np.copy(self.state)
         self.sim.counter = 0
         self.total_safe_error = 0.0
 
@@ -124,6 +122,8 @@ class CarEnv(gym.Env):
         else:
             train_limit = (12, 13.5)
             self.sim.set_inp_limits(train_limit)
+        self.state = self.sim.sample_init_state()
+        self.prev_state = np.copy(self.state)
 
         if self.last_state_in_obs:
             return np.concatenate([self.state, self.prev_state], dtype=np.float32), {}

@@ -10,6 +10,7 @@ import numpy as np
 from gymnasium.wrappers import RecordVideo
 from environment.car.car_gym import CarEnv
 from environment.car.car_simulation import CarReversePP
+from  environment.quad.quad_gym import QuadEnv
 from agents import PPOAgent, GruAgent
 import time
 import matplotlib.pyplot as plt
@@ -18,20 +19,33 @@ import pathlib
 
 def evaluate(args):
 
-    def make_env():
-        return CarEnv(n_steps=args.num_timesteps, 
-                      render_mode="rgb_array", 
-                      test_mode=args.test_mode,
-                      last_state_in_obs=True)  
+    def make_env(env):
+        if env == "quad":
+            return QuadEnv(n_steps=args.num_timesteps, 
+                           render_mode="rgb_array", 
+                           use_po=False, 
+                           test_mode=args.test_mode)
+        elif env == "quad_po":
+            return QuadEnv(n_steps=args.num_timesteps, 
+                           render_mode="rgb_array", 
+                           use_po=True, 
+                           test_mode=args.test_mode)
+        elif env == "car":
+            return CarEnv(n_steps=args.num_timesteps, 
+                        render_mode="rgb_array", 
+                        test_mode=args.test_mode,
+                        last_state_in_obs=True)  
+        else:
+            raise ValueError(f"Unsupported environment: {env}")
 
-    base_env = make_env()
+    env = make_env(args.env)
 
-    video_dir = str(pathlib.Path(__file__).parent.resolve() / "videos/car")
+    video_dir = str(pathlib.Path(__file__).parent.resolve() / f"videos/{args.env}")
     os.makedirs(video_dir, exist_ok=True)
     
     # For recording a video
     env = RecordVideo(
-        base_env,
+        env,
         video_folder=video_dir,
         name_prefix=args.video_prefix,
         episode_trigger=lambda episode: episode == 0
@@ -65,10 +79,6 @@ def evaluate(args):
     print(f"\nModel loaded from {args.model_path}\n")
     agent.eval()
 
-    # # After loading the agent
-    # print("Agent's action_scale:", agent.action_scale)
-    # print("Agent's action_bias:", agent.action_bias)
-
     MAX_STEPS = args.num_timesteps
 
     obs, _ = envs.reset(seed=1)
@@ -86,19 +96,18 @@ def evaluate(args):
                 action, _, _, _, _ = agent.get_action_and_value(obs_tensor)
                 action = action.cpu().numpy()
             
-            # print(f"== Step: {step}, Action: {action}")
 
             obs, reward, terminated, truncated, infos = envs.step(action)
-            # print("Reward:", reward)
+            print(f"== Step: {step}, Action: {action}, Reward: {reward}")
 
-            # Store collision for plotting
-            state = obs.flatten()[:4]
-            collision = envs.envs[0].sim.check_safe(state)
-            if collision > 0:
-                collision_states.append(state)
+            # # Store collision for plotting
+            # state = obs.flatten()[:4]
+            # collision = envs.envs[0].sim.check_safe(state)
+            # if collision > 0:
+            #     collision_states.append(state)
 
-            # Store states for plotting
-            state_action_list.append((state, action.flatten()))
+            # # Store states for plotting
+            # state_action_list.append((state, action.flatten()))
 
             time.sleep(envs.envs[0].sim.dt)
             done = np.any(terminated) or np.any(truncated)
@@ -111,27 +120,29 @@ def evaluate(args):
     envs.close()
     print(f"\nTotal Reward = {total_reward}")
 
-    ###### Plotting the trajectory ######
-    sim_plot = CarReversePP()
-    plt.figure(figsize=(4, 8))
+    # ###### Plotting the trajectory ######
+    # sim_plot = CarReversePP()
+    # plt.figure(figsize=(4, 8))
 
-    start_state = [state_action_list[0][0]]       
-    goal_state  = [state_action_list[-1][0]]       
-    sim_plot.plot_init_paper(start_state, goal_state)
-    sim_plot.plot_states(state_action_list, line=True)
-    sim_plot.plot_collision_states(collision_states)
+    # start_state = [state_action_list[0][0]]       
+    # goal_state  = [state_action_list[-1][0]]       
+    # sim_plot.plot_init_paper(start_state, goal_state)
+    # sim_plot.plot_states(state_action_list, line=True)
+    # sim_plot.plot_collision_states(collision_states)
 
-    plt.title("Sample Trajectory")
-    plt.legend()
-    plt.show()
+    # plt.title("Sample Trajectory")
+    # plt.legend()
+    # plt.show()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Evaluate a PPO model on Car (parallel park) with video recording."
+        description="Evaluate a PPO model on Car (parallel park)/Quad/QuadPO with video recording."
     )
     parser.add_argument("--model_path", type=str, required=True,
                         help="Path to the saved model file (e.g., binary/PPO-car-...pt)")
+    parser.add_argument("--env", type=str, default="car", choices=["car", "quad", "quad_po"],
+                        help="Environment to evaluate the model on")
     parser.add_argument("--ppo_type", type=str, default="original", choices=["original", "gru"],
                         help="Type of PPO agent to use")
     parser.add_argument("--hidden_size", type=int, required=True,

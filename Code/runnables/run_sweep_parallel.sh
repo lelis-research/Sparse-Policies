@@ -65,11 +65,12 @@ H="${hiddens[${h_index}]}"
 
 # Run the training script
 python ~/scratch/Sparse-Policies/Code/scripts/train_ppo.py \
-  --env_id CartpoleEasy \
+  --env_id Quad \
   --seed "${SD}" \
-  --num_steps 250 \
+  --max_steps 1000 \
+  --num_steps 3000 \
   --hidden_size "${H}" \
-  --total_timesteps 2_000_000 \
+  --total_timesteps 10_000_000 \
   --num_envs 1 \
   --num_minibatches 1 \
   --ppo_type original \

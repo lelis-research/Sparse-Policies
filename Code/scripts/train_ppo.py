@@ -19,6 +19,7 @@ from environment.combogrid_gym import make_env, make_env_combo_four_goals
 from environment.karel_env.gym_envs.karel_gym import make_karel_env
 from environment.cartpole.cartpole_gym import make_cartpole_env
 from environment.car.car_gym import make_car_env
+from environment.quad.quad_gym import make_quad_env
 # from environment.minigrid import make_env_simple_crossing, make_env_four_rooms
 from training.train_ppo_agent import train_ppo
 from training.train_ppo_agent_positive import train_ppo_positive
@@ -217,6 +218,16 @@ def main(args):
     elif "car" == args.env_id:
         model_file_name = f'binary/PPO-{args.env_id}-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}-l1{args.l1_lambda}-{args.ppo_type}-MODEL-{run_time}.pt'
         envs = gym.vector.SyncVectorEnv([make_car_env(max_episode_steps=args.max_steps) for _ in range(args.num_envs)])
+
+    
+    elif "Quad" in args.env_id:
+
+        model_file_name = f"binary/PPO-{args.env_id}-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}-l1{args.l1_lambda}-{args.ppo_type}-MODEL-{run_time}.pt"
+        
+        if args.env_id == "QuadPO":
+            envs = gym.vector.SyncVectorEnv([make_quad_env(max_episode_steps=args.max_steps, use_po=True) for _ in range(args.num_envs)])
+        else:
+            envs = gym.vector.SyncVectorEnv([make_quad_env(max_episode_steps=args.max_steps,) for _ in range(args.num_envs)])
 
 
     else:
