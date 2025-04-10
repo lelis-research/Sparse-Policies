@@ -74,9 +74,11 @@ class QuadEnv(gym.Env):
             obs = np.concatenate([self.state[:4], sensor_features])
 
         self.total_safe_error += self.sim.check_safe(self.state)
-        terminated = self.total_safe_error > 0.05
+        terminated = self.total_safe_error > 0.05 or np.sum(self.sim.check_goal(self.state)) < 0.01
+        truncated = self.sim.done(self.state)
 
-        truncated = self.done()
+        if np.sum(self.sim.check_goal(self.state)) < 0.01:
+            print("... Goal Reached! ...")
         
         reward = 1.0 
         self.total_rewrad += reward
@@ -85,14 +87,6 @@ class QuadEnv(gym.Env):
             self.render()
 
         return obs, reward, terminated, truncated, {}
-    
-
-    def done(self):
-        truncated = False
-        if self.sim.done(self.state) or np.sum(self.sim.check_goal(self.state)) < 0.01:
-            print(f"...Done...")
-            truncated = True
-        return truncated
 
 
     def reset(self, seed=None, options=None):
