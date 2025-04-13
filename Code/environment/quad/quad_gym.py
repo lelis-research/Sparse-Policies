@@ -29,10 +29,11 @@ class QuadEnv(gym.Env):
         self.total_rewrad = 0.0
 
         # Action space (vertical acceleration only)
+        action_dim = 2
         self.action_space = spaces.Box(
-            low=np.array([-5.0]),
-            high=np.array([5.0]),
-            shape=(1,),
+            low=np.array([-5.0]*action_dim),
+            high=np.array([5.0]*action_dim),
+            shape=(action_dim,),
             dtype=np.float32
         )
 
@@ -169,6 +170,9 @@ def make_quad_env(max_episode_steps=5000, use_po=False):
                       use_po=use_po,
                       test_mode=False)
         env = gym.wrappers.RecordEpisodeStatistics(env)
+        env = gym.wrappers.ClipAction(env)
+        env = gym.wrappers.NormalizeReward(env)
+        env = gym.wrappers.TransformReward(env, lambda reward: np.clip(reward, -10, 10))
         return env
     return thunk
 
