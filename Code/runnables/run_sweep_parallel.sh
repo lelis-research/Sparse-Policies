@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=1G
-#SBATCH --time=00-05:00
+#SBATCH --time=01-00:00
 #SBATCH --account=rrg-lelis
 #SBATCH --mail-user=arajabpo@ualberta.ca
 #SBATCH --mail-type=ALL
@@ -16,7 +16,7 @@ export FLEXIBLAS=imkl
 seeds=(1 2 3)
 learning_rates=(0.001 0.0001 0.00001)
 clip_coefs=(0.01 0.1 0.2)
-ent_coefs=(0.01 0.1 0.2)
+ent_coefs=(0.001 0.01 0.1)
 l1_lambdas=(0.0 0.0001 0.0005 0.001)
 hiddens=(32 64)
 
