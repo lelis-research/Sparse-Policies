@@ -379,7 +379,8 @@ class PPOAgent(nn.Module):
             # Force ±5 action bounds for all continuous action space envs
             self.register_buffer("action_scale", torch.tensor([5.0], device=device))
             self.register_buffer("action_bias", torch.tensor([0.0], device=device))
-            self.log_std = nn.Parameter(torch.zeros(1, device=device))
+            self.log_std = nn.Parameter(torch.zeros(1, np.prod(action_space_size)))
+
         else:
             self.log_std = None
 
@@ -416,23 +417,6 @@ class PPOAgent(nn.Module):
         # "logits" will be the means if continuous, or the raw logits if discrete
         logits = self.actor(x)
 
-        # if self.action_space_continuous:
-        #     # Continuous actions: sample from Normal distribution
-        #     # means = logits
-        #     means = logits * self.action_scale + self.action_bias
-        #     stds = self.log_std.exp().expand_as(means)  # same shape as means
-        #     dist = Normal(means, stds)
-
-        #     if action is None:
-        #         if self.greedy:
-        #             # "Greedy" can be interpreted as taking the mean
-        #             action = means
-        #         else:
-        #             action = dist.sample()
-        #     # For a multi-dimensional action, sum the log-probs across dimensions
-        #     log_prob = dist.log_prob(action).sum(dim=-1)
-        #     entropy = dist.entropy().sum(dim=-1)
-
         if self.action_space_continuous:
             # Get mean and std from actor
             mean = logits
@@ -446,20 +430,21 @@ class PPOAgent(nn.Module):
                 if self.greedy:
                     action = mean  # Deterministic: take the mean of the distribution
                 else:
-                    action = dist.rsample()  # Stochastic: sample using reparameterization trick
-            
+                    action = dist.sample()  # Stochastic: sample using reparameterization trick
+
             # Squash with Tanh and scale to action space
-            tanh_action = torch.tanh(action)
-            scaled_action = tanh_action * self.action_scale + self.action_bias
+            # tanh_action = torch.tanh(action)
+            # scaled_action = tanh_action * self.action_scale + self.action_bias
             
             # Compute log probability with change of variables
-            log_prob = dist.log_prob(action)
-            log_prob -= torch.log(1 - tanh_action.pow(2) + 1e-6)  # Correction for Tanh
-            log_prob = log_prob.sum(dim=-1)
-            
-            entropy = dist.entropy().sum(dim=-1)
-            
-            return scaled_action, log_prob, entropy, self.critic(x), mean
+            # log_prob = dist.log_prob(action)
+            # log_prob -= torch.log(1 - tanh_action.pow(2) + 1e-6)  # Correction for Tanh
+            # log_prob = log_prob.sum(dim=-1)
+
+            log_prob = dist.log_prob(action).sum(1)
+            entropy = dist.entropy().sum(1)
+
+            return action, log_prob, entropy, self.critic(x), mean
 
         else:   # Discrete actions -> Categorical
             probs = Categorical(logits=logits)

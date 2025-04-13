@@ -25,9 +25,6 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
     if not seed:
         seed = args.seed
 
-    # call rnder() on one of the karel_gym env 
-    # envs.envs[0].render()
-
     feature_extractor = False if "noFE" in args.exp_name else True
 
     if args.ppo_type == "original":
@@ -148,18 +145,18 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
             #     break
 
 
-        # if positive_example:
-        #     positive_step += number_samples
+            # if positive_example:
+            #     positive_step += number_samples
 
-        global_step += len(obs)
-        number_samples = len(obs)
+            global_step += len(obs)
+            number_samples = len(obs)
 
-        if "final_info" in infos:
-            for info in infos["final_info"]:
-                if info and "episode" in info:
-                    logger.info(f"global_step={global_step}, episodic_return={info['episode']['r']}, episodic_length={info['episode']['l']}")
-                    writer.add_scalar("charts/episodic_return", info["episode"]["r"], global_step)
-                    writer.add_scalar("charts/episodic_length", info["episode"]["l"], global_step)
+            if "final_info" in infos:
+                for info in infos["final_info"]:
+                    if info and "episode" in info:
+                        logger.info(f"global_step={global_step}, episodic_return={info['episode']['r']}, episodic_length={info['episode']['l']}")
+                        writer.add_scalar("charts/episodic_return", info["episode"]["r"], global_step)
+                        writer.add_scalar("charts/episodic_length", info["episode"]["l"], global_step)
 
         # if not positive_example:
         #     continue
@@ -206,6 +203,7 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
         b_returns = returns.reshape(-1)
         b_values = values.reshape(-1)
 
+
         # Optimizing the policy and value network
         if args.ppo_type == "original":
             # b_inds = np.arange(args.batch_size)
@@ -219,8 +217,8 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
                 # for start in range(0, args.batch_size, args.minibatch_size):
                 #     end = start + args.minibatch_size
                 #     mb_inds = b_inds[start:end]
-                np.random.shuffle(envinds)
-                for start in range(0, args.num_envs, envsperbatch):
+                np.random.shuffle(envinds)  # TODO: this is wrong!! envinds is 1!!
+                for start in range(0, args.num_envs, envsperbatch): # if num_envs==1 this loop runs only once
                     end = start + envsperbatch
                     mbenvinds = envinds[start:end]
                     mb_inds = flatinds[:, mbenvinds].ravel()  # be really careful about the index
@@ -254,7 +252,6 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
                     # pg_loss = torch.max(pg_loss1, pg_loss2).mean()
                     # pg_loss = torch.max(pg_loss1, pg_loss2).mean() + l1_loss
                     pg_loss = torch.max(pg_loss1, pg_loss2).mean() + l1_loss * l1_lambda
-
 
 
                     # Value loss
@@ -413,6 +410,3 @@ def train_ppo_positive(envs: gym.vector.SyncVectorEnv, args, model_file_name, de
         logger.info(f"Saved on {model_file_name}")
     else:
         print("Test mode, not saving model")
-
-    return 0
-

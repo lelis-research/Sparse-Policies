@@ -7,6 +7,7 @@ import numpy as np
 import torch.nn as nn
 import torch.optim as optim
 from utils import *
+import re
 
 
 def _l1_norm(model, lambda_l1):
@@ -24,12 +25,14 @@ def train_ppo(envs: gym.vector.SyncVectorEnv, args, model_file_name, device, wri
     if not seed:
         seed = args.seed
 
-    # call rnder() on one of the karel_gym env 
-    envs.envs[0].render()
+    feature_extractor = False if "noFE" in args.exp_name else True
 
     if args.ppo_type == "original":
         from agents import PPOAgent
-        agent = PPOAgent(envs, hidden_size=hidden_size).to(device)
+        agent = PPOAgent(envs, 
+                         hidden_size=hidden_size,
+                         feature_extractor=feature_extractor, 
+                         arch_details=args.exp_name).to(device)
     elif args.ppo_type == "lstm":
         from agents import LstmAgent
         agent = LstmAgent(envs, h_size=hidden_size).to(device)
@@ -73,7 +76,6 @@ def train_ppo(envs: gym.vector.SyncVectorEnv, args, model_file_name, device, wri
     elif args.ppo_type == 'gru':
         next_rnn_state = torch.zeros(agent.gru.num_layers, args.num_envs, agent.gru.hidden_size).to(device)
 
-    total_episodic_return = []  # for optuna
 
     for iteration in range(1, args.num_iterations + 1):
 
@@ -126,8 +128,8 @@ def train_ppo(envs: gym.vector.SyncVectorEnv, args, model_file_name, device, wri
                         logger.info(f"global_step={global_step}, episodic_return={info['episode']['r']}")
                         writer.add_scalar("charts/episodic_return", info["episode"]["r"], global_step)
                         writer.add_scalar("charts/episodic_length", info["episode"]["l"], global_step)
-                        total_episodic_return.append(info['episode']['r'])
 
+        
         # bootstrap value if not done
         with torch.no_grad():
             if args.ppo_type == 'gru':
@@ -169,7 +171,7 @@ def train_ppo(envs: gym.vector.SyncVectorEnv, args, model_file_name, device, wri
                     end = start + args.minibatch_size
                     mb_inds = b_inds[start:end]
 
-                    _, newlogprob, entropy, newvalue, _ = agent.get_action_and_value(b_obs[mb_inds], b_actions.long()[mb_inds])
+                    _, newlogprob, entropy, newvalue, _ = agent.get_action_and_value(b_obs[mb_inds], b_actions[mb_inds])
                     logratio = newlogprob - b_logprobs[mb_inds]
                     ratio = logratio.exp()
 
@@ -183,10 +185,13 @@ def train_ppo(envs: gym.vector.SyncVectorEnv, args, model_file_name, device, wri
                     if args.norm_adv:
                         mb_advantages = (mb_advantages - mb_advantages.mean()) / (mb_advantages.std() + 1e-8)
 
+                    # L1 loss
+                    l1_loss = agent.get_l1_norm() if feature_extractor else agent.get_l1_norm_actor()
+
                     # Policy loss
                     pg_loss1 = -mb_advantages * ratio
                     pg_loss2 = -mb_advantages * torch.clamp(ratio, 1 - args.clip_coef, 1 + args.clip_coef)
-                    pg_loss = torch.max(pg_loss1, pg_loss2).mean()
+                    pg_loss = torch.max(pg_loss1, pg_loss2).mean() + l1_loss * l1_lambda
 
                     # Value loss
                     newvalue = newvalue.view(-1)
@@ -209,7 +214,9 @@ def train_ppo(envs: gym.vector.SyncVectorEnv, args, model_file_name, device, wri
                     for param in agent.actor.parameters():
                         l1_reg += torch.norm(param, 1)
 
-                    loss = pg_loss - args.ent_coef * entropy_loss + v_loss * args.vf_coef + l1_lambda * l1_reg
+                    # loss = pg_loss - args.ent_coef * entropy_loss + v_loss * args.vf_coef + l1_lambda * l1_reg
+                    loss = pg_loss - args.ent_coef * entropy_loss + v_loss * args.vf_coef
+
 
                     optimizer.zero_grad()
                     loss.backward()
@@ -311,24 +318,27 @@ def train_ppo(envs: gym.vector.SyncVectorEnv, args, model_file_name, device, wri
         writer.add_scalar("losses/clipfrac", np.mean(clipfracs), global_step)
         if args.ppo_type == "original": writer.add_scalar("losses/l1_reg", l1_reg.item(), global_step)
         writer.add_scalar("losses/explained_variance", explained_var, global_step)
-        logger.info(f"SPS: {int(global_step / (time.time() - start_time))}")
+        # logger.info(f"SPS: {int(global_step / (time.time() - start_time))}")
         writer.add_scalar("charts/SPS", int(global_step / (time.time() - start_time)), global_step)
         
         if iteration % 1000 == 0:
             logger_flush(logger)
 
 
-    # Compute the average episodic return
-    if total_episodic_return:
-        avg_return = sum(total_episodic_return) / len(total_episodic_return)
-    else:
-        avg_return = 0.0
+    logger.info(f"args: {args}")
+    if "sweep" in args.exp_name:
+        pattern = r"^(.*?)_SD"
+        result = re.match(pattern, args.exp_name)
+        sweep_directory = result.group(1) + "/" + model_file_name
+        os.makedirs(os.path.dirname(sweep_directory), exist_ok=True)
 
     envs.close()
     writer.close()
-    os.makedirs(os.path.dirname(model_file_name), exist_ok=True)
-    torch.save(agent.state_dict(), model_file_name)
-    logger.info(f"Saved on {model_file_name}")
 
-    return avg_return
+    logger.info(f"Experiment: {args.exp_name}")
 
+    if "test" not in args.exp_name:
+        torch.save(agent.state_dict(), sweep_directory) if "sweep" in args.exp_name else torch.save(agent.state_dict(), model_file_name)
+        logger.info(f"Saved on {model_file_name}")
+    else:
+        print("Test mode, not saving model")

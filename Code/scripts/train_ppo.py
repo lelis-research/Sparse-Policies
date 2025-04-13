@@ -234,9 +234,7 @@ def main(args):
         raise NotImplementedError
     
         
-    # _ = train_ppo(envs, args, model_file_name, device, writer, logger=logger, seed=seed)
-    _ = train_ppo_positive(envs, args, model_file_name, device, writer, logger=logger, seed=seed)
-
+    train_ppo(envs, args, model_file_name, device, writer, logger=logger, seed=seed)
 
 
 if __name__ == "__main__":
