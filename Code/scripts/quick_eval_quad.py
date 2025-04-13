@@ -58,11 +58,13 @@ def evaluate_model(model_path, ppo_type, hidden_size, eval_seed, max_steps, args
                 action, _, _, _, _ = agent.get_action_and_value(obs_tensor)
                 action = action.cpu().numpy()
 
-            obs, reward, terminated, truncated, info = envs.step(action)
+            obs, reward, terminated, truncated, _ = envs.step(action)
             done = np.any(terminated) or np.any(truncated)
             
-            if envs.envs[0].sim.check_goal(list(obs.flatten()[:4]) + list(envs.envs[0].state[4:])):
-                goal_reached = True
+            # state = list(obs.flatten()[:4]) + list(envs.envs[0].state[4:])
+            # if np.sum(envs.envs[0].sim.check_goal(state)) < 0.01:
+            # print(f"reached: {goal_reached}, goal error: {np.sum(envs.envs[0].sim.check_goal(state))}")
+            goal_reached = step > 790 if test_mode else step > 390
 
             episode_reward += reward[0]
             step += 1
@@ -192,13 +194,14 @@ if __name__ == "__main__":
 
     sorted_groups.sort(reverse=True, key=lambda x: x[0])
 
-    eval_name = os.path.basename(args.binaries_path)
-    output_dir = os.path.join(project_root, "Scripts", "evaluation", "quad")
+    # eval_name = os.path.dirname(args.binaries_path)
+    eval_name = args.binaries_path.split('/')[-2]   # [-1] is "binary"
+    output_dir = os.path.join(project_root, "Scripts", "evaluation", env_type)
     os.makedirs(output_dir, exist_ok=True)
     output_filename = os.path.join(output_dir, f"eval_{eval_name}_{'test' if args.test_mode else 'train'}.txt")
 
     with open(output_filename, 'w') as f:
-        f.write("=== Quad Evaluation Results ===\n")
+        f.write(f"=== {env_type} Evaluation Results ===\n")
         f.write(f"Evaluation seeds: {args.eval_seeds}\n")
         f.write(f"Test mode: {args.test_mode}\n\n")
 
