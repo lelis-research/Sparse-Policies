@@ -26,6 +26,12 @@ def evaluate_model(model_path, ppo_type, hidden_size, eval_seed, max_steps, args
                        render_mode=None)
     
     envs = gym.vector.SyncVectorEnv([make_env])
+
+    # For Quad 2d (original)
+    env = gym.wrappers.ClipAction(env)
+    env = gym.wrappers.NormalizeReward(env)
+    env = gym.wrappers.TransformReward(env, lambda reward: np.clip(reward, -10, 10))
+    
     device = 'cpu' # torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
     if ppo_type == "original":
@@ -49,6 +55,7 @@ def evaluate_model(model_path, ppo_type, hidden_size, eval_seed, max_steps, args
     episode_reward = 0
     step = 0
     goal_reached = False
+    is_safe = True
     
     if ppo_type == "original":
         while not done:
@@ -59,12 +66,9 @@ def evaluate_model(model_path, ppo_type, hidden_size, eval_seed, max_steps, args
                 action = action.cpu().numpy()
 
             obs, reward, terminated, truncated, _ = envs.step(action)
-            done = np.any(terminated) or np.any(truncated)
-            
-            # state = list(obs.flatten()[:4]) + list(envs.envs[0].state[4:])
-            # if np.sum(envs.envs[0].sim.check_goal(state)) < 0.01:
-            # print(f"reached: {goal_reached}, goal error: {np.sum(envs.envs[0].sim.check_goal(state))}")
-            goal_reached = step > 790 if test_mode else step > 390
+            is_safe = envs.envs[0].last_state_safety < 0.05
+            goal_reached = envs.envs[0].is_last_state_goal
+            done = (not is_safe) or np.any(truncated) or goal_reached
 
             episode_reward += reward[0]
             step += 1
@@ -99,7 +103,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--binaries_path', type=str, required=False, default="test_quad/binary",
                        help="Directory containing trained quad models")
-    parser.add_argument('--eval_seeds', nargs='+', type=int, default=range(0, 99),
+    parser.add_argument('--eval_seeds', nargs='+', type=int, default=range(0, 100),
                        help="Seeds for evaluation runs")
     parser.add_argument('--max_steps', type=int, default=5000,
                        help="Max steps per evaluation episode")
@@ -127,6 +131,7 @@ if __name__ == "__main__":
         'params': None,
         'seeds': defaultdict(dict),
         'avg_reward': 0,
+        'goal_reached_percent': 0,
         'first_model': None
     })
 
@@ -182,6 +187,10 @@ if __name__ == "__main__":
             seed_results[eval_seed] = (reward, goal_reached)
 
         groups[group_key]['seeds'][params['model_seed']] = seed_results
+        
+        # calculate goal reached percentage
+        goal_reached_count = sum(1 for _, goal_reached in seed_results.values() if goal_reached)
+        groups[group_key]['goal_reached_percent'] = (goal_reached_count / len(args.eval_seeds)) * 100
 
     sorted_groups = []
     for group_key, group_data in groups.items():
@@ -194,7 +203,6 @@ if __name__ == "__main__":
 
     sorted_groups.sort(reverse=True, key=lambda x: x[0])
 
-    # eval_name = os.path.dirname(args.binaries_path)
     eval_name = args.binaries_path.split('/')[-2]   # [-1] is "binary"
     output_dir = os.path.join(project_root, "Scripts", "evaluation", env_type)
     os.makedirs(output_dir, exist_ok=True)
@@ -215,6 +223,7 @@ if __name__ == "__main__":
             f.write(f"Clip: {params['clip_coef']:.2f}  ")
             f.write(f"L1: {params['l1_lambda']}\n")
             f.write(f"Avg Reward (over {len(group['seeds'])*len(args.eval_seeds)} runs): {avg_reward:.2f}\n")
+            f.write(f"Goal Reached Percentage: {group['goal_reached_percent']:.2f}%\n")
 
             f.write("Results per training seed:\n")
             # for model_file, seeds in group['seeds'].items():
