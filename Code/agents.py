@@ -340,7 +340,7 @@ class PPOAgent(nn.Module):
         FE_sparsity_level = float(FE_sparsity_level) / 100
         actor_sparsity_level = float(actor_sparsity_level) / 100
 
-        verbose = True
+        verbose = False
         if verbose:
             print("\nFeature Extractor: ", self.feature_extractor)
             print("FE hidden size (FEX): ", FE_hidden_size)
@@ -379,6 +379,7 @@ class PPOAgent(nn.Module):
             # Force ±5 action bounds for all continuous action space envs
             self.register_buffer("action_scale", torch.tensor([5.0], device=device))
             self.register_buffer("action_bias", torch.tensor([0.0], device=device))
+            # self.log_std = nn.Parameter(torch.zeros(1, device=device))
             self.log_std = nn.Parameter(torch.zeros(1, np.prod(action_space_size)))
 
         else:
@@ -432,11 +433,11 @@ class PPOAgent(nn.Module):
                 else:
                     action = dist.sample()  # Stochastic: sample using reparameterization trick
 
-            # Squash with Tanh and scale to action space
+            # # Squash with Tanh and scale to action space
             # tanh_action = torch.tanh(action)
             # scaled_action = tanh_action * self.action_scale + self.action_bias
             
-            # Compute log probability with change of variables
+            # # Compute log probability with change of variables
             # log_prob = dist.log_prob(action)
             # log_prob -= torch.log(1 - tanh_action.pow(2) + 1e-6)  # Correction for Tanh
             # log_prob = log_prob.sum(dim=-1)

@@ -19,6 +19,9 @@ import pathlib
 
 def evaluate(args):
 
+    SEED = args.seed
+    torch.manual_seed(SEED)
+
     def make_env(env):
         if env == "quad":
             return QuadEnv(n_steps=args.num_timesteps, 
@@ -41,9 +44,7 @@ def evaluate(args):
     env = make_env(args.env)
 
     video_dir = str(pathlib.Path(__file__).parent.resolve() / f"videos/{args.env}")
-    os.makedirs(video_dir, exist_ok=True)
-    
-    # For recording a video
+    os.makedirs(video_dir, exist_ok=True)    
     env = RecordVideo(
         env,
         video_folder=video_dir,
@@ -53,11 +54,10 @@ def evaluate(args):
     envs = gym.vector.SyncVectorEnv([lambda: env])
 
     obs_shape = envs.single_observation_space.shape
-    print(f"Observation Shape: {obs_shape}")
-    action_space = envs.single_action_space.shape
-    print(f"Action Space: {action_space}")
+    action_space = envs.single_action_space
+    print(f"Observation Shape: {obs_shape}, Action Space: {action_space}")
 
-    envs.reset()
+    envs.reset(seed=SEED)
     # envs.envs[0].render()
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -81,7 +81,7 @@ def evaluate(args):
 
     MAX_STEPS = args.num_timesteps
 
-    obs, _ = envs.reset(seed=1)
+    obs, _ = envs.reset(seed=SEED)
     done = False
     total_reward = 0
     step = 0
@@ -139,22 +139,16 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Evaluate a PPO model on Car (parallel park)/Quad/QuadPO with video recording."
     )
-    parser.add_argument("--model_path", type=str, required=True,
-                        help="Path to the saved model file (e.g., binary/PPO-car-...pt)")
-    parser.add_argument("--env", type=str, default="car", choices=["car", "quad", "quad_po"],
-                        help="Environment to evaluate the model on")
-    parser.add_argument("--ppo_type", type=str, default="original", choices=["original", "gru"],
-                        help="Type of PPO agent to use")
-    parser.add_argument("--hidden_size", type=int, required=True,
-                        help="Hidden size for the agent network")
-    parser.add_argument('--feature_extractor', action='store_true',
-                        help="Feature extractor to be used by the agent")
-    parser.add_argument('--test_mode', action='store_true',
-                        help="Set test mode for the environment")
-    parser.add_argument("--num_timesteps", type=int, default=100,
-                        help="Number of timesteps to run evaluation")
-    parser.add_argument("--video_prefix", type=str, default="eval",
-                        help="Prefix for the video file name")
+    parser.add_argument("--model_path", type=str, required=True, help="Path to the saved model file (e.g., binary/PPO-car-...pt)")
+    parser.add_argument("--env", type=str, default="car", choices=["car", "quad", "quad_po"], help="Environment to evaluate the model on")
+    parser.add_argument("--seed", type=int, default=1, help="Random seed for the environment")
+    parser.add_argument("--ppo_type", type=str, default="original", choices=["original", "gru"], help="Type of PPO agent to use")
+    parser.add_argument("--hidden_size", type=int, required=True, help="Hidden size for the agent network")
+    parser.add_argument('--feature_extractor', action='store_true', help="Feature extractor to be used by the agent")
+    parser.add_argument('--test_mode', action='store_true', help="Set test mode for the environment")
+    parser.add_argument("--num_timesteps", type=int, default=100, help="Number of timesteps to run evaluation")
+    parser.add_argument("--video_prefix", type=str, default="eval", help="Prefix for the video file name")
+
     args = parser.parse_args()
 
     evaluate(args)

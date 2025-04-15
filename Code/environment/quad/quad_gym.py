@@ -27,6 +27,8 @@ class QuadEnv(gym.Env):
         self.screen = None
         self.clock = None
         self.total_rewrad = 0.0
+        self.is_last_state_goal = False
+        self.last_state_safety = 0.0
 
         # Action space (vertical acceleration only)
         action_dim = 2
@@ -76,6 +78,11 @@ class QuadEnv(gym.Env):
 
         self.total_safe_error += self.sim.check_safe(self.state)
         terminated = self.total_safe_error > 0.05 or np.sum(self.sim.check_goal(self.state)) < 0.01
+        
+        # These two are for accessing the last state during evaluation of models, they're being reset only on initialization
+        self.is_last_state_goal = np.sum(self.sim.check_goal(self.state)) < 0.01
+        self.last_state_safety = self.sim.check_safe(self.state)
+        
         truncated = self.sim.done(self.state)
 
         if np.sum(self.sim.check_goal(self.state)) < 0.01:
