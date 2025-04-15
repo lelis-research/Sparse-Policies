@@ -65,8 +65,8 @@ class QuadcopterPO(System):
 		alpha = 0.0 #alpha/25.0
 		x,y,vx,vy,t,w = state[0:6]
 
-		a = action
-		# a = (vy - action[0]/5.0*2.0)*action[1]/5.0*2.0 
+		# a = action
+		a = (vy - action[0]/5.0*2.0)*action[1]/5.0*2.0 
 
 		tunnel = state[6:]
 
