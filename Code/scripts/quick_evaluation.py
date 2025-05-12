@@ -25,7 +25,8 @@ def evaluate_model_on_large_grid(model_path, args):
         'max_steps': args.max_steps,
         'sparse_reward': args.sparse_reward,
         'seed': args.karel_seed,
-        'initial_state': None
+        'initial_state': None,
+        'reward_scale': False,
     }
 
     def make_env():
@@ -46,7 +47,7 @@ def evaluate_model_on_large_grid(model_path, args):
     agent.load_state_dict(torch.load(model_path, map_location=device))
     agent.eval()
 
-    MAX_STEPS = 1000
+    MAX_STEPS = 100000
 
     obs, _ = envs.reset(seed=0)
     done = False
@@ -112,12 +113,12 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--binaries_path', default="binary_sweep_stair_climber", type=str, help="Path to the directory containing the models")
-    parser.add_argument('--task_name', default="stair_climber", type=str, help="[stair_climber, maze]")
+    parser.add_argument('--binaries_path', default="binary_test_stair", type=str, help="Path to the directory containing the models")
+    parser.add_argument('--task_name', default="stair_climber", type=str, help="[stair_climber, maze, ...]")
     parser.add_argument('--game_width_eval', default=100, type=int)
     parser.add_argument('--max_steps', default=100, type=int)
     parser.add_argument('--sparse_reward', action='store_true')
-    parser.add_argument('--karel_seeds', nargs='+', type=int, help="For testing on multiple seeds")
+    parser.add_argument('--karel_seeds', nargs='+', type=int, default=list(range(0,100)), help="For testing on multiple seeds")
     parser.add_argument('--feature_extractor', action='store_true')
 
     args = parser.parse_args()
@@ -158,13 +159,6 @@ if __name__ == "__main__":
             tqdm.write(f"**** Skipping unmatched file: {model_file}")
             continue
 
-        # Extract hyperparameters from filename
-        # params = {
-        #     k: float(v) if '.' in v else int(v)
-        #     for k, v in match.groupdict().items()
-        #     if k != 'ppo_type' 
-        # }
-        # params['ppo_type'] = match.group('ppo_type')
         params = {
             'game_width': int(match.group('game_width')),
             'game_height': int(match.group('game_height')),
@@ -215,6 +209,7 @@ if __name__ == "__main__":
             for karel_seed, (reward, _) in seeds.items():
                 all_rewards.append(reward)
         group_data['avg_reward'] = sum(all_rewards)/len(all_rewards) if all_rewards else 0
+        group_data['std_reward'] = np.std(all_rewards) if all_rewards else 0
         sorted_groups.append((group_data['avg_reward'], group_data))
 
     # Sort groups by average reward descending
@@ -222,7 +217,7 @@ if __name__ == "__main__":
 
     # Print formatted results
     eval_name = args.binaries_path.split('/')[-2]   # [-1] is "binary"
-    output_filename = f"{project_root}/Scripts/evaluation/karel/eval{args.game_width_eval}_{eval_name}.txt"
+    output_filename = f"{project_root}/Scripts/evaluation/karel/paper/eval{args.game_width_eval}_{eval_name}.txt"
     output_dir = os.path.dirname(output_filename)
     if not os.path.exists(output_dir): os.makedirs(output_dir)
     with open(output_filename, 'w') as f:
@@ -233,7 +228,7 @@ if __name__ == "__main__":
             f.write(f"\nHyperParams: "
                     f"H: {params['hidden_size']}, Lr: {params['lr']:.0e}, L1: {params['l1']}, "
                     f"Ent_coef: {params['ent_coef']}, Clip_coef: {params['clip_coef']}\n")
-            f.write(f"Avg reward (over {len(group['seeds'])*len(args.karel_seeds)} runs): {avg_reward:.2f}\n")
+            f.write(f"Avg reward (over {len(group['seeds'])*len(args.karel_seeds)} runs): {avg_reward:.2f}, std: {group['std_reward']:.2f}\n")
             f.write("Results per training seed:\n")
             for model_seed, seeds in sorted(group['seeds'].items()):
                 rewards = [f"{seeds[ks][0]:.2f}" for ks in args.karel_seeds]
