@@ -6,7 +6,7 @@ from dataclasses import dataclass
 class Args:
     exp_name: str = ""
     """the name of this experiment"""
-    seeds: List[int] = (0,1,2)
+    seeds: List[int] = range(1, 31)
     """seed of the experiment"""
     seed: int = 0
     """seed of the experiment"""
@@ -134,3 +134,6 @@ class Args:
     """the learning rate of the optimizer for value network"""
     weight_decay: float = 0
     "weight decay for l2 regularization"
+
+    multiprocessing: bool = False
+    """if toggled, the training will be done in multiple processes"""

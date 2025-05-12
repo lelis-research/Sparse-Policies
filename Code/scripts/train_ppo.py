@@ -11,6 +11,7 @@ import tyro
 import numpy as np
 import pickle
 import gymnasium as gym
+import multiprocessing as mp
 from args import Args
 from utils import *
 from typing import Callable
@@ -23,6 +24,7 @@ from environment.quad.quad_gym import make_quad_env
 # from environment.minigrid import make_env_simple_crossing, make_env_four_rooms
 from training.train_ppo_agent import train_ppo
 from training.train_ppo_agent_positive import train_ppo_positive
+from copy import deepcopy
 
 
 @timing_decorator
@@ -176,7 +178,7 @@ def main(args):
    
     elif "Karel" in args.env_id:
         # model_file_name = f'binary/PPO-{args.env_id}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}_vlr{args.value_learning_rate}_{args.ppo_type}_MODEL_{run_time}.pt'
-        model_file_name = f'binary/PPO-{args.env_id}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}-l1{args.l1_lambda}-{args.ppo_type}-MODEL-{run_time}.pt'
+        model_file_name = f'binary/30seeds_stair/PPO-{args.env_id}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}-l1{args.l1_lambda}-{args.ppo_type}-MODEL-{run_time}.pt'
         problem = args.env_id[len("Karel_"):]
 
         env_config = {
@@ -237,8 +239,48 @@ def main(args):
     train_ppo(envs, args, model_file_name, device, writer, logger=logger, seed=seed)
 
 
+def run_training_with_seed(args_dict):
+    """Process worker function that runs training with a specific seed"""
+    args = Args()
+    for key, value in args_dict.items():
+        setattr(args, key, value)
+    
+    print(f"\n\nArgs: {args}")
+    # main(args)
+    return args.seed
+
+
 if __name__ == "__main__":
     args = tyro.cli(Args)
+
+    if hasattr(args, 'multiprocessing') and args.multiprocessing:
+        if hasattr(args, 'seeds') and args.seeds:
+            seeds = args.seeds
+        else:
+            print("No seeds provided, using default range 0-3")
+            seeds = list(range(4))
+        
+        print(f"Running parallel training with seeds: {seeds}")
+
+        args_list = []
+        for seed in seeds:
+            process_args = deepcopy(vars(args))
+            process_args['seed'] = seed
+            args_list.append(process_args)
+        
+        pool = mp.Pool(processes=len(seeds))
+        try:
+            results = pool.map(run_training_with_seed, args_list)
+            # with mp.Pool(processes=len(seeds)) as pool:
+            #     results = pool.map(run_training_with_seed, args_list)
+        except KeyboardInterrupt:
+            print("\nKeyboard interrupt detected. Terminating all processes...")
+            pool.terminate()
+        finally:
+            print(f"\nAll training processes completed with seeds: {results}")
+            pool.close()
+            pool.join()
+        exit()
 
     if "All" in args.env_id:
         for prob in ["TL-BR", "TR-BL", "BR-TL", "BL-TR"]:
