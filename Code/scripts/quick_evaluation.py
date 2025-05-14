@@ -10,10 +10,18 @@ import gymnasium as gym
 import re
 from collections import defaultdict
 from tqdm import tqdm
+import multiprocessing as mp
 
 from environment.karel_env.gym_envs.karel_gym import KarelGymEnv, make_karel_env
 from agents import PPOAgent, GruAgent
 
+
+
+def eval_for_seed(args_tuple):
+    model_path, args, karel_seed = args_tuple
+    args.karel_seed = karel_seed
+    reward, steps = evaluate_model_on_large_grid(model_path, args)
+    return karel_seed, float(reward), int(steps)
 
 
 def evaluate_model_on_large_grid(model_path, args):
@@ -118,8 +126,9 @@ if __name__ == "__main__":
     parser.add_argument('--game_width_eval', default=100, type=int)
     parser.add_argument('--max_steps', default=100, type=int)
     parser.add_argument('--sparse_reward', action='store_true')
-    parser.add_argument('--karel_seeds', nargs='+', type=int, default=list(range(0,100)), help="For testing on multiple seeds")
+    parser.add_argument('--karel_seeds', nargs='+', type=int, default=list(range(0,10)), help="For testing on multiple seeds")
     parser.add_argument('--feature_extractor', action='store_true')
+    parser.add_argument('--multiprocess', action='store_true', help='If set, evaluate seeds in parallel using multiprocessing')
 
     args = parser.parse_args()
 
@@ -193,11 +202,26 @@ if __name__ == "__main__":
 
         # Evaluate model on all environment seeds
         model_path = os.path.join(args.binaries_path, model_file)
-        seed_results = {}
-        for karel_seed in args.karel_seeds:
-            args.karel_seed = karel_seed
-            reward, steps = evaluate_model_on_large_grid(model_path, args)
-            seed_results[karel_seed] = (float(reward), int(steps))
+        if args.multiprocess:
+            tasks = [(model_path, args, seed) for seed in args.karel_seeds]
+            pool = mp.Pool()
+            try:
+                results = pool.map(eval_for_seed, tasks)
+            except KeyboardInterrupt:
+                print("\nKeyboard interrupt detected. Terminating all processes...")
+                pool.terminate()
+                pool.join()
+                sys.exit(1)
+            else:
+                pool.close()
+                pool.join()
+            seed_results = {seed: (rew, st) for seed, rew, st in results}
+        else:
+            seed_results = {}
+            for karel_seed in args.karel_seeds:
+                args.karel_seed = karel_seed
+                reward, steps = evaluate_model_on_large_grid(model_path, args)
+                seed_results[karel_seed] = (float(reward), int(steps))
         
         groups[group_key]['seeds'][params['model_seed']] = seed_results
 
