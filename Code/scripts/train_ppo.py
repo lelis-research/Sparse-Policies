@@ -246,7 +246,7 @@ def run_training_with_seed(args_dict):
         setattr(args, key, value)
     
     print(f"\n\nArgs: {args}")
-    # main(args)
+    main(args)
     return args.seed
 
 
@@ -277,7 +277,7 @@ if __name__ == "__main__":
             print("\nKeyboard interrupt detected. Terminating all processes...")
             pool.terminate()
         finally:
-            print(f"\nAll training processes completed with seeds: {results}")
+            print(f"\nAll training processes completed")
             pool.close()
             pool.join()
         exit()
