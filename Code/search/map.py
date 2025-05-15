@@ -200,7 +200,7 @@ class MapKarel:
         
         return children
 
-    def plot_map(self, path, start, goal, filename, cost=None):
+    def plot_map_old(self, path, start, goal, filename, cost=None):
         import matplotlib.pyplot as plt
         fig, ax = plt.subplots()
         img = np.ones((self.height, self.width), dtype=np.uint8)
@@ -230,4 +230,70 @@ class MapKarel:
 
         ax.axis('off')
         plt.savefig(filename + '.png')
+        print(f"Map saved to {filename}.png")
+
+    def plot_map(self, path, start, goal, filename, cost=None):
+        import matplotlib.pyplot as plt
+        from matplotlib.colors import LinearSegmentedColormap
+        
+        # Calculate appropriate figure size based on grid dimensions
+        base_size = 8
+        aspect_ratio = self.width / self.height
+        if aspect_ratio > 1:
+            figsize = (base_size, base_size / aspect_ratio)
+        else:
+            figsize = (base_size * aspect_ratio, base_size)
+        
+        # Adjust figure size for very large grids
+        scale_factor = max(1, min(self.width, self.height) / 50)
+        figsize = (figsize[0] * scale_factor, figsize[1] * scale_factor)
+        
+        fig, ax = plt.subplots(figsize=figsize, dpi=150)  # Higher DPI for better resolution
+        
+        # Create a custom colormap (light gray for walkable, dark gray for walls)
+        cmap = LinearSegmentedColormap.from_list('maze_cmap', [(0.3, 0.3, 0.3), (0.95, 0.95, 0.95)])
+        
+        # Plot the maze with the custom colormap
+        img = np.ones((self.height, self.width), dtype=np.uint8)
+        img[self.walls] = 0
+        ax.imshow(img, cmap=cmap, interpolation='nearest')
+        
+        # Calculate marker sizes based on grid size
+        markersize = max(2, min(4, 400 / max(self.width, self.height)))
+        arrow_scale = max(0.1, min(0.2, 10 / max(self.width, self.height)))
+        start_goal_size = max(40, min(150, 3500 / max(self.width, self.height)))
+        
+        if path and len(path) > 0:
+            # overlay path as red line with arrows
+            xs = [s.get_x() for s in path]
+            ys = [s.get_y() for s in path]
+            ax.plot(xs, ys, '-', color='red', linewidth=max(0.5, 2/scale_factor))
+            
+            # Only plot points and arrows if the grid isn't too large
+            if max(self.width, self.height) < 50:
+                ax.plot(xs, ys, 'o', color='red', markersize=markersize)
+                
+                # Add arrows for direction, but skip some if path is very long
+                arrow_step = max(1, len(path) // 30)  # Show maximum ~30 arrows
+                for i in range(0, len(path)-1, arrow_step):
+                    x0, y0 = xs[i], ys[i]
+                    x1, y1 = xs[i+1], ys[i+1]
+                    ax.arrow(x0, y0, x1-x0, y1-y0,
+                            head_width=arrow_scale, head_length=arrow_scale, 
+                            length_includes_head=True, color='red')
+        
+        # mark start and goal with scaled markers
+        ax.scatter([start.get_x()], [start.get_y()], marker='s', color='green', s=start_goal_size)
+        ax.scatter([goal.get_x()], [goal.get_y()], marker='*', color='blue', s=start_goal_size)
+        
+        # Add cost as title
+        if cost is None and path and len(path) > 0:
+            cost = path[-1].get_g()
+        
+        if cost is not None:
+            plt.title(f"Path Cost: {cost}", fontsize=12)
+        
+        ax.axis('off')
+        plt.tight_layout()
+        plt.savefig(filename + '.png', dpi=300)  # Higher DPI for output
         print(f"Map saved to {filename}.png")
