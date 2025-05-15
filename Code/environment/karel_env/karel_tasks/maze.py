@@ -85,7 +85,6 @@ class Maze(BaseTask):
         
         return terminated, reward
 
-
 class MazeSparse(Maze):
     
     def get_reward(self, env: KarelEnvironment):
@@ -103,6 +102,126 @@ class MazeSparse(Maze):
         
         return terminated, reward
     
+
+class MazeWide(Maze):
+            
+    def generate_initial_environment(self, env_args):
+
+        path_width = 2
+        # compute how far to carve on each side of the centerline
+        # e.g. for width=1 => offsets=[0]
+        #      for width=2 => half=1=> offsets=[-1,0]
+        #      for width=3 => half=1=> offsets=[-1,0,1]
+        floor_half = path_width // 2
+        ceil_half = path_width - floor_half - 1
+        offsets = range(-floor_half, ceil_half + 1)
+        
+        reference_env = KarelEnvironment(**env_args)
+        
+        env_height = reference_env.state_shape[1]
+        env_width = reference_env.state_shape[2]        
+        
+        def get_neighbors(cur_pos):
+            neighbor_list = []
+            #neighbor top
+            if cur_pos[0] - 2 > 0: neighbor_list.append([cur_pos[0] - 2, cur_pos[1]])
+            # neighbor bottom
+            if cur_pos[0] + 2 < env_height - 1: neighbor_list.append([cur_pos[0] + 2, cur_pos[1]])
+            # neighbor left
+            if cur_pos[1] - 2 > 0: neighbor_list.append([cur_pos[0], cur_pos[1] - 2])
+            # neighbor right
+            if cur_pos[1] + 2 < env_width - 1: neighbor_list.append([cur_pos[0], cur_pos[1] + 2])
+            return neighbor_list
+        
+        state = np.zeros(reference_env.state_shape, dtype=bool)
+        state[4, :, :] = True
+        init_pos = [env_height - 2, 1]
+        init_r, init_c = init_pos[0], init_pos[1]
+        state[1, init_r, init_c] = True
+        for dr in offsets:
+            for dc in offsets:
+                rr, cc = init_r + dr, init_c + dc
+                if 0 <= rr < env_height and 0 <= cc < env_width:
+                    state[4, rr, cc] = False
+
+        # set up DFS
+        visited = np.zeros((env_height, env_width), dtype=bool)
+        visited[init_r, init_c] = True
+        stack = [[init_r, init_c]]
+
+        while stack:
+            cur_r, cur_c = stack.pop()
+            nbrs = get_neighbors([cur_r, cur_c])
+            self.rng.shuffle(nbrs)
+            for nbr_r, nbr_c in nbrs:
+                if visited[nbr_r, nbr_c]:
+                    continue
+                visited[nbr_r, nbr_c] = True
+
+                # carve a thick corridor between (cur) and (nbr)
+                if cur_r == nbr_r:  # horizontal move
+                    c0, c1 = sorted([cur_c, nbr_c])
+                    for dr in offsets:
+                        rr = cur_r + dr
+                        if not (0 <= rr < env_height): 
+                            continue
+                        for cc in range(c0, c1 + 1):
+                            state[4, rr, cc] = False
+                else:  # vertical move
+                    r0, r1 = sorted([cur_r, nbr_r])
+                    for dc in offsets:
+                        cc = cur_c + dc
+                        if not (0 <= cc < env_width):
+                            continue
+                        for rr in range(r0, r1 + 1):
+                            state[4, rr, cc] = False
+
+                stack.append([nbr_r, nbr_c])
+
+        # re-enforce the outer border as walls
+        state[4, 0, :] = True
+        state[4, env_height - 1, :] = True
+        state[4, :, 0] = True
+        state[4, :, env_width - 1] = True
+        
+        valid_loc = False
+        state[5, :, :] = True
+        while not valid_loc:
+            ym = self.rng.randint(1, env_height - 1)
+            xm = self.rng.randint(1, env_width - 1)
+            if not state[4, ym, xm] and not state[1, ym, xm]:
+                valid_loc = True
+                state[6, ym, xm] = True
+                state[5, ym, xm] = False
+                self.marker_position = [ym, xm]
+        
+        self.initial_distance = abs(init_pos[0] - self.marker_position[0]) \
+            + abs(init_pos[1] - self.marker_position[1])
+        
+        return KarelEnvironment(initial_state=state, **env_args)
+    
+    def reset_environment(self):
+        super().reset_environment()
+        self.previous_distance = self.initial_distance
+
+    def get_reward(self, env: KarelEnvironment):
+        terminated = False
+        reward = 0.
+
+        karel_pos = env.get_hero_pos()
+        
+        current_distance = abs(karel_pos[0] - self.marker_position[0]) \
+            + abs(karel_pos[1] - self.marker_position[1])
+        
+        # Reward is how much closer Karel is to the marker, normalized by the initial distance
+        reward = (self.previous_distance - current_distance) / self.initial_distance
+
+        if karel_pos[0] == self.marker_position[0] and karel_pos[1] == self.marker_position[1]:
+            terminated = True
+        
+        self.previous_distance = current_distance
+        
+        return terminated, reward
 
 
 class MazeAllInit(BaseTask):

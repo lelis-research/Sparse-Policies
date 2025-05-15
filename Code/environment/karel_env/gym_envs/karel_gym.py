@@ -11,7 +11,7 @@ import random
 
 from environment.karel_env.karel.environment import KarelEnvironment, basic_actions
 from environment.karel_env.karel_tasks.stair_climber import StairClimber, StairClimberSparse, StairClimberSparseAllInit, StairClimberAllInit
-from environment.karel_env.karel_tasks.maze import Maze, MazeSparse, MazeSparseAllInit, MazeAllInit
+from environment.karel_env.karel_tasks.maze import Maze, MazeSparse, MazeSparseAllInit, MazeAllInit, MazeWide
 from environment.karel_env.karel_tasks.four_corners import FourCorners, FourCornersSparse
 from environment.karel_env.karel_tasks.top_off import TopOff, TopOffSparse, TopOffAllInit, TopOffSparseAllInit
 from environment.karel_env.karel_tasks.harvester import Harvester, HarvesterSparse
@@ -126,6 +126,11 @@ class KarelGymEnv(gym.Env):
                 task_class = MazeSparseAllInit if self.config['sparse_reward'] else MazeAllInit
                 task_specific = task_class(env_args=env_args)
                 self.all_initial_confs_envs = task_specific.all_initial_confs
+            elif self.config.get('wide_maze', False):
+                task_specific = MazeWide(
+                    env_args=env_args,
+                    seed=self.config.get('seed'),
+                )
             else:
                 task_class = MazeSparse if self.config['sparse_reward'] else Maze
                 task_specific = task_class(
@@ -205,9 +210,6 @@ class KarelGymEnv(gym.Env):
                 truncated = True
             
             # self.task.state2image(root_dir=project_root + '/environment/').show()
-
-            # if terminated or truncated: print("-- Episode Done!!")
-            # print("truncate:", truncated, "terminated:", terminated)
 
             return self._get_observation_dsl(), reward, terminated, truncated, {}
                 

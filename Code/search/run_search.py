@@ -47,6 +47,7 @@ def main(args):
         'seed': args.karel_seed,
         'initial_state': None,
         'reward_scale': False,
+        'wide_maze': args.wide
     }
     env = KarelGymEnv(env_config=env_config)
     env.reset()
@@ -55,7 +56,6 @@ def main(args):
 
     gridded_map = MapKarel(env)
     dijkstra = Dijkstra(gridded_map)
-    astar = AStar(gridded_map)
 
     start = gridded_map.start
     goal  = gridded_map.goal
@@ -79,7 +79,7 @@ def main(args):
         print("Dijkstra cost", cost, "steps", len(path))
         print(f"path: {path}")
         time_end = time.time()
-        gridded_map.plot_map(path, start, goal, f'{BASE_DIR}/plots/dijkstra_path_{args.task_name}_grid{args.game_width}_seed{args.karel_seed}')
+        gridded_map.plot_map(path, start, goal, f'{BASE_DIR}/plots/dijkstra_path_{args.task_name}_grid{args.game_width}_seed{args.karel_seed}_wide{env_config["wide_maze"]}')
         nodes_expanded_dijkstra.append(expanded_diskstra)
         time_dijkstra.append(time_end - time_start)
         verified_path = verify_path(start, goal, path, gridded_map)
@@ -99,10 +99,11 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--task_name', default="stair_climber", type=str, help="[stair_climber, maze, ...]")
+    parser.add_argument('--task_name', default="maze", type=str, help="[stair_climber, maze, ...]")
     parser.add_argument('--game_width', default=12, type=int)
     parser.add_argument('--max_steps', default=100, type=int)
     parser.add_argument('--karel_seed', type=int, default=0)
+    parser.add_argument('--wide', action='store_true', help="Use wide maze")
 
     args = parser.parse_args()
     main(args)
