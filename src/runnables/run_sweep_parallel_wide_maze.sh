@@ -56,7 +56,7 @@ num_minibatch_index=$(( idx % num_num_minibatch ))
 
 
 # Extract the actual values
-NMB="${seeds[${num_minibatch_index}]}"
+NMB="${num_minibatches[${num_minibatch_index}]}"
 LR="${learning_rates[${lr_index}]}"
 CLIP="${clip_coefs[${clip_index}]}"
 ENT="${ent_coefs[${ent_index}]}"
@@ -84,5 +84,5 @@ python ~/scratch/Sparse-Policies/src/scripts/train_ppo.py \
   --l1_lambda "${L1}" \
   --ent_coef "${ENT}" \
   --clip_coef "${CLIP}" \
-  --exp_name "maze_wide_sweep_LR${LR}_CLIP${CLIP}_ENT${ENT}_L1${L1}_H${H}_NumMinibatch${NMB}" \
+  --exp_name "maze_wide_sweep_SD01234_LR${LR}_CLIP${CLIP}_ENT${ENT}_L1${L1}_H${H}_NumMinibatch${NMB}" \
   --multiprocessing
