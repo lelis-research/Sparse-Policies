@@ -123,6 +123,8 @@ class Args:
     """If toggled, the initial state of the environment will be between 10 different random configurations"""
     all_initial_confs: bool = False
     """If toggled, the environment will be choosing all possible initial configurations for training"""
+    wide_maze: bool = False
+    """If toggled, the maze will be wider"""
 
 
     reward_diff: bool = False

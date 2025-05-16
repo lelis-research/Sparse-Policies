@@ -90,14 +90,12 @@ class MazeSparse(Maze):
     def get_reward(self, env: KarelEnvironment):
         terminated = False
         reward = 0.
-        # reward = -1.0
 
         karel_pos = env.get_hero_pos()
         
         if karel_pos[0] == self.marker_position[0] and karel_pos[1] == self.marker_position[1]:
             terminated = True
             reward = 1.
-            # reward = 0.
             print("** Agent reached the goal!!!!")
         
         return terminated, reward
@@ -223,6 +221,174 @@ class MazeWide(Maze):
         
         return terminated, reward
 
+class MazeWideSparse(MazeWide):
+
+    def get_reward(self, env: KarelEnvironment):
+        terminated = False
+        reward = 0.
+
+        karel_pos = env.get_hero_pos()
+        
+        if karel_pos[0] == self.marker_position[0] and karel_pos[1] == self.marker_position[1]:
+            terminated = True
+            reward = 1.0
+            print("** Agent reached the goal!!!!")
+        
+        return terminated, reward
+    
+
+class MazeWideSparseAllInit(BaseTask):
+    """
+    Like MazeWide, but generates `num_mazes` different wide mazes
+    and presents each (maze + marker) configuration in turn with a sparse reward.
+    """
+    def __init__(self, env_args, seed=None, num_mazes=5):
+        # initialize BaseTask (via MazeWide) to set up rng and env_args
+        print(f"** MazeWideSparse: generating {num_mazes} mazes")
+        super().__init__(env_args, seed=seed)
+        self.done = False
+        self.previous_distance = None
+        self.num_mazes = num_mazes
+        self.seed = 0 if seed is None else seed
+        
+        # pre-generate all wide-maze + marker configs
+        self._initial_confs = self._generate_all_confs(env_args)
+
+    def _generate_all_confs(self, env_args):
+        """
+        Carve `num_mazes` unique wide mazes and for each one,
+        generate a separate state array for every possible marker location.
+        Returns a list of boolean state arrays.
+        """
+        reference_env = KarelEnvironment(**env_args)
+        H, W = reference_env.state_shape[1], reference_env.state_shape[2]
+
+        # wide-maze carving parameters from MazeWide
+        path_width = 2
+        floor_half = path_width // 2
+        ceil_half = path_width - floor_half - 1
+        offsets = range(-floor_half, ceil_half + 1)
+
+        unique_layouts = set()
+        all_confs = []
+        local_seed = self.seed
+        count = 0
+        while count < self.num_mazes:
+            # carve one wide maze
+            local_rng = np.random.RandomState(local_seed)
+            local_seed += 1
+
+            # base state: walls everywhere on plane 4
+            state = np.zeros(reference_env.state_shape, dtype=bool)
+            state[4, :, :] = True
+
+            # carve out the start cell thickly
+            init_r, init_c = H - 2, 1
+            state[1, init_r, init_c] = True
+            for dr in offsets:
+                for dc in offsets:
+                    rr, cc = init_r + dr, init_c + dc
+                    if 0 <= rr < H and 0 <= cc < W:
+                        state[4, rr, cc] = False
+
+            # DFS carve corridors
+            visited = np.zeros((H, W), dtype=bool)
+            visited[init_r, init_c] = True
+            stack = [[init_r, init_c]]
+            while stack:
+                cur_r, cur_c = stack.pop()
+                # gather neighbors
+                nbrs = []
+                if cur_r - 2 > 0:
+                    nbrs.append([cur_r - 2, cur_c])
+                if cur_r + 2 < H - 1:
+                    nbrs.append([cur_r + 2, cur_c])
+                if cur_c - 2 > 0:
+                    nbrs.append([cur_r, cur_c - 2])
+                if cur_c + 2 < W - 1:
+                    nbrs.append([cur_r, cur_c + 2])
+                local_rng.shuffle(nbrs)
+
+                for nbr_r, nbr_c in nbrs:
+                    if visited[nbr_r, nbr_c]:
+                        continue
+                    visited[nbr_r, nbr_c] = True
+
+                    # carve a thick corridor
+                    if cur_r == nbr_r:
+                        # horizontal
+                        c0, c1 = sorted([cur_c, nbr_c])
+                        for dr in offsets:
+                            rr = cur_r + dr
+                            if not (0 <= rr < H):
+                                continue
+                            for cc in range(c0, c1 + 1):
+                                state[4, rr, cc] = False
+                    else:
+                        # vertical
+                        r0, r1 = sorted([cur_r, nbr_r])
+                        for dc in offsets:
+                            cc = cur_c + dc
+                            if not (0 <= cc < W):
+                                continue
+                            for rr in range(r0, r1 + 1):
+                                state[4, rr, cc] = False
+
+                    stack.append([nbr_r, nbr_c])
+
+            # re-enforce the outer border as walls
+            state[4, 0, :] = True
+            state[4, H - 1, :] = True
+            state[4, :, 0] = True
+            state[4, :, W - 1] = True
+
+            # skip duplicate layouts
+            layout_key = state[4].tobytes()
+            if layout_key in unique_layouts:
+                continue
+            unique_layouts.add(layout_key)
+            count += 1
+
+            # for each open cell, create a marker configuration
+            for y in range(1, H - 1):
+                for x in range(1, W - 1):
+                    if not state[4, y, x] and not (y == init_r and x == init_c):
+                        conf = state.copy()
+                        conf[5, :, :] = True
+                        conf[6, y, x] = True
+                        conf[5, y, x] = False
+                        all_confs.append(conf)
+
+        return all_confs
+
+    def generate_initial_environment(self, env_args):
+        self.done = False
+        self.previous_distance = None
+
+        return KarelEnvironment(**env_args)
+
+    def reset_environment(self):
+        super().reset_environment()
+        self.done = False
+        self.previous_distance = None
+
+    def get_reward(self, env: KarelEnvironment):
+        terminated = False
+        reward = 0.
+
+        karel_pos = env.get_hero_pos()
+        marker_pos = np.argwhere(env.state[6, :, :])
+        
+        if len(marker_pos) > 0:
+            marker_pos = marker_pos[0]  # (y, x)
+
+        if karel_pos[0] == marker_pos[0] and karel_pos[1] == marker_pos[1]:
+            terminated = True
+            reward = 1.0
+            print("** Agent reached the goal!!!!")
+        
+        return terminated, reward
+    
 
 class MazeAllInit(BaseTask):
     """
@@ -342,8 +508,6 @@ class MazeAllInit(BaseTask):
                 conf_state[5, my, mx] = False
                 all_confs.append(conf_state)
 
-        # print(f"** MazeAllInit: generated {num_mazes} carved mazes and"
-        #       f" {len(all_confs)} total (maze+marker) configs.")
         return all_confs
 
     def generate_initial_environment(self, env_args):
@@ -399,7 +563,6 @@ class MazeSparseAllInit(MazeAllInit):
     """
     def get_reward(self, env: KarelEnvironment):
         terminated = False
-        # reward = -1.0
         reward = 0.0
 
         karel_pos = env.get_hero_pos()
@@ -409,7 +572,6 @@ class MazeSparseAllInit(MazeAllInit):
 
         if karel_pos[0] == marker_pos[0] and karel_pos[1] == marker_pos[1]:
             terminated = True
-            # reward = 0.0
             reward = 1.0
             # print("** Agent reached the goal!!!!")
 

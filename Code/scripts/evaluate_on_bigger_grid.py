@@ -24,7 +24,8 @@ def evaluate_model_on_large_grid(model_path, args):
         'sparse_reward': args.sparse_reward,
         'crash_penalty': args.crash_penalty,
         'seed': args.karel_seed,
-        'initial_state': None
+        'initial_state': None,
+        'wide_maze': args.wide,
     }
 
     def make_env():
@@ -123,6 +124,9 @@ def evaluate_model_on_large_grid(model_path, args):
         print(f"Total Reward = {episode_reward}")
         total_rewards.append(episode_reward)
 
+        if args.wide:
+            args.task_name = f"{args.task_name}_wide"
+
         # Save the video for this episode
         if args.record_video:
             video_path = os.path.join(video_dir, f"trajectory_{args.task_name}_W{args.game_width_eval}_{args.time}_ks{args.karel_seed}.mp4")
@@ -161,10 +165,13 @@ if __name__ == "__main__":
     parser.add_argument('--num_episode', default=1, type=int)
     parser.add_argument('--record_video', action='store_true')
 
+    parser.add_argument('--wide', action='store_true', help="Use wide maze")
+
     args = parser.parse_args()
     print(vars(args))
 
     # model_file_name = f'binary/PPO-Karel_{args.task_name}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{args.model_seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}_vlr{args.value_learning_rate}_{args.ppo_type}_MODEL_{args.time}.pt'
-    model_file_name = f'binary/PPO-Karel_{args.task_name}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{args.model_seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}-l1{args.l1_lambda}-{args.ppo_type}-MODEL-{args.time}.pt'
+    # model_file_name = f'binary/PPO-Karel_{args.task_name}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{args.model_seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}-l1{args.l1_lambda}-{args.ppo_type}-MODEL-{args.time}.pt'
+    model_file_name = f'binary/test_maze_wide/PPO-Karel_{args.task_name}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{args.model_seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}-l1{args.l1_lambda}-{args.ppo_type}-MODEL-{args.time}.pt'
 
     evaluate_model_on_large_grid(model_file_name, args)

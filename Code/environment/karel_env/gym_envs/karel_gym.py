@@ -11,7 +11,7 @@ import random
 
 from environment.karel_env.karel.environment import KarelEnvironment, basic_actions
 from environment.karel_env.karel_tasks.stair_climber import StairClimber, StairClimberSparse, StairClimberSparseAllInit, StairClimberAllInit
-from environment.karel_env.karel_tasks.maze import Maze, MazeSparse, MazeSparseAllInit, MazeAllInit, MazeWide
+from environment.karel_env.karel_tasks.maze import Maze, MazeSparse, MazeSparseAllInit, MazeAllInit, MazeWide, MazeWideSparseAllInit, MazeWideSparse
 from environment.karel_env.karel_tasks.four_corners import FourCorners, FourCornersSparse
 from environment.karel_env.karel_tasks.top_off import TopOff, TopOffSparse, TopOffAllInit, TopOffSparseAllInit
 from environment.karel_env.karel_tasks.harvester import Harvester, HarvesterSparse
@@ -46,7 +46,6 @@ class KarelGymEnv(gym.Env):
         if env_config is not None:
             default_config.update(env_config)
         self.config = default_config
-        # print("--- Config:", self.config)
 
         self._handle_initial_state()
 
@@ -122,12 +121,19 @@ class KarelGymEnv(gym.Env):
             task = task_specific.generate_initial_environment(env_args)
 
         elif self.task_name == 'maze':
-            if self.all_initial_confs:
+            if self.all_initial_confs and not self.config.get('wide_maze', False):
                 task_class = MazeSparseAllInit if self.config['sparse_reward'] else MazeAllInit
                 task_specific = task_class(env_args=env_args)
                 self.all_initial_confs_envs = task_specific.all_initial_confs
+            elif self.all_initial_confs and self.config.get('wide_maze', False) and self.config['sparse_reward']:
+                task_specific = MazeWideSparseAllInit(
+                    env_args=env_args,
+                    seed=self.config.get('seed'),
+                )
+                self.all_initial_confs_envs = task_specific._initial_confs
             elif self.config.get('wide_maze', False):
-                task_specific = MazeWide(
+                task_class = MazeWideSparse if self.config['sparse_reward'] else MazeWide
+                task_specific = task_class(
                     env_args=env_args,
                     seed=self.config.get('seed'),
                 )
@@ -444,8 +450,8 @@ def make_karel_env(env_config: Optional[dict] = None) -> Callable:
 if __name__ == "__main__":
 
     num_features = 16
-    env_height = 8
-    env_width = 8
+    env_height = 12
+    env_width = 12
 
     # A custom initial state for the base task
     initial_state = np.zeros((num_features, env_height, env_width), dtype=bool)
@@ -453,15 +459,16 @@ if __name__ == "__main__":
     initial_state[4, 1, 2] = True  # Wall at (1, 2)
 
     env_config = {
-        'task_name': 'harvester',
+        'task_name': 'maze',
         'env_height': env_height,
         'env_width': env_width,
         'max_steps': 1,
-        'sparse_reward': False,
+        'sparse_reward': True,
         'seed': 50,
         'initial_state': None,
         'multi_initial_confs': False, 
-        'all_initial_confs': False
+        'all_initial_confs': True,
+        'wide_maze': True,
     }
 
     env = make_karel_env(env_config=env_config)()
@@ -470,6 +477,7 @@ if __name__ == "__main__":
     # print("len of all initial confs:", len(env.all_initial_confs_envs))
     # for init_conf in env.all_initial_confs_envs:
     #     env.task.state2image(init_conf, root_dir=project_root + '/environment/').show()
+    # exit()
 
     init_obs = env.reset()
     env.render()
@@ -478,9 +486,6 @@ if __name__ == "__main__":
     action_names = env.task.actions_list
     action_mapping = {name: idx for idx, name in enumerate(action_names)}
     action_sequence = ['move', 'turnLeft', 'move', 'move', 'turnRight', 'move', 'turnLeft', 'move', 'turnRight', 'move'] # for stairclimber 6*6
-    # action_sequence = ['move', 'putMarker', 'turnLeft', 'move', 'move', 'move', 'move', 'move', 'putMarker', 'turnLeft', 'move', 'move', 'move', 'move', 'move', 'putMarker', 'turnLeft', 'move', 'move', 'move', 'move', 'move', 'putMarker', 'turnLeft', 'move', 'move', 'move', 'move', 'move'] # for stairclimber 6*6
-    # action_sequence = ['pickMarker', 'move', 'pickMarker', 'turnLeft', 'move', 'pickMarker']
-    # action_sequence = ['move', 'move', 'move', 'putMarker', 'move', 'move', 'putMarker']
     
     actions = [action_mapping[name] for name in action_sequence]
 
