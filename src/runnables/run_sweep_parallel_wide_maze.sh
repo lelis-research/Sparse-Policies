@@ -2,9 +2,10 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=4G
 #SBATCH --time=01-00:00
-#SBATCH --account=rrg-lelis
+#SBATCH --account=aip-lelis
 #SBATCH --mail-user=arajabpo@ualberta.ca
 #SBATCH --mail-type=ALL
+#SBATCH --output=job_logs/test_sweep_maze/%N-%j.out  # %N for node name, %j for jobID
 #SBATCH --array=0-647
 
 
@@ -64,7 +65,7 @@ H="${hiddens[${h_index}]}"
 
 
 # Run the training script
-python ~/scratch/Sparse-Policies/Code/scripts/train_ppo.py \
+python ~/scratch/Sparse-Policies/src/scripts/train_ppo.py \
   --env_id Karel_maze \
   --wide_maze \
   --sparse_reward \

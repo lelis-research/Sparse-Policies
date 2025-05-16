@@ -15,7 +15,7 @@ module load flexiblas
 export FLEXIBLAS=imkl
 
 
-python  ~/Sparse-Policies/Code/scripts/run_sweep.py \
+python  ~/Sparse-Policies/src/scripts/run_sweep.py \
 --env_id Karel_stair_climber \
 --seed $SLURM_ARRAY_TASK_ID \
 --game_width 12 \

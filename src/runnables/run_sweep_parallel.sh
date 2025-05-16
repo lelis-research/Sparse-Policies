@@ -64,7 +64,7 @@ H="${hiddens[${h_index}]}"
 
 
 # Run the training script
-python ~/scratch/Sparse-Policies/Code/scripts/train_ppo.py \
+python ~/scratch/Sparse-Policies/src/scripts/train_ppo.py \
   --env_id Quad \
   --seed "${SD}" \
   --max_steps 1000 \

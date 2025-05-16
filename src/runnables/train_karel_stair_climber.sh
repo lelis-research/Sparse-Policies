@@ -14,7 +14,7 @@ source ~/Sparse-Policies/venv/bin/activate
 module load flexiblas
 export FLEXIBLAS=imkl
 
-python  ~/Sparse-Policies/Code/scripts/train_ppo.py \
+python  ~/Sparse-Policies/src/scripts/train_ppo.py \
 --env_id Karel_stair_climber \
 --seed $SLURM_ARRAY_TASK_ID \
 --game_width 12 \
