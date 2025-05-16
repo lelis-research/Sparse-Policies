@@ -51,6 +51,7 @@ def evaluate(args):
         name_prefix=args.video_prefix,
         episode_trigger=lambda episode: episode == 0
     )
+    env = gym.wrappers.ClipAction(env)
     envs = gym.vector.SyncVectorEnv([lambda: env])
 
     obs_shape = envs.single_observation_space.shape

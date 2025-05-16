@@ -85,8 +85,8 @@ class QuadEnv(gym.Env):
         
         truncated = self.sim.done(self.state)
 
-        if np.sum(self.sim.check_goal(self.state)) < 0.01:
-            print("... Goal Reached! ...")
+        # if np.sum(self.sim.check_goal(self.state)) < 0.01:
+        #     print("... Goal Reached! ...")
         
         reward = 1.0 
         self.total_rewrad += reward

@@ -17,21 +17,22 @@ from tqdm import tqdm
 def evaluate_model(model_path, ppo_type, hidden_size, eval_seed, max_steps, args, env_type, test_mode):
     
     torch.manual_seed(eval_seed)
+    np.random.seed(eval_seed)
     
     use_po = (env_type == 'QuadPO')
     def make_env():
-        return QuadEnv(n_steps=max_steps, 
+        env =  QuadEnv(n_steps=max_steps, 
                        use_po=use_po, 
                        test_mode=test_mode, 
                        render_mode=None)
+        
+        # For Quad 2d (original)
+        env = gym.wrappers.ClipAction(env)
+        return env
     
     envs = gym.vector.SyncVectorEnv([make_env])
 
-    # For Quad 2d (original)
-    env = gym.wrappers.ClipAction(env)
-    env = gym.wrappers.NormalizeReward(env)
-    env = gym.wrappers.TransformReward(env, lambda reward: np.clip(reward, -10, 10))
-    
+
     device = 'cpu' # torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
     if ppo_type == "original":
@@ -101,16 +102,12 @@ def evaluate_model(model_path, ppo_type, hidden_size, eval_seed, max_steps, args
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--binaries_path', type=str, required=False, default="test_quad/binary",
-                       help="Directory containing trained quad models")
-    parser.add_argument('--eval_seeds', nargs='+', type=int, default=range(0, 100),
-                       help="Seeds for evaluation runs")
-    parser.add_argument('--max_steps', type=int, default=5000,
-                       help="Max steps per evaluation episode")
-    parser.add_argument('--test_mode', action='store_true',
-                       help="Use test mode for the environment")
-    parser.add_argument('--feature_extractor', action='store_true',
-                       help="The agent has feature extractor or not")
+    parser.add_argument('--binaries_path', type=str, required=False, default="test_quad/binary", help="Directory containing trained quad models")
+    parser.add_argument('--eval_seeds', nargs='+', type=int, default=range(0, 100), help="Seeds for evaluation runs")
+    parser.add_argument('--max_steps', type=int, default=5000, help="Max steps per evaluation episode")
+    parser.add_argument('--test_mode', action='store_true', help="Use test mode for the environment")
+    parser.add_argument('--feature_extractor', action='store_true', help="The agent has feature extractor or not")
+    
     args = parser.parse_args()
 
     base_root = os.path.abspath(os.path.join(project_root, ".."))
@@ -187,18 +184,28 @@ if __name__ == "__main__":
             seed_results[eval_seed] = (reward, goal_reached)
 
         groups[group_key]['seeds'][params['model_seed']] = seed_results
-        
-        # calculate goal reached percentage
-        goal_reached_count = sum(1 for _, goal_reached in seed_results.values() if goal_reached)
-        groups[group_key]['goal_reached_percent'] = (goal_reached_count / len(args.eval_seeds)) * 100
 
     sorted_groups = []
     for group_key, group_data in groups.items():
         all_rewards = []
-        for model_file, seeds in group_data['seeds'].items():
-            # all_rewards.extend(seeds.values())
-            all_rewards.extend([reward for reward, _ in seeds.values()])
+        total_runs = 0
+        total_goals_reached = 0
+
+        # for model_file, seeds in group_data['seeds'].items():
+        #     # all_rewards.extend(seeds.values())
+        #     all_rewards.extend([reward for reward, _ in seeds.values()])
+        # group_data['avg_reward'] = np.mean(all_rewards) if all_rewards else 0
+        # sorted_groups.append((group_data['avg_reward'], group_data))
+
+        for model_seed, seeds in group_data['seeds'].items():
+            for eval_seed, (reward, goal_reached) in seeds.items():
+                all_rewards.append(reward)
+                total_runs += 1
+                if goal_reached:
+                    total_goals_reached += 1
+        
         group_data['avg_reward'] = np.mean(all_rewards) if all_rewards else 0
+        group_data['goal_reached_percent'] = (total_goals_reached / total_runs * 100) if total_runs > 0 else 0
         sorted_groups.append((group_data['avg_reward'], group_data))
 
     sorted_groups.sort(reverse=True, key=lambda x: x[0])
@@ -212,6 +219,9 @@ if __name__ == "__main__":
         f.write(f"=== {env_type} Evaluation Results ===\n")
         f.write(f"Evaluation seeds: {args.eval_seeds}\n")
         f.write(f"Test mode: {args.test_mode}\n\n")
+        # write the total number of hyperparameter groups that all of their models reached goal
+        total_goal_reached = sum(1 for _, group in sorted_groups if group['goal_reached_percent'] == 100)
+        f.write(f"Total hyperparameter groups with all models reaching goal: {total_goal_reached}\n\n")
 
         for avg_reward, group in sorted_groups:
             params = group['params']
@@ -219,7 +229,7 @@ if __name__ == "__main__":
             f.write(f"Env: {params['env_type']}  ")
             f.write(f"H: {params['hidden_size']}  ")
             f.write(f"LR: {params['lr']:.0e}  ")
-            f.write(f"Ent: {params['ent_coef']:.2f}  ")
+            f.write(f"Ent: {params['ent_coef']:.3f}  ")
             f.write(f"Clip: {params['clip_coef']:.2f}  ")
             f.write(f"L1: {params['l1_lambda']}\n")
             f.write(f"Avg Reward (over {len(group['seeds'])*len(args.eval_seeds)} runs): {avg_reward:.2f}\n")
@@ -232,7 +242,9 @@ if __name__ == "__main__":
                 for es in args.eval_seeds:
                     reward_val, goal_reached = seeds[es]
                     if goal_reached:
-                        rewards.append("Goal")
+                        rewards.append("(Goal:")
+                        rewards.append(f"{reward_val:.1f})")
+
                     else:
                         rewards.append(f"{reward_val:.1f}")
 
