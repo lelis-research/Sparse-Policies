@@ -14,17 +14,17 @@ import gymnasium as gym
 import multiprocessing as mp
 from args import Args
 from utils import *
-from typing import Callable
 from torch.utils.tensorboard import SummaryWriter
+import json
+from copy import deepcopy
+
 from environment.combogrid_gym import make_env, make_env_combo_four_goals
 from environment.karel_env.gym_envs.karel_gym import make_karel_env
 from environment.cartpole.cartpole_gym import make_cartpole_env
 from environment.car.car_gym import make_car_env
 from environment.quad.quad_gym import make_quad_env
-# from environment.minigrid import make_env_simple_crossing, make_env_four_rooms
 from training.train_ppo_agent import train_ppo
 from training.train_ppo_agent_positive import train_ppo_positive
-from copy import deepcopy
 
 
 @timing_decorator
@@ -178,7 +178,8 @@ def main(args):
    
     elif "Karel" in args.env_id:
         # model_file_name = f'binary/PPO-{args.env_id}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}_vlr{args.value_learning_rate}_{args.ppo_type}_MODEL_{run_time}.pt'
-        model_file_name = f'binary/30seeds_stair/PPO-{args.env_id}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}-l1{args.l1_lambda}-{args.ppo_type}-MODEL-{run_time}.pt'
+        # model_file_name = f'binary/PPO-{args.env_id}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}-l1{args.l1_lambda}-{args.ppo_type}-MODEL-{run_time}.pt'
+        model_file_name = f'binary/PPO-{args.env_id}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}-l1{args.l1_lambda}-NMB{args.num_minibatches}-{args.ppo_type}-MODEL-{run_time}.pt'
         problem = args.env_id[len("Karel_"):]
 
         env_config = {
@@ -191,8 +192,6 @@ def main(args):
             'seed': args.karel_seed,
             'initial_state': None,
 
-            # 'reward_diff': args.reward_diff,
-            # 'final_reward_scale': args.reward_scale,
             'multi_initial_confs': args.multi_initial_confs,
             'all_initial_confs': args.all_initial_confs,
 
@@ -237,8 +236,8 @@ def main(args):
         raise NotImplementedError
     
         
-    train_ppo(envs, args, model_file_name, device, writer, logger=logger, seed=seed)
-
+    auc = train_ppo(envs, args, model_file_name, device, writer, logger=logger, seed=seed)
+    return auc
 
 def run_training_with_seed(args_dict):
     """Process worker function that runs training with a specific seed"""
@@ -247,8 +246,8 @@ def run_training_with_seed(args_dict):
         setattr(args, key, value)
     
     print(f"\n\nArgs: {args}")
-    main(args)
-    return args.seed
+    auc = main(args)
+    return {'seed': args.seed, 'auc': auc}
 
 
 if __name__ == "__main__":
@@ -272,15 +271,30 @@ if __name__ == "__main__":
         pool = mp.Pool(processes=len(seeds))
         try:
             results = pool.map(run_training_with_seed, args_list)
-            # with mp.Pool(processes=len(seeds)) as pool:
-            #     results = pool.map(run_training_with_seed, args_list)
-        except KeyboardInterrupt:
-            print("\nKeyboard interrupt detected. Terminating all processes...")
-            pool.terminate()
-        finally:
+            
             print(f"\nAll training processes completed")
             pool.close()
             pool.join()
+
+            # compute mean AUC over seeds
+            seed_aucs = [r['auc'] for r in results]
+            mean_auc  = float(np.mean(seed_aucs))
+
+            # save a summary file for this hyperparam set
+            summary = {
+            'exp_name': args.exp_name,
+            'hyperparams': vars(args),
+            'seed_aucs': seed_aucs,
+            'mean_auc': mean_auc
+            }
+            with open(f"sweep_summary_{args.exp_name}.json", "w") as f:
+                json.dump(summary, f, indent=2)
+
+            print(f"[SWEEP DONE] {args.exp_name} → mean AUC = {mean_auc:.2f}")
+        except KeyboardInterrupt:
+            print("\nKeyboard interrupt detected. Terminating all processes...")
+            pool.terminate()
+
         exit()
 
     if "All" in args.env_id:

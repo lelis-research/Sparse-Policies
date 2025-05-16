@@ -20,6 +20,11 @@ def _l1_norm(model, lambda_l1):
 
 
 def train_ppo(envs: gym.vector.SyncVectorEnv, args, model_file_name, device, writer=None, logger=None, seed=None):
+
+    # For calculating AUC
+    episode_returns = []
+    episode_steps   = []
+
     hidden_size = args.hidden_size
     l1_lambda = args.l1_lambda
     if not seed:
@@ -129,6 +134,10 @@ def train_ppo(envs: gym.vector.SyncVectorEnv, args, model_file_name, device, wri
                         logger.info(f"global_step={global_step}, episodic_return={info['episode']['r']}")
                         writer.add_scalar("charts/episodic_return", info["episode"]["r"], global_step)
                         writer.add_scalar("charts/episodic_length", info["episode"]["l"], global_step)
+
+                        # Log for AUC
+                        episode_returns.append(info["episode"]["r"])
+                        episode_steps.append(global_step)
 
         
         # bootstrap value if not done
@@ -336,10 +345,25 @@ def train_ppo(envs: gym.vector.SyncVectorEnv, args, model_file_name, device, wri
     envs.close()
     writer.close()
 
-    logger.info(f"Experiment: {args.exp_name}")
+    x = np.array(episode_steps).ravel()
+    y = np.array(episode_returns).ravel()
+
+    # make sure there are least two points
+    if len(x) < 2 or len(y) < 2:
+        raise ValueError("Need at least two recorded points for AUC")
+    
+    # align to the shorter length just in case
+    n = min(len(x), len(y))
+    x, y = x[:n], y[:n]
+    auc = np.trapz(y=y, x=x)
+    print(f"[AUC] seed={seed}, exp_name={args.exp_name},  AUC={auc:.2f}")
+
+    logger.info(f"Experiment: {args.exp_name}  (AUC={auc:.2f})")
 
     if "test" not in args.exp_name:
         torch.save(agent.state_dict(), sweep_directory) if "sweep" in args.exp_name else torch.save(agent.state_dict(), model_file_name)
         logger.info(f"Saved on {model_file_name}")
     else:
         print("Test mode, not saving model")
+
+    return auc
