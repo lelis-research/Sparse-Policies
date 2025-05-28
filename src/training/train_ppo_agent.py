@@ -10,13 +10,13 @@ from utils import *
 import re
 
 
-def _l1_norm(model, lambda_l1):
+def _l1_norm(model):
     l1_loss = 0
     for name, param in model.named_parameters():
         # Only apply L1 regularization to input weights of GRU (weight_ih_l0)
         if 'weight_ih_l0' in name and "bias" not in name:
             l1_loss += torch.sum(torch.abs(param))
-    return lambda_l1 * l1_loss
+    return l1_loss
 
 
 def train_ppo(envs: gym.vector.SyncVectorEnv, args, model_file_name, device, writer=None, logger=None, seed=None):
@@ -30,7 +30,6 @@ def train_ppo(envs: gym.vector.SyncVectorEnv, args, model_file_name, device, wri
     if not seed:
         seed = args.seed
 
-    # feature_extractor = False if "noFE" in args.exp_name else True
     feature_extractor = bool(re.search(r'FE\d+', args.exp_name))
 
     if args.ppo_type == "original":
@@ -44,8 +43,7 @@ def train_ppo(envs: gym.vector.SyncVectorEnv, args, model_file_name, device, wri
         agent = LstmAgent(envs, h_size=hidden_size).to(device)
     elif args.ppo_type == "gru":
         from agents import GruAgent
-        # TODO: feature exctractor?
-        agent = GruAgent(envs, h_size=hidden_size, feature_extractor=False).to(device)
+        agent = GruAgent(envs, h_size=hidden_size, feature_extractor=feature_extractor).to(device)
     else:
         raise NotImplementedError
 
@@ -237,31 +235,27 @@ def train_ppo(envs: gym.vector.SyncVectorEnv, args, model_file_name, device, wri
                     break
         
         else:   # LSTM or GRU
-            assert args.num_envs % args.num_minibatches == 0
-            envsperbatch = args.num_envs // args.num_minibatches
-            envinds = np.arange(args.num_envs)
-            flatinds = np.arange(args.batch_size).reshape(args.num_steps, args.num_envs)
+            b_inds = np.arange(args.batch_size)
             clipfracs = []
             for epoch in range(args.update_epochs):
-                np.random.shuffle(envinds)
-                for start in range(0, args.num_envs, envsperbatch):
-                    end = start + envsperbatch
-                    mbenvinds = envinds[start:end]
-                    mb_inds = flatinds[:, mbenvinds].ravel()  # be really careful about the index
+                np.random.shuffle(b_inds)
+                for start in range(0, args.batch_size, args.minibatch_size):
+                    end = start + args.minibatch_size
+                    mb_inds = b_inds[start:end]
 
                     if args.ppo_type == 'gru':
                         _, newlogprob, entropy, newvalue, _ = agent.get_action_and_value(
                             b_obs[mb_inds],
-                            initial_rnn_state[:, mbenvinds],
+                            initial_rnn_state[:, mb_inds],
                             b_dones[mb_inds],
-                            b_actions.long()[mb_inds],
+                            b_actions[mb_inds],
                         )
                     elif args.ppo_type == 'lstm':
                         _, newlogprob, entropy, newvalue, _ = agent.get_action_and_value(
                             b_obs[mb_inds],
-                            (initial_rnn_state[0][:, mbenvinds], initial_rnn_state[1][:, mbenvinds]),
+                            (initial_rnn_state[0][:, mb_inds], initial_rnn_state[1][:, mb_inds]),
                             b_dones[mb_inds],
-                            b_actions.long()[mb_inds],
+                            b_actions[mb_inds],
                         )
                     
                     logratio = newlogprob - b_logprobs[mb_inds]
@@ -279,14 +273,14 @@ def train_ppo(envs: gym.vector.SyncVectorEnv, args, model_file_name, device, wri
 
                     #L1 loss
                     if args.ppo_type == 'gru':
-                        l1_loss = _l1_norm(model=agent.gru, lambda_l1=args.l1_lambda)
+                        l1_loss = _l1_norm(model=agent.gru)
                     elif args.ppo_type == 'lstm':
-                        l1_loss = _l1_norm(model=agent.lstm, lambda_l1=args.l1_lambda)
+                        l1_loss = _l1_norm(model=agent.lstm)
 
                     # Policy loss
                     pg_loss1 = -mb_advantages * ratio
                     pg_loss2 = -mb_advantages * torch.clamp(ratio, 1 - args.clip_coef, 1 + args.clip_coef)
-                    pg_loss = torch.max(pg_loss1, pg_loss2).mean() + l1_loss
+                    pg_loss = torch.max(pg_loss1, pg_loss2).mean() + l1_loss * l1_lambda
 
                     # Value loss
                     newvalue = newvalue.view(-1)
