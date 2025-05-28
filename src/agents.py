@@ -589,7 +589,6 @@ class STEQuantize(torch.autograd.Function):
         return grad_output 
 
 
-#TO DO: UPDATE LSTM STRUCTURE TO BE ABLE TO ENALBE/DISABLE FEATURE EXTRACTOR AND INPUT_TO_ACTOR
 class LstmAgent(nn.Module):
     def __init__(self, envs, h_size=64):
         super().__init__()
@@ -694,18 +693,10 @@ class GruAgent(nn.Module):
                 layer_init(nn.Linear(32, 32)),
             )
 
-            # Print feature extractor weights
-            # print("Feature Extractor Weights After Initialization:")
-            # for idx, layer in enumerate(self.network):
-            #     if isinstance(layer, nn.Linear):  # Only print Linear layers
-            #         print(f"Layer {idx}:")
-            #         print("Weight:\n", layer.weight.data)
-            #         print("Bias:\n", layer.bias.data if layer.bias is not None else "No bias")
-
             self.gru = nn.GRU(32, h_size, 1)
         else:
             self.network = IdentityLayer()
-            self.gru = nn.GRU(envs.single_observation_space.shape[0], h_size, 1)
+            self.gru = nn.GRU(envs.single_observation_space.shape[0], 64, 1)
 
         for name, param in self.gru.named_parameters():
             if "bias" in name:
@@ -731,77 +722,69 @@ class GruAgent(nn.Module):
             )
         else:
             self.actor = nn.Sequential(
-                weights_init_xavier(nn.Linear(h_size, 64)),
+                # weights_init_xavier(nn.Linear(h_size, 64)),
                 # sparse_init_layer(nn.Linear(h_size, 64), sparsity=0.5),
                 # layer_init(nn.Linear(h_size, 64)),
 
+                sparse_init_layer(nn.Linear(64, h_size)),
+
+
                 nn.Tanh(),
-                weights_init_xavier(nn.Linear(64, 64)),
+                # weights_init_xavier(nn.Linear(64, 64)),
                 # sparse_init_layer(nn.Linear(64, 64), sparsity=0.5),
                 # layer_init(nn.Linear(64, 64)),
+
+                sparse_init_layer(nn.Linear(h_size, h_size)),
+
                 nn.Tanh(),
-                weights_init_xavier(nn.Linear(64, envs.single_action_space.n)),
+                # weights_init_xavier(nn.Linear(64, envs.single_action_space.n)),
                 # sparse_init_layer(nn.Linear(64, envs.single_action_space.n), sparsity=0.5),
                 # layer_init(nn.Linear(64, envs.single_action_space.n)),
+
+                sparse_init_layer(nn.Linear(h_size, envs.single_action_space.n), std=0.001),
+
             )
 
-            # for idx, layer in enumerate(self.actor):
-            #     if isinstance(layer, nn.Linear):  # Only print Linear layers
-            #         print(f"Layer {idx}:")
-            #         print("Weight:\n", layer.weight.data)
-            #         print("Bias:\n", layer.bias.data if layer.bias is not None else "No bias")
-
             self.critic = nn.Sequential(
-                weights_init_xavier(nn.Linear(h_size , 64)),
+                # weights_init_xavier(nn.Linear(h_size , 64)),
                 # sparse_init_layer(nn.Linear(h_size , 64)),
                 # layer_init(nn.Linear(h_size , 64)),
+                layer_init(nn.Linear(64, 64)),
+
                 nn.Tanh(),
-                weights_init_xavier(nn.Linear(64, 64)),
+                # weights_init_xavier(nn.Linear(64, 64)),
                 # sparse_init_layer(nn.Linear(64, 64)),
-                # layer_init(nn.Linear(64, 64)),
+                layer_init(nn.Linear(64, 64)),
+
                 nn.Tanh(),
-                weights_init_xavier(nn.Linear(64, 1)),
+                # weights_init_xavier(nn.Linear(64, 1)),
                 # sparse_init_layer(nn.Linear(64, 1)),
-                # layer_init(nn.Linear(64, 1)),
+                layer_init(nn.Linear(64, 1), std=1.0),
+
             )
 
     def get_l1_norm(self):
         l1_norm = sum(p.abs().sum() for name, p in self.network.named_parameters() if "bias" not in name)
         return l1_norm
+    
+    def get_l1_norm_actor(self):
+        l1_norm = sum(p.abs().sum() for name, p in self.actor.named_parameters() if "bias" not in name)
+        return l1_norm
 
     def get_states(self, x, gru_state, done):
-        # print("------- x shape: ", x.shape)
-        # print("------- x : ", x)
-        # for idx, layer in enumerate(self.network):
-        #     if isinstance(layer, nn.Linear):
-        #         print(f"Layer {idx} Weights (before training):", layer.weight)
-        #         print(f"Layer {idx} Bias (before training):", layer.bias)
-
         hidden = self.network(x)
-        # print("------- hidden before reshape:", hidden)
 
         # LSTM logic
         batch_size = gru_state.shape[1]
-        # print('batch size: ', batch_size)
         hidden = hidden.reshape((-1, batch_size, self.gru.input_size))
         done = done.reshape((-1, batch_size))
         new_hidden = []
-        # print("--Before loop state \n hidden: ", hidden, "\n done: ", done)
         for h, d in zip(hidden, done):
-            # print('d: ', d)
             h, gru_state = self.gru(h.unsqueeze(0), (1.0 - d).view(1, -1, 1) * gru_state)
-            # quantized_hidden = STEQuantize.apply(h) # no need to quantize hidden state
             new_hidden += [h]
-            # new_state += [gru_state]
-        # print("--- before flatten - new hidden: ", new_hidden)
         new_hidden = torch.flatten(torch.cat(new_hidden), 0, 1)
-        # print("--- after flatten - new hidden: ", new_hidden)
-        # new_state = torch.flatten(torch.cat(new_state), 0, 1)
-        # return new_hidden, STEQuantize.apply(gru_state)
-        # print(len(new_hidden), len(new_state), new_hidden[0].shape, new_state[0].shape)
-        # print(new_state)
+
         return new_hidden, gru_state
-        # return new_hidden, new_state
 
 
     def get_value(self, x, gru_state, done):
@@ -818,17 +801,11 @@ class GruAgent(nn.Module):
             hidden, gru_state = self.get_states(x, gru_state, done)
             concatenated = torch.cat((hidden, x), dim=1)
         else: 
-            # print("Inside gru \n x: ", x)
-            # print("gru_state: ", gru_state)
-            # print("done: ", done)
             hidden, gru_state = self.get_states(x, gru_state, done)
             concatenated = hidden
-            # print("-------- done: ", done)
-            # print("-------- concatenated shape: ", concatenated.shape)
-            # print("-------- concatenated: ", concatenated)
+
         logits = self.actor(concatenated)
         probs = Categorical(logits=logits)
-        # print("action probs: ", probs.probs[:7])
         if action is None:
             if self.greedy:
                 action = torch.tensor([torch.argmax(logits[i]).item() for i in range(len(logits))])
