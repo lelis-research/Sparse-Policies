@@ -9,9 +9,25 @@ import argparse
 import gymnasium as gym
 import re
 from collections import defaultdict
+from tqdm import tqdm
+import multiprocessing as mp
+
 from environment.cartpole.cartpole_gym import LastActionObservationWrapper, EasyCartPoleEnv
 from agents import PPOAgent, GruAgent
-from tqdm import tqdm
+
+
+def eval_for_seed(args_tuple):
+    model_path, args, eval_seed = args_tuple
+    reward = evaluate_model(
+        model_path=model_path,
+        ppo_type=args.ppo_type,
+        hidden_size=args.hidden_size,
+        eval_seed=eval_seed,
+        max_steps=args.max_steps,
+        args=args,
+        easy_mode=args.easy_mode
+    )
+    return eval_seed, float(reward)
 
 
 def evaluate_model(model_path, ppo_type, hidden_size, eval_seed, max_steps, args, easy_mode=False):
@@ -108,27 +124,25 @@ def evaluate_model(model_path, ppo_type, hidden_size, eval_seed, max_steps, args
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--binaries_path', type=str, required=True,
-                       help="Directory containing trained models")
-    parser.add_argument('--eval_seeds', nargs='+', type=int, required=True,
-                       help="Seeds for evaluation runs")
-    parser.add_argument('--max_steps', type=int, default=0,
-                       help="Max steps per evaluation episode")
-    parser.add_argument('--test_mode', action='store_true',
-                        help="Determing the test/train distribution for evaluation")
+    parser.add_argument('--binaries_path', type=str, required=True, help="Directory containing trained models")
+    parser.add_argument('--eval_seeds', nargs='+', type=int, default=list(range(0,100)), help="For testing on multiple seeds")
+    parser.add_argument('--max_steps', type=int, default=0, help="Max steps per evaluation episode")
+    parser.add_argument('--test_mode', action='store_true', help="Determing the test/train distribution for evaluation")
     parser.add_argument('--feature_extractor', action='store_true')
+    parser.add_argument('--multiprocess', action='store_true', help='If set, evaluate seeds in parallel using multiprocessing')
+
 
     args = parser.parse_args()
 
 
-    easy_mode = False
+    args.easy_mode = False
     if "easy" in args.binaries_path.lower():
-        easy_mode = True
+        args.easy_mode = True
 
 
-    if args.max_steps == 0 and not easy_mode:
+    if args.max_steps == 0 and not args.easy_mode:
         args.max_steps = 15000 if args.test_mode else 250 # 250 for training (5 seconds), 15000 for testing (5 minutes)
-    elif args.max_steps == 0 and easy_mode:
+    elif args.max_steps == 0 and args.easy_mode:
         args.max_steps = 30000 if args.test_mode else 500 # 500 for training (5 seconds), 30000 for testing (5 minutes)
 
 
@@ -195,19 +209,38 @@ if __name__ == "__main__":
             }
             groups[group_key]['first_model'] = model_file
 
+        args.ppo_type = params['ppo_type']
+        args.hidden_size = params['hidden_size']
         model_path = os.path.join(args.binaries_path, model_file)
-        seed_results = {}
-        for eval_seed in args.eval_seeds:
-            reward = evaluate_model(
-                model_path=model_path,
-                ppo_type=params['ppo_type'],
-                hidden_size=params['hidden_size'],
-                eval_seed=eval_seed,
-                max_steps=args.max_steps,
-                easy_mode=easy_mode,
-                args=args
-            )
-            seed_results[eval_seed] = reward
+
+        if args.multiprocess:
+            tasks = [(model_path, args, seed) for seed in args.eval_seeds]
+            n_workers = min(30, len(tasks))
+            pool = mp.Pool(processes=n_workers)
+            try:
+                results = pool.map(eval_for_seed, tasks)
+            except KeyboardInterrupt:
+                print("\nKeyboard interrupt detected. Terminating all processes...")
+                pool.terminate()
+                pool.join()
+                sys.exit(1)
+            else:
+                pool.close()
+                pool.join()
+            seed_results = {seed: rew for seed, rew in results}
+        else:
+            seed_results = {}
+            for eval_seed in args.eval_seeds:
+                reward = evaluate_model(
+                    model_path=model_path,
+                    ppo_type=params['ppo_type'],
+                    hidden_size=params['hidden_size'],
+                    eval_seed=eval_seed,
+                    max_steps=args.max_steps,
+                    easy_mode=args.easy_mode,
+                    args=args
+                )
+                seed_results[eval_seed] = reward
 
         groups[group_key]['seeds'][params['model_seed']] = seed_results
 

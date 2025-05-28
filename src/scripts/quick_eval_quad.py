@@ -9,25 +9,58 @@ import argparse
 import gymnasium as gym
 import re
 from collections import defaultdict
+from tqdm import tqdm
+import multiprocessing as mp
+import pathlib
+from gymnasium.wrappers import RecordVideo
+
 from environment.quad.quad_gym import QuadEnv
 from agents import PPOAgent, GruAgent
-from tqdm import tqdm
+
+# VIDEO_NUM = 0
+
+def eval_for_seed(args_tuple):
+    (model_path, ppo_type, hidden_size, eval_seed,
+     max_steps, args, env_type, test_mode) = args_tuple
+
+    reward, goal_reached = evaluate_model(
+        model_path=model_path,
+        ppo_type=ppo_type,
+        hidden_size=hidden_size,
+        eval_seed=eval_seed,
+        max_steps=max_steps,
+        args=args,
+        env_type=env_type,
+        test_mode=test_mode
+    )
+    return eval_seed, (reward, goal_reached)
 
 
 def evaluate_model(model_path, ppo_type, hidden_size, eval_seed, max_steps, args, env_type, test_mode):
     
     torch.manual_seed(eval_seed)
     np.random.seed(eval_seed)
+
+    # video_dir = str(pathlib.Path(__file__).parent.resolve() / "videos")
+    # os.makedirs(video_dir, exist_ok=True)
     
     use_po = (env_type == 'QuadPO')
     def make_env():
         env =  QuadEnv(n_steps=max_steps, 
                        use_po=use_po, 
                        test_mode=test_mode, 
-                       render_mode=None)
+                       render_mode='rgb_array')
         
         # For Quad 2d (original)
+        # global VIDEO_NUM
+        # env = RecordVideo(
+        #     env,
+        #     video_folder=video_dir,
+        #     episode_trigger=lambda episode: episode == 0,
+        #     name_prefix="quad_test_" + str(VIDEO_NUM),
+        # )
         env = gym.wrappers.ClipAction(env)
+        # VIDEO_NUM += 1
         return env
     
     envs = gym.vector.SyncVectorEnv([make_env])
@@ -107,6 +140,7 @@ if __name__ == "__main__":
     parser.add_argument('--max_steps', type=int, default=5000, help="Max steps per evaluation episode")
     parser.add_argument('--test_mode', action='store_true', help="Use test mode for the environment")
     parser.add_argument('--feature_extractor', action='store_true', help="The agent has feature extractor or not")
+    parser.add_argument('--multiprocess', action='store_true', help='If set, evaluate seeds in parallel using multiprocessing')
     
     args = parser.parse_args()
 
@@ -168,20 +202,47 @@ if __name__ == "__main__":
             groups[group_key]['params'] = params
             groups[group_key]['first_model'] = model_file
 
+        env_type   = match.group(1)
+        ppo_type   = params['ppo_type']
+        hidden_size= params['hidden_size']
+        model_seed = params['model_seed']
+
         model_path = os.path.join(args.binaries_path, model_file)
-        seed_results = {}
-        for eval_seed in args.eval_seeds:
-            reward, goal_reached = evaluate_model(
-                model_path=model_path,
-                ppo_type=params['ppo_type'],
-                hidden_size=params['hidden_size'],
-                eval_seed=eval_seed,
-                max_steps=args.max_steps,
-                args=args,
-                env_type=env_type,
-                test_mode=args.test_mode
-            )
-            seed_results[eval_seed] = (reward, goal_reached)
+
+        if args.multiprocess:
+            tasks = [
+                (model_path, ppo_type, hidden_size, seed,
+                 args.max_steps, args, env_type, args.test_mode)
+                for seed in args.eval_seeds
+            ]
+            n_workers = min(30, len(tasks))
+            pool = mp.Pool(processes=n_workers)
+            try:
+                results = pool.map(eval_for_seed, tasks)
+            except KeyboardInterrupt:
+                pool.terminate()
+                pool.join()
+                sys.exit(1)
+            else:
+                pool.close()
+                pool.join()
+            seed_results = {
+                seed: (rew, goal) for seed, (rew, goal) in results
+            }
+        else:
+            seed_results = {}
+            for eval_seed in args.eval_seeds:
+                reward, goal_reached = evaluate_model(
+                    model_path=model_path,
+                    ppo_type=params['ppo_type'],
+                    hidden_size=params['hidden_size'],
+                    eval_seed=eval_seed,
+                    max_steps=args.max_steps,
+                    args=args,
+                    env_type=env_type,
+                    test_mode=args.test_mode
+                )
+                seed_results[eval_seed] = (reward, goal_reached)
 
         groups[group_key]['seeds'][params['model_seed']] = seed_results
 
@@ -191,11 +252,6 @@ if __name__ == "__main__":
         total_runs = 0
         total_goals_reached = 0
 
-        # for model_file, seeds in group_data['seeds'].items():
-        #     # all_rewards.extend(seeds.values())
-        #     all_rewards.extend([reward for reward, _ in seeds.values()])
-        # group_data['avg_reward'] = np.mean(all_rewards) if all_rewards else 0
-        # sorted_groups.append((group_data['avg_reward'], group_data))
 
         for model_seed, seeds in group_data['seeds'].items():
             for eval_seed, (reward, goal_reached) in seeds.items():
@@ -206,7 +262,7 @@ if __name__ == "__main__":
         
         group_data['avg_reward'] = np.mean(all_rewards) if all_rewards else 0
         group_data['goal_reached_percent'] = (total_goals_reached / total_runs * 100) if total_runs > 0 else 0
-        sorted_groups.append((group_data['avg_reward'], group_data))
+        sorted_groups.append((group_data['goal_reached_percent'], group_data))
 
     sorted_groups.sort(reverse=True, key=lambda x: x[0])
 
@@ -238,6 +294,12 @@ if __name__ == "__main__":
             f.write("Results per training seed:\n")
             # for model_file, seeds in group['seeds'].items():
             for model_seed, seeds in sorted(group['seeds'].items()):
+
+                # compute % of eval seeds that reached goal for this model_seed
+                total = len(seeds)
+                reached = sum(1 for (_, goal) in seeds.values() if goal)
+                percent_goal = 100.0 * reached / total
+
                 rewards = []
                 for es in args.eval_seeds:
                     reward_val, goal_reached = seeds[es]
@@ -248,7 +310,7 @@ if __name__ == "__main__":
                     else:
                         rewards.append(f"{reward_val:.1f}")
 
-                f.write(f"  sd {model_seed}: {' '.join(rewards)}\n")    
+                f.write(f"  sd {model_seed}: Goal%={percent_goal:.1f}%  | {' '.join(rewards)}\n")    
             f.write(f"First Model: {group['first_model']}\n")
             f.write("----------------------------------------\n")
 
