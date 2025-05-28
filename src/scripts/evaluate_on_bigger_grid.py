@@ -159,6 +159,7 @@ if __name__ == "__main__":
     parser.add_argument('--feature_extractor', action='store_true')
     parser.add_argument('--value_learning_rate', default=0.0, type=float)
     parser.add_argument('--time', type=int)
+    parser.add_argument('--nmb', default=32, type=int, help="Num minibatches")
 
     parser.add_argument('--model_seed', default=0, type=int)
     parser.add_argument('--log_path', default="logs/", type=str)
@@ -171,7 +172,7 @@ if __name__ == "__main__":
     print(vars(args))
 
     # model_file_name = f'binary/PPO-Karel_{args.task_name}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{args.model_seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}_vlr{args.value_learning_rate}_{args.ppo_type}_MODEL_{args.time}.pt'
-    # model_file_name = f'binary/PPO-Karel_{args.task_name}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{args.model_seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}-l1{args.l1_lambda}-{args.ppo_type}-MODEL-{args.time}.pt'
-    model_file_name = f'binary/test_maze_wide/PPO-Karel_{args.task_name}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{args.model_seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}-l1{args.l1_lambda}-{args.ppo_type}-MODEL-{args.time}.pt'
+    model_file_name = f'binary/PPO-Karel_{args.task_name}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{args.model_seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}-l1{args.l1_lambda}-{args.ppo_type}-MODEL-{args.time}.pt'
+    # model_file_name = f'binary/wide_maze_best_sweep/PPO-Karel_{args.task_name}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{args.model_seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}-l1{args.l1_lambda}-NMB{args.nmb}-{args.ppo_type}-MODEL-{args.time}.pt'
 
     evaluate_model_on_large_grid(model_file_name, args)

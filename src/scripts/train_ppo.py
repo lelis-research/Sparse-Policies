@@ -35,7 +35,6 @@ def main(args):
 
     run_time = int(time.time())
     
-    # run_name = f"{args.env_id}__{args.total_timesteps}__{args.learning_rate}__{args.seed}__{run_time}_{args.exp_name}"
     run_name = f"{args.env_id}__{args.total_timesteps}__{args.seed}__{run_time}_{args.exp_name}"
 
 
@@ -133,18 +132,6 @@ def main(args):
         buffer += f"\n- {key}: {value}"
     logger.info(buffer)
 
-    # if args.env_id == "MiniGrid-SimpleCrossingS9N1-v0":
-    #     model_file_name = f'binary/simple-crossing-s9n1-v0/PPO-gw{args.game_width}' + \
-    #                     f'-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}_MODEL.pt'
-    #     envs = gym.vector.SyncVectorEnv( 
-    #         [make_env_simple_crossing(view_size=game_width, seed=seed) for _ in range(args.num_envs)])
-    
-    # elif args.env_id == "MiniGrid-FourRooms-v0":
-    #     model_file_name = f'binary/four-rooms/PPO-gw{args.game_width}' + \
-    #                     f'-h{args.hidden_size}-sd{seed}_MODEL.pt'
-    #     envs = gym.vector.SyncVectorEnv( 
-    #         [make_env_four_rooms(view_size=game_width, seed=seed) for _ in range(args.num_envs)])
- 
     if "ComboGrid" in args.env_id:
         problem = args.env_id[len("ComboGrid_"):]
         if args.options_enabled:
@@ -177,9 +164,9 @@ def main(args):
 
    
     elif "Karel" in args.env_id:
-        # model_file_name = f'binary/PPO-{args.env_id}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}_vlr{args.value_learning_rate}_{args.ppo_type}_MODEL_{run_time}.pt'
-        # model_file_name = f'binary/PPO-{args.env_id}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}-l1{args.l1_lambda}-{args.ppo_type}-MODEL-{run_time}.pt'
-        model_file_name = f'binary/PPO-{args.env_id}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}-l1{args.l1_lambda}-NMB{args.num_minibatches}-{args.ppo_type}-MODEL-{run_time}.pt'
+        folder = f"Karel"
+        if not os.path.exists(f'binary/{folder}'):  os.makedirs(f'binary/{folder}')
+        model_file_name = f'binary/{folder}/PPO-{args.env_id}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}-l1{args.l1_lambda}-{args.ppo_type}-MODEL-{run_time}.pt'
         problem = args.env_id[len("Karel_"):]
 
         env_config = {
@@ -203,7 +190,9 @@ def main(args):
 
     
     elif "Cartpole" in args.env_id:
-        model_file_name = f'binary/PPO-{args.env_id}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}-l1{args.l1_lambda}-{args.ppo_type}-MODEL-{run_time}.pt'
+        folder = f"Cartpole"
+        if not os.path.exists(f'binary/{folder}'):  os.makedirs(f'binary/{folder}')
+        model_file_name = f'binary/{folder}/PPO-{args.env_id}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}-l1{args.l1_lambda}-{args.ppo_type}-MODEL-{run_time}.pt'
         last_action_in_obs = True if "LACIO" in args.exp_name else False    # LACIO: Last Action In Observation
         
         if "easy" in args.env_id.lower():
@@ -218,13 +207,16 @@ def main(args):
         
     
     elif "car" == args.env_id:
-        model_file_name = f'binary/PPO-{args.env_id}-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}-l1{args.l1_lambda}-{args.ppo_type}-MODEL-{run_time}.pt'
+        folder = f"Car"
+        if not os.path.exists(f'binary/{folder}'):  os.makedirs(f'binary/{folder}')
+        model_file_name = f'binary/{folder}/PPO-{args.env_id}-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}-l1{args.l1_lambda}-{args.ppo_type}-MODEL-{run_time}.pt'
         envs = gym.vector.SyncVectorEnv([make_car_env(max_episode_steps=args.max_steps) for _ in range(args.num_envs)])
 
     
     elif "Quad" in args.env_id:
-
-        model_file_name = f"binary/PPO-{args.env_id}-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}-l1{args.l1_lambda}-{args.ppo_type}-MODEL-{run_time}.pt"
+        folder = f"Quad"
+        if not os.path.exists(f'binary/{folder}'):  os.makedirs(f'binary/{folder}')
+        model_file_name = f"binary/{folder}/PPO-{args.env_id}-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}-l1{args.l1_lambda}-{args.ppo_type}-MODEL-{run_time}.pt"
         
         if args.env_id == "QuadPO":
             envs = gym.vector.SyncVectorEnv([make_quad_env(max_episode_steps=args.max_steps, use_po=True) for _ in range(args.num_envs)])
@@ -287,8 +279,8 @@ if __name__ == "__main__":
             'seed_aucs': seed_aucs,
             'mean_auc': mean_auc
             }
-            with open(f"sweep_summary_{args.exp_name}.json", "w") as f:
-                json.dump(summary, f, indent=2)
+            # with open(f"sweep_summary_{args.exp_name}.json", "w") as f:
+            #     json.dump(summary, f, indent=2)
 
             print(f"[SWEEP DONE] {args.exp_name} → mean AUC = {mean_auc:.2f}")
         except KeyboardInterrupt:
