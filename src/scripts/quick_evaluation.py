@@ -35,6 +35,7 @@ def evaluate_model_on_large_grid(model_path, args):
         'seed': args.karel_seed,
         'initial_state': None,
         'reward_scale': False,
+        'wide_maze': args.wide,
     }
 
     def make_env():
@@ -129,6 +130,7 @@ if __name__ == "__main__":
     parser.add_argument('--karel_seeds', nargs='+', type=int, default=list(range(0,10)), help="For testing on multiple seeds")
     parser.add_argument('--feature_extractor', action='store_true')
     parser.add_argument('--multiprocess', action='store_true', help='If set, evaluate seeds in parallel using multiprocessing')
+    parser.add_argument('--wide', action='store_true', help="Use wide maze")
 
     args = parser.parse_args()
 
@@ -241,7 +243,7 @@ if __name__ == "__main__":
 
     # Print formatted results
     eval_name = args.binaries_path.split('/')[-2]   # [-1] is "binary"
-    output_filename = f"{project_root}/Scripts/evaluation/karel/paper/eval{args.game_width_eval}_{eval_name}.txt"
+    output_filename = f"{project_root}/Scripts/evaluation/karel/eval{args.game_width_eval}_{eval_name}.txt"
     output_dir = os.path.dirname(output_filename)
     if not os.path.exists(output_dir): os.makedirs(output_dir)
     with open(output_filename, 'w') as f:
