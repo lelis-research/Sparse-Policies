@@ -26,3 +26,5 @@ tree
 *.jpg
 *.jpeg
 *.json
+tests
+old
