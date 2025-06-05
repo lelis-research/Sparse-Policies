@@ -82,17 +82,6 @@ def main(args):
         gridded_map.plot_map(path, start, goal, f'{BASE_DIR}/plots/dijkstra_path_{args.task_name}_grid{args.game_width}_seed{args.seed}_wide{env_config["wide_maze"]}')
         nodes_expanded_dijkstra.append(expanded_diskstra)
         time_dijkstra.append(time_end - time_start)
-        verified_path = verify_path(start, goal, path, gridded_map)
-
-        # if cost != solution_costs[i] or not verified_path:
-        # if not verified_path:
-        #     print("There is a mismatch in the solution cost found by Dijkstra and what was expected for the problem:")
-        #     print("Start state: ", start)
-        #     print("Goal state: ", goal)
-        #     print("Solution cost encountered: ", cost)
-        #     # print("Solution cost expected: ", solution_costs[i])
-        #     print("Is the path correct?", verified_path)
-        #     print()    
 
 
 
