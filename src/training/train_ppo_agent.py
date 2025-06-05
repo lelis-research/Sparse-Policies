@@ -79,6 +79,7 @@ def train_ppo(envs: gym.vector.SyncVectorEnv, args, model_file_name, device, wri
         )  # hidden and cell states (see https://youtu.be/8HyCNIVRbSU)
     elif args.ppo_type == 'gru':
         next_rnn_state = torch.zeros(agent.gru.num_layers, args.num_envs, agent.gru.hidden_size).to(device)
+        rnn_states = torch.zeros((args.num_steps, args.num_envs, agent.gru.num_layers, agent.gru.hidden_size), device=device)
 
 
     for iteration in range(1, args.num_iterations + 1):
@@ -107,6 +108,9 @@ def train_ppo(envs: gym.vector.SyncVectorEnv, args, model_file_name, device, wri
             global_step += args.num_envs
             obs[step] = next_obs
             dones[step] = next_done
+            
+            if args.ppo_type == 'gru':
+                rnn_states[step] = next_rnn_state.permute(1, 0, 2)
 
             # ALGO LOGIC: action logic
             with torch.no_grad():
@@ -168,6 +172,8 @@ def train_ppo(envs: gym.vector.SyncVectorEnv, args, model_file_name, device, wri
         b_advantages = advantages.reshape(-1)
         b_returns = returns.reshape(-1)
         b_values = values.reshape(-1)
+        if args.ppo_type == 'gru':
+            b_rnn_states = rnn_states.reshape(-1, agent.gru.num_layers, agent.gru.hidden_size)  # (T*N, layer, hidden)
 
         # Optimizing the policy and value network
         if args.ppo_type == "original":
@@ -244,9 +250,11 @@ def train_ppo(envs: gym.vector.SyncVectorEnv, args, model_file_name, device, wri
                     mb_inds = b_inds[start:end]
 
                     if args.ppo_type == 'gru':
+                        minibatch_rnn_states = b_rnn_states[mb_inds].transpose(0, 1)  # (layer, minibatch, hidden)
                         _, newlogprob, entropy, newvalue, _ = agent.get_action_and_value(
                             b_obs[mb_inds],
-                            initial_rnn_state[:, mb_inds],
+                            # initial_rnn_state[:, mb_inds],
+                            minibatch_rnn_states,
                             b_dones[mb_inds],
                             b_actions[mb_inds],
                         )
