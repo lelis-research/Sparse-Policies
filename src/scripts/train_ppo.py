@@ -165,7 +165,7 @@ def main(args):
    
     elif "Karel" in args.env_id:
         folder = f"Karel"
-        if not os.path.exists(f'binary/{folder}'):  os.makedirs(f'binary/{folder}')
+        os.makedirs(f'binary/{folder}', exist_ok=True)
         model_file_name = f'binary/{folder}/PPO-{args.env_id}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}-l1{args.l1_lambda}-{args.ppo_type}-MODEL-{run_time}.pt'
         problem = args.env_id[len("Karel_"):]
 
@@ -191,7 +191,7 @@ def main(args):
     
     elif "Cartpole" in args.env_id:
         folder = f"Cartpole"
-        if not os.path.exists(f'binary/{folder}'):  os.makedirs(f'binary/{folder}')
+        os.makedirs(f'binary/{folder}', exist_ok=True)
         model_file_name = f'binary/{folder}/PPO-{args.env_id}-gw{args.game_width}-gh{args.game_height}-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}-l1{args.l1_lambda}-{args.ppo_type}-MODEL-{run_time}.pt'
         last_action_in_obs = True if "LACIO" in args.exp_name else False    # LACIO: Last Action In Observation
         
@@ -208,14 +208,14 @@ def main(args):
     
     elif "car" == args.env_id:
         folder = f"Car"
-        if not os.path.exists(f'binary/{folder}'):  os.makedirs(f'binary/{folder}')
+        os.makedirs(f'binary/{folder}', exist_ok=True)
         model_file_name = f'binary/{folder}/PPO-{args.env_id}-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}-l1{args.l1_lambda}-{args.ppo_type}-MODEL-{run_time}.pt'
         envs = gym.vector.SyncVectorEnv([make_car_env(max_episode_steps=args.max_steps) for _ in range(args.num_envs)])
 
     
     elif "Quad" in args.env_id:
         folder = f"Quad"
-        if not os.path.exists(f'binary/{folder}'):  os.makedirs(f'binary/{folder}')
+        os.makedirs(f'binary/{folder}', exist_ok=True)
         model_file_name = f"binary/{folder}/PPO-{args.env_id}-h{args.hidden_size}-lr{args.learning_rate}-sd{seed}-entcoef{args.ent_coef}-clipcoef{args.clip_coef}-l1{args.l1_lambda}-{args.ppo_type}-MODEL-{run_time}.pt"
         
         if args.env_id == "QuadPO":
