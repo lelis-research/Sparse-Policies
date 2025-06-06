@@ -32,16 +32,36 @@ python src/scripts/train_ppo.py \
 
 To train 30 seeds in parallel add `--multiprocessing`.
 
-To train the wide maze:
+To train the `wide maze`:
 ```
 --env_id Karel_maze --wide_maze
 ```
 
 # Evaluation
 
-## Evaluating Karel Tasks
+Evaluation script for karel tasks:
+```
+python src/scripts/evaluate_on_bigger_grid.py \
+--task_name stair_climber \
+--game_width 12 \   # details of the model you want to load
+--game_height 12 \   # details of the model you want to load
+--max_steps 100 \   # for evaluation
+--sparse_reward \   # details of the model you want to load
+--model_seed 0 \   # details of the model you want to load
+--karel_seed 9 \    # initial conf seed, for reproducability
+--hidden_size 32 \   # details of the model you want to load
+--ppo_type original \   # details of the model you want to load
+--game_width_eval 12 \  # grid width that you want to test on
+--game_height_eval 12 \  # grid height that you want to test on
+--learning_rate 0.0001 \   # details of the model you want to load
+--ent_coef 0.1 \   # details of the model you want to load
+--clip_coef 0.2 \   # details of the model you want to load
+--time 1738007119 \  # timestep of the model
+--record_video  # to record a video of it
+```
 
-## Evaluating Cartpole Tasks
+<br>
 
-## Evaluating Quad and Parallel Park Tasks
+You can use [`evaluate_cartpole.py`](https://github.com/lelis-research/Sparse-Policies/blob/main/src/scripts/evaluate_cartpole.py) to evaluate Cartpole tasks, and [`evaluate_car_quad.py`](https://github.com/lelis-research/Sparse-Policies/blob/main/src/scripts/evaluate_car_quad.py) for Parallel park.
+
 
