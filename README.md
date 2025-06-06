@@ -62,6 +62,6 @@ python src/scripts/evaluate_on_bigger_grid.py \
 
 <br>
 
-You can use [`evaluate_cartpole.py`](https://github.com/lelis-research/Sparse-Policies/blob/main/src/scripts/evaluate_cartpole.py) to evaluate Cartpole tasks, and [`evaluate_car_quad.py`](https://github.com/lelis-research/Sparse-Policies/blob/main/src/scripts/evaluate_car_quad.py) for Parallel park.
+You can use [`evaluate_cartpole.py`](https://github.com/lelis-research/Sparse-Policies/blob/main/src/scripts/evaluate_cartpole.py) to evaluate `Cartpole` tasks, and [`evaluate_car_quad.py`](https://github.com/lelis-research/Sparse-Policies/blob/main/src/scripts/evaluate_car_quad.py) for `Parallel park` and `Quad` tasks.
 
 
