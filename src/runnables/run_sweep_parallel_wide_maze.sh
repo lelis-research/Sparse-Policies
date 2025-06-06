@@ -1,11 +1,11 @@
 #!/bin/bash
-#SBATCH --cpus-per-task=1
+#SBATCH --cpus-per-task=2
 #SBATCH --mem=4G
 #SBATCH --time=01-00:00
 #SBATCH --account=aip-lelis
 #SBATCH --mail-user=arajabpo@ualberta.ca
 #SBATCH --mail-type=ALL
-#SBATCH --output=job_logs/test_sweep_maze/%N-%j.out  # %N for node name, %j for jobID
+#SBATCH --output=job_logs/sweep_maze_wide_gru/%N-%j.out  # %N for node name, %j for jobID
 #SBATCH --array=0-647
 
 
@@ -76,13 +76,14 @@ python ~/scratch/Sparse-Policies/src/scripts/train_ppo.py \
   --max_steps 1000 \
   --num_steps 3000 \
   --hidden_size "${H}" \
-  --total_timesteps 2_000_000 \
+  --total_timesteps 5_000_000 \
   --num_envs 1 \
   --num_minibatches "${NMB}" \
-  --ppo_type original \
+  --ppo_type gru \
+  --value_learning_rate 0.0005 \
   --learning_rate "${LR}" \
   --l1_lambda "${L1}" \
   --ent_coef "${ENT}" \
   --clip_coef "${CLIP}" \
-  --exp_name "maze_wide_sweep_SD01234_LR${LR}_CLIP${CLIP}_ENT${ENT}_L1${L1}_H${H}_NumMinibatch${NMB}" \
+  --exp_name "maze_wide_sweep_gru_SD01234_LR${LR}_CLIP${CLIP}_ENT${ENT}_L1${L1}_H${H}_NMB${NMB}_vlr0.0005" \
   --multiprocessing
