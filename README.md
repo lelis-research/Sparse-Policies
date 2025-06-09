@@ -32,7 +32,7 @@ python src/scripts/train_ppo.py \
 
 To train 30 seeds in parallel add `--multiprocessing`.
 
-To train the `wide maze`:
+To train the `wide maze` (in the paper, `wide maze` is referred to as `SparseMaze`, but in the implementation, `Sparse` is used for sparse reward.):
 ```
 --env_id Karel_maze --wide_maze
 ```
